@@ -44,7 +44,7 @@ impl GameState {
             KeyCode::I => {
                 self.ui.toggle_ui();
                 tick = false
-            },
+            }
             KeyCode::Comma | KeyCode::G => {
                 tick |= self.sim.do_player_action(PlayerAction::PickUp);
             }
@@ -57,8 +57,23 @@ impl GameState {
             KeyCode::D => {
                 tick |= self.sim.do_player_action(PlayerAction::Drop(0));
             }
+            KeyCode::Escape => {
+                self.ui.ui_selected = false;
+            }
             _ => {
-
+                let key = key as usize;
+                if key >= KeyCode::Key0 as usize && key <= KeyCode::Key9 as usize {
+                    // Change this so that we only open the UI if a real
+                    // inventory item is selected.
+                    self.ui.ui_selected = true;
+                    let key = key - KeyCode::Key0 as usize;
+                    if self.ui.inventory_selected.contains(&key) {
+                        self.ui.inventory_selected.remove(&key);
+                    } else {
+                        self.ui.inventory_selected.insert(key);
+                    }
+                    tick = false
+                }
             }
         }
         if tick {
@@ -82,12 +97,86 @@ impl GameState {
     }
 }
 
+fn egui_setup() {
+    egui_macroquad::ui(|egui_ctx| {
+        let mut fonts = egui::FontDefinitions::default();
+        fonts.font_data.insert(
+            "DejaVuSansMono".to_owned(),
+            egui::FontData::from_static(include_bytes!("../assets/DejaVuSansMono.ttf")),
+        );
+        fonts
+            .families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .insert(0, "DejaVuSansMono".to_owned());
+        fonts
+            .families
+            .entry(egui::FontFamily::Monospace)
+            .or_default()
+            .push("DejaVuSansMono".to_owned());
+
+        egui_ctx.set_fonts(fonts);
+
+        let game_size = screen_width().min(screen_height());
+        let scale_factor = game_size / 300.0;
+        use egui::FontFamily::*;
+        use egui::TextStyle::*;
+        let mut style = (*egui_ctx.style()).clone();
+        style.text_styles = [
+            (
+                Heading,
+                egui::FontId::new(20.0 * scale_factor, Proportional),
+            ),
+            (
+                heading2(),
+                egui::FontId::new(25.0 * scale_factor, Proportional),
+            ),
+            (
+                heading3(),
+                egui::FontId::new(23.0 * scale_factor, Proportional),
+            ),
+            (Body, egui::FontId::new(18.0 * scale_factor, Proportional)),
+            (
+                egui::TextStyle::Monospace,
+                egui::FontId::new(14.0 * scale_factor, Proportional),
+            ),
+            (Button, egui::FontId::new(14.0 * scale_factor, Proportional)),
+            (Small, egui::FontId::new(10.0 * scale_factor, Proportional)),
+        ]
+        .into();
+        egui_ctx.set_style(style);
+
+        let mut visuals = egui::Visuals::default();
+        visuals.window_shadow.extrusion = 0.;
+        visuals.popup_shadow.extrusion = 0.;
+        egui_ctx.set_visuals(visuals);
+    });
+}
+
+#[inline]
+fn heading2() -> egui::TextStyle {
+    egui::TextStyle::Name("Heading2".into())
+}
+
+#[inline]
+fn heading3() -> egui::TextStyle {
+    egui::TextStyle::Name("ContextHeading".into())
+}
+
 #[macroquad::main("game")]
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
+    egui_setup();
+
+    let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::new(font);
     loop {
         clear_background(GRAY);
+
+        if (screen_width(), screen_height()) != last_size {
+            egui_setup();
+            last_size = (screen_width(), screen_height());
+        }
 
         if let Some(key) = get_last_key_pressed() {
             eprintln!("{key:?}");

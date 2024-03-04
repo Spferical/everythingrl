@@ -4,6 +4,7 @@ use macroquad::ui::{
     hash, root_ui,
     widgets::{Group, Window},
 };
+use std::collections::HashSet;
 
 use crate::world::{EquipmentKind, Item};
 use crate::{
@@ -15,9 +16,10 @@ use crate::{
 pub struct Ui {
     grid_size: usize,
     font: Font,
-    ui_selected: bool,
+    pub ui_selected: bool,
     camera_delta: Option<(f32, f32)>,
     last_upper_left: Option<Pos>,
+    pub inventory_selected: HashSet<usize>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -36,57 +38,88 @@ impl Ui {
             ui_selected: false,
             camera_delta: None,
             last_upper_left: None,
+            inventory_selected: HashSet::new(),
         }
     }
     pub fn toggle_ui(&mut self) {
         self.ui_selected = !self.ui_selected;
     }
 
-    fn render_inventory(&self) {
-        let game_size = screen_width().min(screen_height());
-        let offset_x = screen_width() / 10.;
-        let offset_y = game_size / 6.;
-
-        let window_width = (game_size / 4.).max(160.);
-        let window_height = (game_size / 1.5).max(200.);
-
-        let element_width = window_width - 20.;
-        let element_height = (window_height / 6.).max(50.);
-
-        Window::new(
-            hash!(),
-            vec2(offset_x, offset_y),
-            vec2(window_width, window_height),
-        )
-        .label("Inventory")
-        .titlebar(true)
-        .movable(false)
-        .ui(&mut *root_ui(), |ui| {
-            for i in 0..8 {
-                Group::new(hash!("inventory", i), Vec2::new(element_width, element_height)).ui(
-                    ui,
-                    |ui| {
-                        ui.label(
-                            Vec2::new(element_width * 0.1, element_height * 0.1),
-                            &format!("Item N {}", i),
-                        );
-                        ui.label(
-                            Vec2::new(element_width * 0.2, element_height * 0.4),
-                            "Type: Ice",
-                        );
-                        ui.label(
-                            Vec2::new(element_width * 0.2, element_height * 0.6),
-                            &format!("Attack {}", 2),
-                        );
-                        if ui.button(
-                            Vec2::new(element_width * 0.7, element_height * 0.1),
-                            "Equip",
-                        ) {
-                            println!("Test!");
-                        }
-                    },
-                );
+    fn toggle_row_selection(&mut self, row_index: usize, row_response: &egui::Response) {
+        if row_response.clicked() {
+            if self.inventory_selected.contains(&row_index) {
+                self.inventory_selected.remove(&row_index);
+            } else {
+                self.inventory_selected.insert(row_index);
             }
+        }
+    }
+
+    fn render_inventory(&mut self) {
+        egui_macroquad::ui(|egui_ctx| {
+            egui::Window::new("Inventory")
+                .resizable(false)
+                .anchor(egui::Align2::LEFT_TOP, egui::Vec2::new(0.0, 0.0))
+                .show(egui_ctx, |ui| {
+                    let text_height = egui::TextStyle::Body
+                        .resolve(ui.style())
+                        .size
+                        .max(ui.spacing().interact_size.y);
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        let table = egui_extras::TableBuilder::new(ui)
+                            .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+                            .column(egui_extras::Column::auto())
+                            .column(egui_extras::Column::auto())
+                            .column(egui_extras::Column::auto())
+                            .column(egui_extras::Column::auto())
+                            .sense(egui::Sense::click());
+                        table
+                            .header(text_height, |mut header| {
+                                header.col(|ui| {
+                                    ui.strong("Hotkey");
+                                });
+                                header.col(|ui| {
+                                    ui.strong("Type");
+                                });
+                                header.col(|ui| {
+                                    ui.strong("Attack");
+                                });
+                                header.col(|ui| {
+                                    ui.strong("Body Part");
+                                });
+                            })
+                            .body(|body| {
+                                body.rows(text_height, 8, |mut row| {
+                                    let row_index = row.index();
+                                    row.set_selected(self.inventory_selected.contains(&row_index));
+
+                                    row.col(|ui| {
+                                        ui.label(row_index.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label("Ice");
+                                    });
+                                    row.col(|ui| {
+                                        ui.label("4/4");
+                                    });
+                                    row.col(|ui| {
+                                        ui.label("Head");
+                                    });
+
+                                    self.toggle_row_selection(row_index, &row.response());
+                                });
+                            });
+                    });
+                    if ui.button("Equip/Unequip (e)").clicked() {
+                        println!("Equipped {:?}", self.inventory_selected);
+                    }
+                    if ui.button("Drop (d)").clicked() {
+                        println!("Dropped {:?}", self.inventory_selected);
+                    };
+                    if ui.button("Combine (c)").clicked() {
+                        println!("Combined {:?}", self.inventory_selected);
+                    };
+                });
         });
     }
 
@@ -192,9 +225,7 @@ impl Ui {
                 .collect::<Vec<Glyph>>(),
         );
 
-        if macroquad::ui::root_ui().button(None, "Inventory") {
-            self.toggle_ui();
-        }
+        egui_macroquad::draw();
     }
 
     fn render_glyphs(&self, glyphs: &[Glyph]) {
