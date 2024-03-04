@@ -26,7 +26,7 @@ def ask_mistral(messages):
     return response.json()["choices"][0]["message"]["content"]
 
 
-def ask_google(prompt_parts: list[str]):
+def ask_google(prompt_parts: list[str]) -> str:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={API_KEY}"
     headers = {"Content-Type": "application/json"}
     payload = {
@@ -58,3 +58,25 @@ def ask_google(prompt_parts: list[str]):
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+
+
+def ask_google_structured(input_fields: list[str], output_fields: list[str], instructions: str, examples: list[dict], input: dict) -> dict:
+    prompt_parts = [instructions]
+    for example in examples:
+        for field in input_fields:
+            prompt_parts.append(f"{field} {example[field]}")
+        for field in output_fields:
+            prompt_parts.append(f"{field} {example[field]}")
+    for field in input_fields:
+        prompt_parts.append(f"{field} {input[field]}")
+    response_text = ask_google(prompt_parts)
+    response_text = response_text.split(f"{output_fields[0]} ")[1]
+    output = {}
+    for i, field in enumerate(output_fields):
+        if i == len(output_fields) - 1:
+            output[field] = response_text
+        else:
+            next_field = output_fields[i+1]
+            field_output, response_text = response_text.split(f"{next_field}")
+            output[field] = field_output
+    return output
