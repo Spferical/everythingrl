@@ -1,0 +1,13 @@
+[package]
+name = "seven-drl-2024"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enum-map = "2.7.3"
+indexmap = "2.2.3"
+lazy_static = "1.4.0"
+macroquad = "0.4.4"
+rand = { version = "0.8", default-features=false, features=["small_rng"] }
