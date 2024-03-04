@@ -42,7 +42,7 @@
         craneLib = crane.lib.${system};
         src = lib.cleanSourceWith {
           src = craneLib.path ./.;
-          filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/static/.*$" path != null);
+          filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/assets/.*$" path != null);
         };
         craneLibWasm = craneLib.overrideToolchain (pkgs.rust-bin.stable.latest.default.override {
           targets = [ "wasm32-unknown-unknown" ];
@@ -72,6 +72,7 @@
             xorg.libXi
             xorg.libXrandr
             xorg.libxcb
+            alsaLib
           ] ++ lib.optionals pkgs.stdenv.isDarwin [
             # Additional darwin specific inputs can be set here
             pkgs.libiconv
