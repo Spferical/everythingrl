@@ -26,9 +26,27 @@ impl TileKind {
     }
 }
 
+pub enum EquipmentSlot {
+    Weapon,
+}
+
+#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
+pub enum EquipmentKind {
+    Sword,
+}
+
+impl EquipmentKind {
+    fn get_slot(&self) -> EquipmentSlot {
+        match self {
+            EquipmentKind::Sword => EquipmentSlot::Weapon,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
     Corpse(MobKind),
+    Equipment(EquipmentKind),
 }
 
 pub struct TileKindInfo {

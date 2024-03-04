@@ -5,6 +5,7 @@ use macroquad::ui::{
     widgets::{Group, Window},
 };
 
+use crate::world::{EquipmentKind, Item};
 use crate::{
     grid::Pos,
     grid::Rect,
@@ -119,7 +120,7 @@ impl Ui {
             character: '@',
             color: WHITE,
             location: (player_pos.x as usize, player_pos.y as usize),
-            layer: 1,
+            layer: 2,
         }];
         for pos in grid_rect {
             let tile = memory.tile_map[pos];
@@ -139,13 +140,14 @@ impl Ui {
                 });
                 if let Some(item) = tile.item {
                     let (character, color) = match item {
-                        crate::world::Item::Corpse(_) => ('%', MAROON),
+                        Item::Corpse(_) => ('%', MAROON),
+                        Item::Equipment(_) => ('[', SKYBLUE),
                     };
                     glyphs.push(Glyph {
                         character,
                         color,
                         location: (pos.x as usize, pos.y as usize),
-                        layer: 0,
+                        layer: 1,
                     });
                 }
             }
@@ -158,7 +160,7 @@ impl Ui {
                     character,
                     color,
                     location: (pos.x as usize, pos.y as usize),
-                    layer: 1,
+                    layer: 2,
                 });
             }
         }

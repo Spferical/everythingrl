@@ -6,7 +6,7 @@ use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, CARDINALS};
-use crate::world::{Mob, MobKind, TileKind, World};
+use crate::world::{EquipmentKind, Item, Mob, MobKind, TileKind, World};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -394,6 +394,8 @@ pub fn generate_world(world: &mut World, seed: u64) {
     // left ocean none beef
     fill_rect(world, Rect::new(-50, 10, -50, 50), TileKind::Floor);
     let start_room = Rect::new(-10, 10, -10, 10);
+
+    world[Pos::new(3, 3)].item = Some(Item::Equipment(EquipmentKind::Sword));
 
     let world_rect = Rect {
         x1: 11,
