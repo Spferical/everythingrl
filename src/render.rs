@@ -2,10 +2,11 @@ use macroquad::prelude::*;
 use macroquad::text::Font;
 use macroquad::ui::{
     hash, root_ui,
-    widgets::{self, Group, Window},
+    widgets::{Group, Window},
 };
 
 use crate::{
+    grid::Pos,
     grid::Rect,
     world::{MobKind, TileKind},
 };
@@ -14,6 +15,8 @@ pub struct Ui {
     grid_size: usize,
     font: Font,
     ui_selected: bool,
+    camera_delta: Option<(f32, f32)>,
+    last_upper_left: Option<Pos>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -30,6 +33,8 @@ impl Ui {
             grid_size: grid_size.unwrap_or(32),
             font,
             ui_selected: false,
+            camera_delta: None,
+            last_upper_left: None,
         }
     }
     pub fn toggle_ui(&mut self) {
@@ -91,6 +96,25 @@ impl Ui {
         let grid_rect =
             Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
         let upper_left = grid_rect.topleft();
+
+        self.camera_delta = Some(match self.camera_delta {
+            None => (0., 0.),
+            Some(old_delta) => {
+                let added_delta = match self.last_upper_left {
+                    None => (0., 0.),
+                    Some(old_upper_left) => (
+                        (upper_left.x - old_upper_left.x) as f32,
+                        (upper_left.y - old_upper_left.y) as f32,
+                    ),
+                };
+                (
+                    (old_delta.0 + added_delta.0) * 0.9,
+                    (old_delta.1 + added_delta.1) * 0.9,
+                )
+            }
+        });
+        self.last_upper_left = Some(upper_left);
+
         let mut glyphs = vec![Glyph {
             character: '@',
             color: WHITE,
@@ -176,31 +200,11 @@ impl Ui {
         let offset_y = (screen_height() - game_size) / 2. + 10.;
         let sq_size = (screen_height() - offset_y * 2.) / self.grid_size as f32;
 
+        let delta = self.camera_delta.unwrap_or((0.0, 0.0));
+        let delta = (delta.0 * sq_size, delta.1 * sq_size);
+
         // First, set the actual background of the grid to black
         draw_rectangle(offset_x, offset_y, game_size - 20., game_size - 20., BLACK);
-
-        // Next, draw the grid in.
-        for i in 1..self.grid_size {
-            draw_line(
-                offset_x,
-                offset_y + sq_size * i as f32,
-                screen_width() - offset_x,
-                offset_y + sq_size * i as f32,
-                1.,
-                DARKGRAY,
-            );
-        }
-
-        for i in 1..self.grid_size {
-            draw_line(
-                offset_x + sq_size * i as f32,
-                offset_y,
-                offset_x + sq_size * i as f32,
-                screen_height() - offset_y,
-                1.,
-                DARKGRAY,
-            );
-        }
 
         // Quick check to ensure that the foreground replaces the background.
         let mut z_buffer = vec![vec![0; self.grid_size]; self.grid_size];
@@ -211,17 +215,25 @@ impl Ui {
 
         for glyph in glyphs {
             if glyph.layer >= z_buffer[glyph.location.0][glyph.location.1] {
-                draw_text_ex(
-                    &format!("{}", glyph.character),
-                    offset_x + sq_size * (glyph.location.0 as f32 + 0.25),
-                    offset_y + sq_size * (glyph.location.1 as f32 + 0.75),
-                    TextParams {
-                        font_size: (sq_size * 0.8) as u16,
-                        font: Some(&self.font),
-                        color: glyph.color,
-                        ..Default::default()
-                    },
-                )
+                let x = delta.0 + offset_x + sq_size * (glyph.location.0 as f32 + 0.25);
+                let y = delta.1 + offset_y + sq_size * (glyph.location.1 as f32 + 0.75);
+                if x >= offset_x
+                    && x < game_size + offset_x - 20.0
+                    && y >= offset_y
+                    && y < game_size + offset_y - 20.0
+                {
+                    draw_text_ex(
+                        &format!("{}", glyph.character),
+                        x,
+                        y,
+                        TextParams {
+                            font_size: (sq_size * 0.8) as u16,
+                            font: Some(&self.font),
+                            color: glyph.color,
+                            ..Default::default()
+                        },
+                    )
+                }
             }
         }
     }
