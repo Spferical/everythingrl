@@ -3,21 +3,6 @@ import os
 
 import click
 import requests
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.serving import is_running_from_reloader
-
-
-app = Flask(__name__)
-
-# needed for running under reverse proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URI", "sqlite:///db.sqlite"
-)
 
 
 API_URL = "https://api.mistral.ai"
@@ -75,11 +60,7 @@ def ask_google(prompt_parts: list[str]):
     }
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
-    return response.json()['candidates'][0]['content']['parts'][0]['text']
-
-
-class Base(DeclarativeBase):
-    pass
+    return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
 
 @click.group()
@@ -105,11 +86,9 @@ def craft(item1: str, item2: str):
 
 @cli.command()
 def server():
-    print(f"Using database {app.config['SQLALCHEMY_DATABASE_URI']}")
-    db = SQLAlchemy(model_class=Base)
-    db.init_app(app)
+    import web
 
-    app.run(debug=True)
+    web.run_server()
 
 
 def main():
