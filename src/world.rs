@@ -185,7 +185,7 @@ impl World {
             }
             PlayerAction::Unequip(i) => {
                 if i >= self.equipment.len() {
-                    eprintln!("Bad equip idx: {i}");
+                    eprintln!("Bad unequip idx: {i}");
                     false
                 } else {
                     let item = self.equipment.remove(i);
