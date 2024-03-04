@@ -55,7 +55,7 @@ impl Ui {
         }
     }
 
-    fn render_inventory(&mut self) {
+    fn render_inventory(&mut self, sim: &crate::world::World) {
         egui_macroquad::ui(|egui_ctx| {
             egui::Window::new("Inventory")
                 .resizable(false)
@@ -72,11 +72,15 @@ impl Ui {
                             .column(egui_extras::Column::auto())
                             .column(egui_extras::Column::auto())
                             .column(egui_extras::Column::auto())
+                            .column(egui_extras::Column::auto())
                             .sense(egui::Sense::click());
                         table
                             .header(text_height, |mut header| {
                                 header.col(|ui| {
                                     ui.strong("Hotkey");
+                                });
+                                header.col(|ui| {
+                                    ui.strong("Name");
                                 });
                                 header.col(|ui| {
                                     ui.strong("Type");
@@ -89,12 +93,15 @@ impl Ui {
                                 });
                             })
                             .body(|body| {
-                                body.rows(text_height, 8, |mut row| {
+                                body.rows(text_height, sim.inventory.len(), |mut row| {
                                     let row_index = row.index();
                                     row.set_selected(self.inventory_selected.contains(&row_index));
 
                                     row.col(|ui| {
                                         ui.label(row_index.to_string());
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(format!("{:?}", sim.inventory[row_index]));
                                     });
                                     row.col(|ui| {
                                         ui.label("Ice");
@@ -125,7 +132,7 @@ impl Ui {
 
     pub fn render(&mut self, sim: &crate::world::World, memory: &crate::world::Memory) {
         if self.ui_selected {
-            self.render_inventory();
+            self.render_inventory(&sim);
         }
         let player_pos = sim.get_player_pos();
         let grid_rect =

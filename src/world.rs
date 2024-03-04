@@ -108,7 +108,7 @@ pub struct World {
     player_pos: Pos,
     tile_map: TileMap<Tile>,
     mobs: HashMap<Pos, Mob>,
-    inventory: Vec<Item>,
+    pub inventory: Vec<Item>,
     equipment: Vec<Item>,
     rng: rand::rngs::SmallRng,
 }
