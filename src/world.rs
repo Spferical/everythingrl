@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, Rect, TileMap, CARDINALS};
 use enum_map::{enum_map, Enum, EnumMap};
@@ -117,6 +117,7 @@ pub struct World {
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Vec<Item>,
     equipment: Vec<Item>,
+    pub log: VecDeque<(String, macroquad::color::Color)>,
     rng: rand::rngs::SmallRng,
 }
 
@@ -139,6 +140,7 @@ impl World {
         let rng = rand::rngs::SmallRng::seed_from_u64(72);
         let inventory = vec![];
         let equipment = vec![];
+        let log = VecDeque::new();
         Self {
             player_pos,
             tile_map,
@@ -146,7 +148,12 @@ impl World {
             rng,
             inventory,
             equipment,
+            log,
         }
+    }
+
+    pub fn log_message(&mut self, text: &str, color: macroquad::color::Color) {
+        self.log.push_back((text.into(), color));
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
@@ -156,6 +163,7 @@ impl World {
                 let new_pos = self.player_pos + offset;
                 if let Some(mob) = self.mobs.remove(&new_pos) {
                     // TODO: more advanced combat
+                    self.log_message("death has happened", macroquad::color::RED);
                     self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
                     true
                 } else if self.tile_map[new_pos].kind.is_walkable() {
@@ -312,10 +320,10 @@ impl World {
         let mut all_mobs: Vec<(i32, Mob)> = Vec::new();
         for pos in fov {
             if self.mobs.contains_key(&pos) {
-                all_mobs.push(
-                    ((self.player_pos - pos).dist_squared(),
-                    self.mobs[&pos].clone())
-                );
+                all_mobs.push((
+                    (self.player_pos - pos).dist_squared(),
+                    self.mobs[&pos].clone(),
+                ));
             }
         }
 

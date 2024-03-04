@@ -41,6 +41,7 @@ impl Ui {
             inventory_selected: HashSet::new(),
         }
     }
+
     pub fn toggle_ui(&mut self) {
         self.ui_selected = !self.ui_selected;
     }
@@ -249,6 +250,7 @@ impl Ui {
 
         let window_width = screen_width() - offset_x - 10.0;
 
+        // Rectangle for mob info.
         draw_rectangle(
             offset_x,
             offset_y,
@@ -257,7 +259,7 @@ impl Ui {
             BLACK,
         );
 
-        let texts: Vec<(String, macroquad::color::Color)> = sim
+        let mob_texts: Vec<(String, macroquad::color::Color)> = sim
             .get_visible_mobs()
             .iter()
             .map(|mob| {
@@ -268,15 +270,16 @@ impl Ui {
             })
             .collect();
 
-        let mut text_buffer: Vec<(String, macroquad::color::Color)> = Vec::new();
-        for (text, color) in texts {
+        let mut mob_text_buffer: Vec<(String, macroquad::color::Color)> = Vec::new();
+        for (text, color) in mob_texts {
             let wrapped = textwrap::wrap(&text, (window_width / (sq_size * 0.5)) as usize);
             for text in wrapped {
-                text_buffer.push((text.into(), color));
+                mob_text_buffer.push((text.into(), color));
             }
         }
+        mob_text_buffer.truncate(10);
 
-        for (i, (line, color)) in text_buffer.iter().enumerate() {
+        for (i, (line, color)) in mob_text_buffer.iter().enumerate() {
             draw_text_ex(
                 &line,
                 offset_x + 2.,
@@ -288,6 +291,37 @@ impl Ui {
                     ..Default::default()
                 },
             )
+        }
+
+        let log_offset_y_base = screen_height() / 2. + 10.;
+        let mut log_offset_y = log_offset_y_base;
+
+        draw_rectangle(
+            offset_x,
+            log_offset_y,
+            window_width,
+            game_size / 2. - 20.,
+            BLACK,
+        );
+
+        for (log_message, log_color) in sim.log.iter().rev().take(10) {
+            let wrapped_text =
+                textwrap::wrap(&log_message, (window_width / (sq_size * 0.5)) as usize);
+            for (i, substr) in wrapped_text.iter().enumerate() {
+                let y = log_offset_y + (i + 1) as f32 * sq_size;
+                draw_text_ex(
+                    &substr,
+                    offset_x + 2.,
+                    y,
+                    TextParams {
+                        font_size: (sq_size * 0.8) as u16,
+                        font: Some(&self.font),
+                        color: *log_color,
+                        ..Default::default()
+                    },
+                );
+            }
+            log_offset_y += wrapped_text.len() as f32 * sq_size;
         }
     }
 
