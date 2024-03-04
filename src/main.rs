@@ -118,7 +118,7 @@ fn egui_setup() {
         egui_ctx.set_fonts(fonts);
 
         let game_size = screen_width().min(screen_height());
-        let scale_factor = game_size / 300.0;
+        let scale_factor = screen_width() / 1024.0;
         use egui::FontFamily::*;
         use egui::TextStyle::*;
         let mut style = (*egui_ctx.style()).clone();
@@ -179,7 +179,6 @@ async fn main() {
         }
 
         if let Some(key) = get_last_key_pressed() {
-            eprintln!("{key:?}");
             gs.handle_key(key);
         }
 
