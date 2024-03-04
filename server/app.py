@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -20,6 +20,16 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 
 class Base(DeclarativeBase):
     pass
+
+
+@app.route("/test")
+def root():
+    return "hi"
+
+
+@app.route("/<path:path>")
+def serve_static(path):
+    return send_from_directory("../dist", path)
 
 
 def run_server():

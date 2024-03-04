@@ -66,13 +66,6 @@ def gen_monster(theme: str, level: str):
             print(f"Failed to load {monster_info}: {e}")
 
 
-@cli.command()
-def server():
-    import web
-
-    web.run_server()
-
-
 def main():
     cli()
 
