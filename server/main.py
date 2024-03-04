@@ -34,21 +34,21 @@ def craft(item1: str, item2: str):
 def gen_monster(theme: str, level: str):
     input_fields = ["theme", "level"]
     output_fields = ["monster 1", "monster 2", "monster 3"]
-    instructions = "You are the game master for a difficult permadeath roguelike. Monsters have a level and one or two pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. For each input theme and level, output JSON monster descriptions."
+    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta."
     examples = [
         {
             "theme": "nethack",
             "level": 1,
-            "monster 1": '{"name": "grid bug", "type1": "bug", "type2": "electric", "attack_type": "electric", "description": "These electronically based creatures are not native to this universe. They appear to come from a world whose laws of motion are radically different from ours."}',
-            "monster 2": '{"name": "floating eye", "type1": "psychic", "attack_type": "psychic", "description": "Floating eyes, not surprisingly, are large, floating eyeballs which drift about the dungeon. Though not dangerous in and of themselves, their power to paralyse those who gaze at their large eye in combat is widely feared."}',
-            "monster 3": '{"name": "yellow mold", "type1": "poison", "attack_type": "poison", "description": "Mold, multicellular organism of the division Fungi, typified by plant bodies composed of a network of cottony filaments."}',
+            "monster 1": '{"name": "grid bug", "char": "x", "color": "purple", "type1": "bug", "type2": "electric", "attack_type": "electric", "description": "These electronically based creatures are not native to this universe. They appear to come from a world whose laws of motion are radically different from ours."}',
+            "monster 2": '{"name": "floating eye", "char": "e", "color": "blue", "type1": "psychic", "attack_type": "psychic", "description": "Floating eyes, not surprisingly, are large, floating eyeballs which drift about the dungeon. Though not dangerous in and of themselves, their power to paralyse those who gaze at their large eye in combat is widely feared."}',
+            "monster 3": '{"name": "yellow mold", "char": "m", "color": "yellow", "type1": "poison", "attack_type": "poison", "description": "Mold, multicellular organism of the division Fungi, typified by plant bodies composed of a network of cottony filaments."}',
         },
         {
             "theme": "nethack",
             "level": 2,
-            "monster 1": '{"name": "water nymph", "type1": "water", "type2": "fairy", "attack_type": "water", "description": "A nymph\'s beauty is beyond words: an ever-young woman with sleek figure and long, thick hair, radiant skin and perfect teeth, full lips and gentle eyes."}',
-            "monster 2": '{"name": "centipede", "type1": "bug", "type2": "poison", "attack_type": "poison", "description": "Here they have light reddish bodies and blue legs; great myriapedes are seen crawling every where."}',
-            "monster 3": '{"name": "plains centaur", "type1": "normal", "attack_type": "normal", "description": "Centaurs are peculiar in that their nature, which unites the body of a horse with the trunk and head of a man, involves an unthinkable duplication of vital organs and important members."}',
+            "monster 1": '{"name": "water nymph", "char": "n", "color": "skyblue", "type1": "water", "type2": "fairy", "attack_type": "water", "description": "A nymph\'s beauty is beyond words: an ever-young woman with sleek figure and long, thick hair, radiant skin and perfect teeth, full lips and gentle eyes."}',
+            "monster 2": '{"name": "centipede", "char": "s", "color": "yellow", "type1": "bug", "type2": "poison", "attack_type": "poison", "description": "Here they have light reddish bodies and blue legs; great myriapedes are seen crawling every where."}',
+            "monster 3": '{"name": "plains centaur", "char": "c", "color": "orange", "type1": "normal", "attack_type": "normal", "description": "Centaurs are peculiar in that their nature, which unites the body of a horse with the trunk and head of a man, involves an unthinkable duplication of vital organs and important members."}',
         },
     ]
     input = {"theme": theme, "level": level}
