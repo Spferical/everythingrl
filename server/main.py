@@ -33,11 +33,13 @@ def ask_mistral(messages):
         "Authorization": f"Bearer {API_KEY}",
     }
 
-    payload = {"model": "mistral-medium", "messages": messages, "max_tokens": 300}
+    payload = {"model": "mistral-tiny", "messages": messages, "max_tokens": 300}
 
     response = requests.post(
         f"{API_URL}/v1/chat/completions", headers=headers, json=payload
     )
+
+    response.raise_for_status()
 
     return response.json()["choices"][0]["message"]["content"]
 
