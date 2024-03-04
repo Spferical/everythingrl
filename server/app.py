@@ -7,6 +7,8 @@ from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.serving import is_running_from_reloader
 
+import ai
+
 
 app = Flask(__name__)
 
@@ -22,19 +24,24 @@ class Base(DeclarativeBase):
     pass
 
 
-@app.route("/test")
-def root():
-    return "hi"
+@app.route("/monsters/<theme>/<int:level>")
+def monsters(theme, level):
+    monsters = ai.gen_monster(theme, level)
+    print(monsters)
+    return monsters
 
+@app.route("/")
+def root():
+    return send_from_directory("../dist", "index.html")
 
 @app.route("/<path:path>")
 def serve_static(path):
     return send_from_directory("../dist", path)
 
 
-def run_server():
-    print(f"Using database {app.config['SQLALCHEMY_DATABASE_URI']}")
-    db = SQLAlchemy(model_class=Base)
-    db.init_app(app)
+print(f"Using database {app.config['SQLALCHEMY_DATABASE_URI']}")
+db = SQLAlchemy(model_class=Base)
 
+if __name__ == "__main__":
+    db.init_app(app)
     app.run(debug=True)
