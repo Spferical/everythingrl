@@ -14,3 +14,4 @@ egui-macroquad = { git = "https://github.com/optozorax/egui-macroquad.git" }
 egui = "0.25.0"
 egui_extras = "0.25"
 rand = { version = "0.8", default-features=false, features=["small_rng"] }
+textwrap = "0.16.1"

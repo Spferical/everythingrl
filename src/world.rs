@@ -80,6 +80,13 @@ pub enum MobKind {
     Alien,
 }
 
+pub fn get_glyph(kind: MobKind) -> (char, macroquad::color::Color) {
+    match kind {
+        MobKind::Cat => ('c', macroquad::color::YELLOW),
+        MobKind::Alien => ('a', macroquad::color::PURPLE),
+    }
+}
+
 #[derive(Hash, Debug, Clone)]
 pub enum MobAi {
     Idle,
@@ -107,7 +114,7 @@ impl Mob {
 pub struct World {
     player_pos: Pos,
     tile_map: TileMap<Tile>,
-    mobs: HashMap<Pos, Mob>,
+    pub mobs: HashMap<Pos, Mob>,
     pub inventory: Vec<Item>,
     equipment: Vec<Item>,
     rng: rand::rngs::SmallRng,
@@ -298,6 +305,22 @@ impl World {
         } else {
             pos
         }
+    }
+
+    pub fn get_visible_mobs(&self) -> Vec<Mob> {
+        let fov = crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self);
+        let mut all_mobs: Vec<(i32, Mob)> = Vec::new();
+        for pos in fov {
+            if self.mobs.contains_key(&pos) {
+                all_mobs.push(
+                    ((self.player_pos - pos).dist_squared(),
+                    self.mobs[&pos].clone())
+                );
+            }
+        }
+
+        all_mobs.sort_by_key(|(dist_sq, _)| *dist_sq);
+        all_mobs.iter().map(|(_, mob)| mob.clone()).collect()
     }
 
     pub fn tick(&mut self) {

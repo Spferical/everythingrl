@@ -61,7 +61,7 @@ impl Offset {
         self.x.abs() + self.y.abs()
     }
     pub fn dist_squared(self) -> i32 {
-        self.x.abs() + self.y.abs()
+        self.x * self.x + self.y * self.y
     }
 
     pub fn closest_dir(self) -> Self {
