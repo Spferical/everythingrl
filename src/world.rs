@@ -26,6 +26,7 @@ impl TileKind {
     }
 }
 
+#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum EquipmentSlot {
     Weapon,
 }
@@ -107,11 +108,17 @@ pub struct World {
     player_pos: Pos,
     tile_map: TileMap<Tile>,
     mobs: HashMap<Pos, Mob>,
+    inventory: Vec<Item>,
+    equipment: Vec<Item>,
     rng: rand::rngs::SmallRng,
 }
 
 pub enum PlayerAction {
     Move(Offset),
+    PickUp,
+    Equip(usize),
+    Unequip(usize),
+    Drop(usize),
 }
 
 impl World {
@@ -120,34 +127,86 @@ impl World {
             kind: TileKind::Wall,
             item: None,
         });
+        let player_pos = Pos { x: 0, y: 0 };
         let mobs = HashMap::new();
         let rng = rand::rngs::SmallRng::seed_from_u64(72);
+        let inventory = vec![];
+        let equipment = vec![];
         Self {
-            player_pos: Pos { x: 0, y: 0 },
+            player_pos,
             tile_map,
             mobs,
             rng,
+            inventory,
+            equipment,
         }
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
-        let tick;
-        match action {
+        let tick = match action {
             PlayerAction::Move(offset) => {
                 assert!(offset.mhn_dist() == 1);
                 let new_pos = self.player_pos + offset;
                 if let Some(mob) = self.mobs.remove(&new_pos) {
                     // TODO: more advanced combat
                     self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
-                    tick = true;
+                    true
                 } else if self.tile_map[new_pos].kind.is_walkable() {
                     self.player_pos += offset;
-                    tick = true;
+                    true
                 } else {
-                    tick = false;
+                    false
                 }
             }
-        }
+            PlayerAction::PickUp => {
+                if let Some(item) = self.tile_map[self.player_pos].item.take() {
+                    self.inventory.push(item);
+                    true
+                } else {
+                    false
+                }
+            }
+            PlayerAction::Equip(i) => {
+                if i >= self.inventory.len() {
+                    eprintln!("Bad equip idx: {i}");
+                    false
+                } else {
+                    let item = self.inventory.remove(i);
+                    // unequip anything in the same slot
+                    if let Some(equipped_index) = self.equipment.iter().position(|x| match x {
+                        Item::Equipment(ek) => ek.get_slot() == ek.get_slot(),
+                        _ => false,
+                    }) {
+                        self.inventory.push(self.equipment.remove(equipped_index));
+                    }
+                    self.equipment.push(item);
+                    true
+                }
+            }
+            PlayerAction::Unequip(i) => {
+                if i >= self.equipment.len() {
+                    eprintln!("Bad equip idx: {i}");
+                    false
+                } else {
+                    let item = self.equipment.remove(i);
+                    self.inventory.push(item);
+                    true
+                }
+            }
+            PlayerAction::Drop(i) => {
+                if i >= self.inventory.len() {
+                    eprintln!("Bad drop idx: {i}");
+                    false
+                } else {
+                    let item = self.inventory.remove(i);
+                    if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
+                        self.inventory.push(item_on_ground)
+                    }
+                    self.tile_map[self.player_pos].item = Some(item);
+                    true
+                }
+            }
+        };
         if tick {
             self.tick();
         }
