@@ -44,11 +44,11 @@ impl Ui {
 
     fn render_inventory(&self) {
         let game_size = screen_width().min(screen_height());
-        let offset_x = screen_width() / 2. - game_size / 8.;
-        let offset_y = game_size / 3.;
+        let offset_x = screen_width() / 10.;
+        let offset_y = game_size / 6.;
 
         let window_width = (game_size / 4.).max(160.);
-        let window_height = (game_size / 2.).max(200.);
+        let window_height = (game_size / 1.5).max(200.);
 
         let element_width = window_width - 20.;
         let element_height = (window_height / 6.).max(50.);
@@ -60,9 +60,10 @@ impl Ui {
         )
         .label("Inventory")
         .titlebar(true)
+        .movable(false)
         .ui(&mut *root_ui(), |ui| {
             for i in 0..8 {
-                Group::new(hash!("shop", i), Vec2::new(element_width, element_height)).ui(
+                Group::new(hash!("inventory", i), Vec2::new(element_width, element_height)).ui(
                     ui,
                     |ui| {
                         ui.label(

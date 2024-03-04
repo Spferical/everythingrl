@@ -57,7 +57,9 @@ impl GameState {
             KeyCode::D => {
                 tick |= self.sim.do_player_action(PlayerAction::Drop(0));
             }
-            _ => {}
+            _ => {
+
+            }
         }
         if tick {
             self.tick();
