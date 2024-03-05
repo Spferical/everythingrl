@@ -214,3 +214,8 @@ def gen_monster(theme: str, level: int, count: int = 3):
     ]
     input = {"theme": theme, "level": level}
     return ask_google_structured(instructions, examples, input, count, schema)
+
+
+def gen_setting_desc(theme: str):
+    instructions = f"Write a two paragraph summary of a roguelike game based off of the following theme: {theme}. The game has three levels. Describe the setting, the kinds of monsters, items, level design, and the final boss."
+    return ask_google([instructions])

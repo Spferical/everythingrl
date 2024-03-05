@@ -36,6 +36,12 @@ def gen_monster(theme: str, level: str, count: int):
     print(json.dumps(ai.gen_monster(theme, int(level), int(count)), indent=2))
 
 
+@cli.command()
+@click.argument("theme")
+def gen_setting_desc(theme: str):
+    print(json.dumps(ai.gen_setting_desc(theme), indent=2))
+
+
 def main():
     cli()
 
