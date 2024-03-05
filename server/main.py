@@ -32,7 +32,7 @@ def craft(item1: str, item2: str):
 @click.argument("theme")
 @click.argument("level")
 def gen_monster(theme: str, level: str):
-    print(ai.gen_monster(theme, int(level))
+    print(ai.gen_monster(theme, int(level)))
 
 
 def main():
