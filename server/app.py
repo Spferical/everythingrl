@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import json
 
 from flask import Flask, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
@@ -27,12 +28,14 @@ class Base(DeclarativeBase):
 @app.route("/monsters/<theme>/<int:level>")
 def monsters(theme, level):
     monsters = ai.gen_monster(theme, level, 10)
-    print(monsters)
+    print(json.dumps(monsters, indent=2))
     return monsters
+
 
 @app.route("/")
 def root():
     return send_from_directory("../dist", "index.html")
+
 
 @app.route("/<path:path>")
 def serve_static(path):
