@@ -11,7 +11,7 @@ AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
 
 retry_strategy = Retry(
     total=4,
-    status_forcelist=[429, 500, 502, 503, 504],
+    status_forcelist=[429, 500],
     allowed_methods=frozenset(
         {"DELETE", "GET", "HEAD", "OPTIONS", "PUT", "TRACE", "POST"}
     ),
