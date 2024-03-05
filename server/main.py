@@ -31,8 +31,9 @@ def craft(item1: str, item2: str):
 @cli.command()
 @click.argument("theme")
 @click.argument("level")
-def gen_monster(theme: str, level: str):
-    print(ai.gen_monster(theme, int(level)))
+@click.argument("count")
+def gen_monster(theme: str, level: str, count: int):
+    print(json.dumps(ai.gen_monster(theme, int(level), int(count)), indent=2))
 
 
 def main():

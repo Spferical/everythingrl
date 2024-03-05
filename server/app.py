@@ -26,7 +26,7 @@ class Base(DeclarativeBase):
 
 @app.route("/monsters/<theme>/<int:level>")
 def monsters(theme, level):
-    monsters = ai.gen_monster(theme, level)
+    monsters = ai.gen_monster(theme, level, 10)
     print(monsters)
     return monsters
 
