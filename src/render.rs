@@ -242,11 +242,13 @@ impl Ui {
     fn render_side_ui(&self, sim: &crate::world::World, right_offset: f32) {
         let game_width = screen_width() - right_offset;
         let game_size = game_width.min(screen_height());
+        let game_height = game_size;
 
         let offset_x = (screen_width() + game_size - right_offset) / 2. + 10.;
         let offset_y = (screen_height() - game_size) / 2. + 10.;
+        let window_lower_bound = offset_y + (game_size - 20.);
 
-        let sq_size = (screen_height() - offset_y * 2.) / self.grid_size as f32;
+        let sq_size = (game_height - offset_y * 2.) / self.grid_size as f32;
 
         let window_width = screen_width() - offset_x - 10.0;
 
@@ -293,16 +295,12 @@ impl Ui {
             )
         }
 
-        let log_offset_y_base = screen_height() / 2. + 10.;
+        let log_offset_y_base = offset_y + game_size / 2. - 10.;
         let mut log_offset_y = log_offset_y_base;
+        let lower_bound = window_lower_bound - 30.;
+        let height = lower_bound - log_offset_y;
 
-        draw_rectangle(
-            offset_x,
-            log_offset_y,
-            window_width,
-            game_size / 2. - 20.,
-            BLACK,
-        );
+        draw_rectangle(offset_x, log_offset_y, window_width, height, BLACK);
 
         for (log_message, log_color) in sim.log.iter().rev().take(10) {
             let wrapped_text =
@@ -323,6 +321,24 @@ impl Ui {
             }
             log_offset_y += wrapped_text.len() as f32 * sq_size;
         }
+
+        let lower_bound = window_lower_bound;
+        let offset_y = window_lower_bound - 20.;
+        let height = 20.0;
+        draw_rectangle(offset_x, offset_y, window_width, height, BLACK);
+
+        let status = "10 HP 10 AMMO";
+        draw_text_ex(
+            status,
+            offset_x + 5.,
+            lower_bound - height / 4.,
+            TextParams {
+                font_size: (window_width * 0.1).min(height * 0.4) as u16,
+                font: Some(&self.font),
+                color: RED,
+                ..Default::default()
+            },
+        );
     }
 
     fn render_glyphs(&self, glyphs: &[Glyph], right_offset: f32) {

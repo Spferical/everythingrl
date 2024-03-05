@@ -317,18 +317,19 @@ impl World {
 
     pub fn get_visible_mobs(&self) -> Vec<Mob> {
         let fov = crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self);
-        let mut all_mobs: Vec<(i32, Mob)> = Vec::new();
+        let mut all_mobs: Vec<(i32, Pos, Mob)> = Vec::new();
         for pos in fov {
             if self.mobs.contains_key(&pos) {
                 all_mobs.push((
                     (self.player_pos - pos).dist_squared(),
+                    pos,
                     self.mobs[&pos].clone(),
                 ));
             }
         }
 
-        all_mobs.sort_by_key(|(dist_sq, _)| *dist_sq);
-        all_mobs.iter().map(|(_, mob)| mob.clone()).collect()
+        all_mobs.sort_by_key(|(dist_sq, pos, _)| (*dist_sq, pos.x, pos.y));
+        all_mobs.iter().map(|(_, _, mob)| mob.clone()).collect()
     }
 
     pub fn tick(&mut self) {
