@@ -328,7 +328,7 @@ fn gen_alien_nest(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect
             if !world[pos].kind.is_walkable() {
                 continue;
             }
-            let kind = MobKind::Alien;
+            let kind = MobKind(rng.gen_range(0..world.mob_kinds.len()));
             world.add_mob(pos, Mob::new(kind));
             break;
         }
@@ -378,11 +378,7 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
         let y = rng.gen_range(room.y1..=room.y2);
         let pos = Pos { x, y };
         let rand = rng.gen::<f32>();
-        let kind = if rand < 0.1 {
-            MobKind::Alien
-        } else {
-            MobKind::Cat
-        };
+        let kind = MobKind(rng.gen_range(0..world.mob_kinds.len()));
         world.add_mob(pos, Mob::new(kind));
     }
 

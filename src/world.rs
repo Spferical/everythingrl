@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::grid::{self, Offset, Pos, Rect, TileMap, CARDINALS};
+use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
+use crate::net::{self, MonsterDefinition};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, SeedableRng};
@@ -74,18 +75,9 @@ pub struct Tile {
     pub item: Option<Item>,
 }
 
-#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub enum MobKind {
-    Cat,
-    Alien,
-}
-
-pub fn get_glyph(kind: MobKind) -> (char, macroquad::color::Color) {
-    match kind {
-        MobKind::Cat => ('c', macroquad::color::YELLOW),
-        MobKind::Alien => ('a', macroquad::color::PURPLE),
-    }
-}
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+/// Index into World.mob_kinds.
+pub struct MobKind(pub usize);
 
 #[derive(Hash, Debug, Clone)]
 pub enum MobAi {
@@ -114,6 +106,7 @@ impl Mob {
 pub struct World {
     player_pos: Pos,
     tile_map: TileMap<Tile>,
+    pub mob_kinds: Vec<MonsterDefinition>,
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Vec<Item>,
     equipment: Vec<Item>,
@@ -137,6 +130,7 @@ impl World {
         });
         let player_pos = Pos { x: 0, y: 0 };
         let mobs = HashMap::new();
+        let mob_kinds = vec![];
         let rng = rand::rngs::SmallRng::seed_from_u64(72);
         let inventory = vec![];
         let equipment = vec![];
@@ -144,6 +138,7 @@ impl World {
         Self {
             player_pos,
             tile_map,
+            mob_kinds,
             mobs,
             rng,
             inventory,
@@ -376,6 +371,10 @@ impl World {
 
     pub fn add_mob(&mut self, pos: grid::Pos, mob: Mob) {
         self.mobs.insert(pos, mob);
+    }
+
+    pub fn get_mobkind_info(&self, kind: MobKind) -> MonsterDefinition {
+        self.mob_kinds[kind.0].clone()
     }
 }
 

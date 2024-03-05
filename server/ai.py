@@ -86,7 +86,7 @@ def ask_google_structured(input_fields: list[str], output_fields: list[str], ins
 def gen_monster(theme: str, level: int):
     input_fields = ["theme", "level"]
     output_fields = ["monster 1", "monster 2", "monster 3"]
-    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta."
+    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. DO NOT generate invalid types or colors."
     examples = [
         {
             "theme": "nethack",

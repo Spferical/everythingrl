@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use net::MonsterDefinition;
 use world::PlayerAction;
 
 mod fov;
@@ -17,8 +18,9 @@ struct GameState {
 }
 
 impl GameState {
-    pub fn new(font: Font) -> Self {
+    pub fn new(font: Font, mut monsters: Vec<MonsterDefinition>) -> Self {
         let mut sim = world::World::new();
+        sim.mob_kinds.append(&mut monsters);
         map_gen::generate_world(&mut sim, 0x11_22_33_44_55_66_77_88);
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
@@ -169,10 +171,10 @@ async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
     let theme = "Hollow Knight";
-    net::download_monsters(theme, 1);
 
     let mut last_size = (screen_width(), screen_height());
-    let mut gs = GameState::new(font);
+    let mut monsters = net::download_monsters(theme, 1);
+    let mut gs = GameState::new(font, monsters);
     loop {
         clear_background(GRAY);
 

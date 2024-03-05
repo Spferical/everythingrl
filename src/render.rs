@@ -6,6 +6,7 @@ use macroquad::ui::{
 };
 use std::collections::HashSet;
 
+use crate::net::MonsterDefinition;
 use crate::world::{EquipmentKind, Item};
 use crate::{
     grid::Pos,
@@ -194,13 +195,10 @@ impl Ui {
                     }
                 }
                 if let Some(mob) = memory.mobs.get(&pos) {
-                    let (character, color) = match mob.kind {
-                        MobKind::Cat => ('c', YELLOW),
-                        MobKind::Alien => ('a', PURPLE),
-                    };
+                    let mob_kind_info = sim.get_mobkind_info(mob.kind);
                     glyphs.push(Glyph {
-                        character,
-                        color,
+                        character: mob_kind_info.char.chars().next().unwrap(),
+                        color: mob_kind_info.color.into(),
                         location: (pos.x as usize, pos.y as usize),
                         layer: 2,
                     });
@@ -267,8 +265,14 @@ impl Ui {
             .map(|mob| {
                 let damage = mob.damage;
                 let mob_kind = mob.kind;
-                let (c, color) = crate::world::get_glyph(mob_kind);
-                (format!("{} - {:?}. DAM: {:?}", c, mob_kind, damage), color)
+                let mob_kind_def = sim.get_mobkind_info(mob_kind);
+                let MonsterDefinition {
+                    char, color, name, ..
+                } = mob_kind_def;
+                (
+                    format!("{} - {:?}. DAM: {:?}", char, name, damage),
+                    color.into(),
+                )
             })
             .collect();
 
