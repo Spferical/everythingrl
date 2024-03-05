@@ -8,6 +8,7 @@ mod map_gen;
 mod net;
 mod render;
 mod world;
+mod intro;
 
 use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
@@ -121,7 +122,8 @@ fn egui_setup() {
         egui_ctx.set_fonts(fonts);
 
         let game_size = screen_width().min(screen_height());
-        let scale_factor = screen_width() / 1024.0;
+        // let scale_factor = screen_width() / 1024.0;
+        let scale_factor = screen_width() / 500.0;
         use egui::FontFamily::*;
         use egui::TextStyle::*;
         let mut style = (*egui_ctx.style()).clone();
@@ -172,6 +174,9 @@ async fn main() {
     egui_setup();
     let theme = "Hollow Knight";
 
+    let mut is_intro = false;
+    let mut intro_state = intro::IntroState::new();
+
     let mut last_size = (screen_width(), screen_height());
     let mut monsters = net::download_monsters(theme, 1);
     let mut gs = GameState::new(font, monsters);
@@ -181,6 +186,12 @@ async fn main() {
         if (screen_width(), screen_height()) != last_size {
             egui_setup();
             last_size = (screen_width(), screen_height());
+        }
+
+        if is_intro {
+            is_intro = intro::intro_loop(&mut intro_state);
+            next_frame().await;
+            continue;
         }
 
         if let Some(key) = get_last_key_pressed() {
