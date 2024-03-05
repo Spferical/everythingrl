@@ -3,9 +3,23 @@ import os
 
 import jsonschema
 import requests
+from requests.adapters import Retry, HTTPAdapter
 
 API_URL = "https://api.mistral.ai"
 API_KEY = os.getenv("AISTUDIO_API_KEY")
+
+retry_strategy = Retry(
+    total=4,
+    status_forcelist=[429, 500, 502, 503, 504],
+    allowed_methods=frozenset(
+        {"DELETE", "GET", "HEAD", "OPTIONS", "PUT", "TRACE", "POST"}
+    ),
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+
+session = requests.Session()
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
 
 def ask_mistral(messages):
@@ -19,8 +33,10 @@ def ask_mistral(messages):
 
     payload = {"model": "mistral-tiny", "messages": messages, "max_tokens": 300}
 
-    response = requests.post(
-        f"{API_URL}/v1/chat/completions", headers=headers, json=payload
+    response = session.post(
+        f"{API_URL}/v1/chat/completions",
+        headers=headers,
+        json=payload,
     )
 
     response.raise_for_status()
@@ -46,7 +62,7 @@ def ask_google(prompt_parts: list[str]) -> str:
         },
     }
     print(payload)
-    response = requests.post(url, headers=headers, json=payload)
+    response = session.post(url, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
