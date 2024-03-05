@@ -174,7 +174,7 @@ async fn main() {
     egui_setup();
     let theme = "Hollow Knight";
 
-    let mut is_intro = false;
+    let mut is_intro = true;
     let mut intro_state = intro::IntroState::new();
 
     let mut last_size = (screen_width(), screen_height());
@@ -190,6 +190,9 @@ async fn main() {
 
         if is_intro {
             is_intro = intro::intro_loop(&mut intro_state);
+            if intro_state.exit {
+                return;
+            }
             next_frame().await;
             continue;
         }
