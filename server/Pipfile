@@ -9,6 +9,7 @@ sqlalchemy = "*"
 requests = "*"
 click = "*"
 flask-sqlalchemy = "*"
+jsonschema = "*"
 
 [dev-packages]
 

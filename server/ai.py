@@ -1,6 +1,7 @@
 import json
 import os
 
+import jsonschema
 import requests
 
 API_URL = "https://api.mistral.ai"
@@ -56,65 +57,172 @@ def ask_google(prompt_parts: list[str]) -> str:
             },
         ],
     }
+    print(payload)
     response = requests.post(url, headers=headers, json=payload)
     response.raise_for_status()
     return response.json()["candidates"][0]["content"]["parts"][0]["text"]
 
 
-def ask_google_structured(input_fields: list[str], output_fields: list[str], instructions: str, examples: list[dict], input: dict) -> dict:
-    prompt_parts = [instructions]
-    for example in examples:
-        for field in input_fields:
-            prompt_parts.append(f"{field} {example[field]}")
-        for field in output_fields:
-            prompt_parts.append(f"{field} {example[field]}")
-    for field in input_fields:
-        prompt_parts.append(f"{field} {input[field]}")
-    response_text = ask_google(prompt_parts)
-    response_text = response_text.split(f"{output_fields[0]} ")[1]
-    output = {}
-    for i, field in enumerate(output_fields):
-        if i == len(output_fields) - 1:
-            output[field] = response_text
-        else:
-            next_field = output_fields[i+1]
-            field_output, response_text = response_text.split(f"{next_field}")
-            output[field] = field_output
+def ask_google_structured(
+    instructions: str,
+    examples: list[tuple[dict, list[dict]]],
+    input: dict,
+    num_outputs: int,
+    schema: dict,
+) -> dict:
+    prompt_parts = [instructions, "--"]
+    for ex_input, ex_outputs in examples:
+        ex_input = dict(ex_input)
+        ex_input["num_outputs"] = len(ex_outputs)
+        prompt_parts.append(json.dumps(ex_input))
+        prompt_parts.append("\n")
+        for ex_output in ex_outputs:
+            prompt_parts.append(json.dumps(ex_output))
+            prompt_parts.append("\n")
+        prompt_parts.append("--")
+    input = dict(input)
+    input["num_outputs"] = num_outputs
+    prompt_parts.append(json.dumps(input))
+    prompt_parts.append("\n")
+    response_text = ask_google(["".join(prompt_parts)])
+    responses = response_text.split("\n")
+    output = []
+    for response in responses:
+        try:
+            response_json = json.loads(response)
+            jsonschema.validate(response_json, schema)
+            output.append(response_json)
+        except Exception as e:
+            print(f"Bad response: {response}: {e}")
     return output
 
 
-def gen_monster(theme: str, level: int):
-    input_fields = ["theme", "level"]
-    output_fields = ["monster 1", "monster 2", "monster 3"]
+def gen_monster(theme: str, level: int, count: int = 3):
     instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. DO NOT generate invalid types or colors."
+    color_schema = {
+        "enum": [
+            "lightgray",
+            "yellow",
+            "gold",
+            "orange",
+            "pink",
+            "red",
+            "maroon",
+            "green",
+            "lime",
+            "skyblue",
+            "blue",
+            "purple",
+            "violet",
+            "beige",
+            "brown",
+            "white",
+            "magenta",
+        ]
+    }
+    type_schema = {
+        "enum": [
+            "normal",
+            "fire",
+            "water",
+            "electric",
+            "grass",
+            "ice",
+            "fighting",
+            "poison",
+            "ground",
+            "flying",
+            "psychic",
+            "bug",
+            "rock",
+            "ghost",
+            "dragon",
+            "dark",
+            "steel",
+            "fairy",
+        ]
+    }
+    schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "char": {"type": "string"},
+            "color": color_schema,
+            "type1": type_schema,
+            "type2": type_schema,
+            "attack_type": type_schema,
+            "description": {"type": "string"},
+        },
+        "required": ["name", "char", "color", "type1", "attack_type", "description"],
+    }
     examples = [
-        {
-            "theme": "nethack",
-            "level": 1,
-            "monster 1": '{"name": "grid bug", "char": "x", "color": "purple", "type1": "bug", "type2": "electric", "attack_type": "electric", "description": "These electronically based creatures are not native to this universe. They appear to come from a world whose laws of motion are radically different from ours."}',
-            "monster 2": '{"name": "floating eye", "char": "e", "color": "blue", "type1": "psychic", "attack_type": "psychic", "description": "Floating eyes, not surprisingly, are large, floating eyeballs which drift about the dungeon. Though not dangerous in and of themselves, their power to paralyse those who gaze at their large eye in combat is widely feared."}',
-            "monster 3": '{"name": "yellow mold", "char": "m", "color": "yellow", "type1": "poison", "attack_type": "poison", "description": "Mold, multicellular organism of the division Fungi, typified by plant bodies composed of a network of cottony filaments."}',
-        },
-        {
-            "theme": "nethack",
-            "level": 2,
-            "monster 1": '{"name": "water nymph", "char": "n", "color": "skyblue", "type1": "water", "type2": "fairy", "attack_type": "water", "description": "A nymph\'s beauty is beyond words: an ever-young woman with sleek figure and long, thick hair, radiant skin and perfect teeth, full lips and gentle eyes."}',
-            "monster 2": '{"name": "centipede", "char": "s", "color": "yellow", "type1": "bug", "type2": "poison", "attack_type": "poison", "description": "Here they have light reddish bodies and blue legs; great myriapedes are seen crawling every where."}',
-            "monster 3": '{"name": "plains centaur", "char": "c", "color": "orange", "type1": "normal", "attack_type": "normal", "description": "Centaurs are peculiar in that their nature, which unites the body of a horse with the trunk and head of a man, involves an unthinkable duplication of vital organs and important members."}',
-        },
+        (
+            {
+                "theme": "nethack",
+                "level": 1,
+            },
+            [
+                {
+                    "name": "grid bug",
+                    "char": "x",
+                    "color": "purple",
+                    "type1": "bug",
+                    "type2": "electric",
+                    "attack_type": "electric",
+                    "description": "These electronically based creatures are not native to this universe. They appear to come from a world whose laws of motion are radically different from ours.",
+                },
+                {
+                    "name": "floating eye",
+                    "char": "e",
+                    "color": "blue",
+                    "type1": "psychic",
+                    "attack_type": "psychic",
+                    "description": "Floating eyes, not surprisingly, are large, floating eyeballs which drift about the dungeon. Though not dangerous in and of themselves, their power to paralyse those who gaze at their large eye in combat is widely feared.",
+                },
+                {
+                    "name": "yellow mold",
+                    "char": "m",
+                    "color": "yellow",
+                    "type1": "poison",
+                    "attack_type": "poison",
+                    "description": "Mold, multicellular organism of the division Fungi, typified by plant bodies composed of a network of cottony filaments.",
+                },
+            ],
+        ),
+        (
+            {
+                "theme": "nethack",
+                "level": 2,
+            },
+            [
+                {
+                    "name": "water nymph",
+                    "char": "n",
+                    "color": "skyblue",
+                    "type1": "water",
+                    "type2": "fairy",
+                    "attack_type": "water",
+                    "description": "A nymph's beauty is beyond words: an ever-young woman with sleek figure and long, thick hair, radiant skin and perfect teeth, full lips and gentle eyes.",
+                },
+                {
+                    "name": "centipede",
+                    "char": "s",
+                    "color": "yellow",
+                    "type1": "bug",
+                    "type2": "poison",
+                    "attack_type": "poison",
+                    "description": "Here they have light reddish bodies and blue legs; great myriapedes are seen crawling every where.",
+                },
+                {
+                    "name": "plains centaur",
+                    "char": "c",
+                    "color": "orange",
+                    "type1": "normal",
+                    "attack_type": "normal",
+                    "description": "Centaurs are peculiar in that their nature, which unites the body of a horse with the trunk and head of a man, involves an unthinkable duplication of vital organs and important members.",
+                },
+            ],
+        ),
     ]
     input = {"theme": theme, "level": level}
-    response = ask_google_structured(
-        input_fields, output_fields, instructions, examples, input
-    )
-    monsters = []
-    for monster_info in (
-        response["monster 1"],
-        response["monster 2"],
-        response["monster 3"],
-    ):
-        try:
-            monsters.append(json.loads(monster_info))
-        except Exception as e:
-            print(f"Failed to load {monster_info}: {e}")
-    return monsters
+    return ask_google_structured(instructions, examples, input, count, schema)
