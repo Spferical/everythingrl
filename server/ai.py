@@ -44,18 +44,6 @@ def ask_google(prompt_parts: list[str]) -> str:
             "maxOutputTokens": 2048,
             "stopSequences": [],
         },
-        "safetySettings": [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
-            {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_ONLY_HIGH",
-            },
-            {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_ONLY_HIGH",
-            },
-        ],
     }
     print(payload)
     response = requests.post(url, headers=headers, json=payload)
