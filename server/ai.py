@@ -5,8 +5,9 @@ import jsonschema
 import requests
 from requests.adapters import Retry, HTTPAdapter
 
-API_URL = "https://api.mistral.ai"
-API_KEY = os.getenv("AISTUDIO_API_KEY")
+MISTRAL_API_URL = "https://api.mistral.ai"
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
 
 retry_strategy = Retry(
     total=4,
@@ -22,19 +23,20 @@ session.mount("http://", adapter)
 session.mount("https://", adapter)
 
 
-def ask_mistral(messages):
+def ask_mistral(prompt_parts: list[str]) -> str:
+    messages = [{"role": "system", "content": "".join(prompt_parts)}]
     model = "mistral-small"
 
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {API_KEY}",
+        "Authorization": f"Bearer {AISTUDIO_API_KEY}",
     }
 
     payload = {"model": "mistral-tiny", "messages": messages, "max_tokens": 300}
 
     response = session.post(
-        f"{API_URL}/v1/chat/completions",
+        f"{MISTRAL_API_URL}/v1/chat/completions",
         headers=headers,
         json=payload,
     )
@@ -45,7 +47,7 @@ def ask_mistral(messages):
 
 
 def ask_google(prompt_parts: list[str]) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={AISTUDIO_API_KEY}"
     headers = {"Content-Type": "application/json"}
     payload = {
         "contents": [
