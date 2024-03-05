@@ -243,7 +243,7 @@ def gen_setting_desc(theme: str):
 
 
 def gen_areas(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), names of 10 possible enemies, and names of 10 pieces of equipment or melee weapons that may be found on that level."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), and names of 5 melee weapons that may be found on that level."
     examples = [
         (
             {
@@ -267,17 +267,19 @@ def gen_areas(theme: str, setting_desc: str):
                         "Aspid Warrior",
                     ],
                     "equipment": [
-                        "Ancient Nail",
-                        "Shellwood Shield",
                         "Ruined Cloak",
-                        "Husk Helm",
-                        "Warrior's Greaves",
-                        "Grubberfly's Elegy",
-                        "Tiktik Gauntlets",
+                        "Fungal Boots",
+                        "Nail Sharpener",
+                        "Lantern",
                         "Baldur Shell",
-                        "Gruz Plume",
-                        "Wanderer's Lament",
                     ],
+                    "melee_weapons": [
+                        "Ancient Nail",
+                        "Nail of Shadows",
+                        "Bone Needle",
+                        "Coiled Sword",
+                        "Thorned Whip",
+                    ]
                 },
                 {
                     "name": "Crystal Peak",
@@ -295,17 +297,19 @@ def gen_areas(theme: str, setting_desc: str):
                         "Mage",
                     ],
                     "equipment": [
-                        "Prismatic Sword",
-                        "Crystal Shield",
+                        "Crystal Shell",
                         "Quartz Breastplate",
                         "Luminous Leggings",
-                        "Geode Mace",
                         "Reflective Cloak",
                         "Prism Ring",
-                        "Cavern Boots",
-                        "Shard Arrow",
-                        "Laser Cutter",
                     ],
+                    "weapons": [
+                        "Prismatic Sword",
+                        "Geode Mace",
+                        "Laser Cutter",
+                        "Shard Arrow",
+                        "Pickaxe",
+                    ]
                 },
                 {
                     "name": "The Abyss",
@@ -323,17 +327,19 @@ def gen_areas(theme: str, setting_desc: str):
                         "Silence Weaver",
                     ],
                     "equipment": [
-                        "Shadow Blade",
                         "Abyssal Armor",
                         "Void Cloak",
-                        "Eclipse Scythe",
-                        "Obsidian Dagger",
                         "Phantom Boots",
-                        "Gloom Hood",
-                        "Dusk Ring",
-                        "Silence Scepter",
-                        "Nightmare Chain",
+                        "Void Heart",
+                        "Weaversong",
                     ],
+                    "weapons": [
+                        "Shadow Blade",
+                        "Obsidian Dagger",
+                        "Eclipse Scythe",
+                        "Pure Nail",
+                        "Dream Nail",
+                    ]
                 },
             ],
         )
