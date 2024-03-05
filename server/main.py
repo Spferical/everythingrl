@@ -39,7 +39,7 @@ def gen_monster(theme: str, level: str, count: int):
 @cli.command()
 @click.argument("theme")
 def gen_setting_desc(theme: str):
-    print(json.dumps(ai.gen_setting_desc(theme), indent=2))
+    print(ai.gen_setting_desc(theme))
 
 
 def main():
