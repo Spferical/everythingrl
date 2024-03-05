@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-import os
 import json
+import logging
+import os
 
 import click
 
@@ -9,7 +10,7 @@ import ai
 
 @click.group()
 def cli():
-    pass
+    logging.basicConfig(level=logging.DEBUG)
 
 
 @cli.command()

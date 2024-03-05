@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import jsonschema
@@ -66,9 +67,11 @@ def ask_google(prompt_parts: list[str]) -> str:
     response = session.post(url, headers=headers, json=payload)
     response.raise_for_status()
     try:
-        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        logging.info(text)
+        return text
     except KeyError:
-        print(response.json())
+        logging.error(response.json())
         raise
 
 
@@ -94,6 +97,7 @@ def ask_google_structured(
     prompt_parts.append(json.dumps(input))
     prompt_parts.append("\n")
     response_text = ask_google(["".join(prompt_parts)])
+    logging.info(response_text)
     responses = response_text.split("\n")
     output = []
     for response in responses:
