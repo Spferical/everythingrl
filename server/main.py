@@ -38,8 +38,11 @@ def gen_monster(theme: str, level: str, count: int):
 
 @cli.command()
 @click.argument("theme")
-def gen_setting_desc(theme: str):
-    print(ai.gen_setting_desc(theme))
+def gen_setting(theme: str):
+    setting_desc = ai.gen_setting_desc(theme)
+    print(setting_desc)
+    areas = ai.gen_areas(theme, setting_desc)
+    print(json.dumps(areas, indent=2))
 
 
 def main():

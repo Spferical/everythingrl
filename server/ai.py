@@ -89,6 +89,7 @@ def ask_google_structured(
     prompt_parts.append(json.dumps(input))
     prompt_parts.append("\n")
     response_text = ask_google(["".join(prompt_parts)])
+    print(response_text)
     responses = response_text.split("\n")
     output = []
     for response in responses:
@@ -233,5 +234,120 @@ def gen_monster(theme: str, level: int, count: int = 3):
 
 
 def gen_setting_desc(theme: str):
-    instructions = f"Write a two paragraph summary of a roguelike game based off of the following theme: {theme}. The game has three levels. Describe the setting, the kinds of monsters, items, level design, and the final boss."
+    instructions = f"Write a two paragraph summary of a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. Describe the setting, the kinds of monsters, items, level design, and the final boss."
     return ask_google([instructions])
+
+
+def gen_areas(theme: str, setting_desc: str):
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), names of 10 possible enemies, and names of 10 pieces of equipment or melee weapons that may be found on that level."
+    examples = [
+        (
+            {
+                "theme": "Hollow Knight",
+                "setting_desc": "In the depths of Hallownest, a desolate and forsaken kingdom, a roguelike adventure awaits. Journey through three treacherous levels, each teeming with grotesque creatures and dilapidated ruins. As you delve deeper, the horrors that lurk in the shadows grow more terrifying, from ghostly wisps to venomous spiders. Engage in visceral melee combat, mastering your swordsmanship and dodging enemy attacks with precision.\n\nAlong the way, gather materials to craft powerful items and abilities. From healing potions to explosive traps, these creations will aid your survival. The level design is intricate and interconnected, with multiple paths and hidden secrets to uncover. Navigate treacherous chasms, navigate crumbling caverns, and uncover the remnants of Hallownest's tragic past. As you approach the end, prepare to face the Shadow King, a formidable adversary who guards the final secrets of the kingdom. Only by overcoming this formidable foe can you escape the clutches of Hallownest and uncover its forgotten lore.",
+            },
+            [
+                {
+                    "name": "Forgotten Crossroads",
+                    "blurb": "Emerging from the darkness, you step into the forgotten crossroads of Hallownest. Vines cling to dilapidated walls, casting long shadows across the crumbling stone. A chilling wind whispers secrets of a forgotten past.",
+                    "enemies": [
+                        "Husk Sentry",
+                        "Crawler",
+                        "Gloomwing",
+                        "Vengefly",
+                        "Leaper",
+                        "Husk Warrior",
+                        "Tiktik",
+                        "Flukemunga",
+                        "Baldur",
+                        "Aspid Warrior",
+                    ],
+                    "equipment": [
+                        "Ancient Nail",
+                        "Shellwood Shield",
+                        "Ruined Cloak",
+                        "Husk Helm",
+                        "Warrior's Greaves",
+                        "Grubberfly's Elegy",
+                        "Tiktik Gauntlets",
+                        "Baldur Shell",
+                        "Gruz Plume",
+                        "Wanderer's Lament",
+                    ],
+                },
+                {
+                    "name": "Crystal Peak",
+                    "blurb": "As you ascend the winding path, the air grows heavy with the scent of minerals. Towering crystalline formations shimmer in the dim light, casting eerie reflections upon the jagged walls. A faint glow emanates from deep within the mine, beckoning you further.",
+                    "enemies": [
+                        "Crystal Crawler",
+                        "Crystal Hunter",
+                        "Vengefly",
+                        "Great Husk Sentinel",
+                        "Crystal Guardian",
+                        "Primal Aspid",
+                        "Mantis Petra",
+                        "Mantis Warrior",
+                        "Stalking Devout",
+                        "Mage",
+                    ],
+                    "equipment": [
+                        "Prismatic Sword",
+                        "Crystal Shield",
+                        "Quartz Breastplate",
+                        "Luminous Leggings",
+                        "Geode Mace",
+                        "Reflective Cloak",
+                        "Prism Ring",
+                        "Cavern Boots",
+                        "Shard Arrow",
+                        "Laser Cutter",
+                    ],
+                },
+                {
+                    "name": "The Abyss",
+                    "blurb": "You stumble into a realm of eternal darkness, where gravity seems to play tricks upon your senses. Strange sounds echo through the chasm, stirring primal fears deep within your soul. A sense of ancient evil lingers in the air, as if the abyss itself is watching your every move.",
+                    "enemies": [
+                        "Voidwalker",
+                        "Abyss Shrieker",
+                        "Abyssal Shade",
+                        "Darkness Devourer",
+                        "Shadow Lurker",
+                        "Nightmare Wisp",
+                        "Void Stalker",
+                        "Obsidian Assassin",
+                        "Dusk Bringer",
+                        "Silence Weaver",
+                    ],
+                    "equipment": [
+                        "Shadow Blade",
+                        "Abyssal Armor",
+                        "Void Cloak",
+                        "Eclipse Scythe",
+                        "Obsidian Dagger",
+                        "Phantom Boots",
+                        "Gloom Hood",
+                        "Dusk Ring",
+                        "Silence Scepter",
+                        "Nightmare Chain",
+                    ],
+                },
+            ],
+        )
+    ]
+    schema = {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "blurb": {"type": "string"},
+            "enemies": {"type": "array", "items": {"type": "string"}},
+            "equipment": {"type": "array", "items": {"type": "string"}},
+        },
+        "required": ["name", "blurb", "enemies", "equipment"],
+    }
+    return ask_google_structured(
+        instructions,
+        examples,
+        {"theme": theme, "setting_desc": setting_desc},
+        3,
+        schema,
+    )
