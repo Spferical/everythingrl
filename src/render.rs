@@ -297,7 +297,7 @@ impl Ui {
 
         let log_offset_y_base = offset_y + game_size / 2. - 10.;
         let mut log_offset_y = log_offset_y_base;
-        let lower_bound = window_lower_bound - 30.;
+        let lower_bound = window_lower_bound - sq_size.max(30.0) - 10.;
         let height = lower_bound - log_offset_y;
 
         draw_rectangle(offset_x, log_offset_y, window_width, height, BLACK);
@@ -323,8 +323,8 @@ impl Ui {
         }
 
         let lower_bound = window_lower_bound;
-        let offset_y = window_lower_bound - 20.;
-        let height = 20.0;
+        let height = sq_size.max(30.0);
+        let offset_y = window_lower_bound - height;
         draw_rectangle(offset_x, offset_y, window_width, height, BLACK);
 
         let status = "10 HP 10 AMMO";
@@ -333,7 +333,7 @@ impl Ui {
             offset_x + 5.,
             lower_bound - height / 4.,
             TextParams {
-                font_size: (window_width * 0.1).min(height * 0.4) as u16,
+                font_size: (sq_size * 0.8) as u16,
                 font: Some(&self.font),
                 color: RED,
                 ..Default::default()
