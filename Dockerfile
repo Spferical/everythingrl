@@ -18,4 +18,4 @@ WORKDIR /docker-flask/server/
 EXPOSE 5000
 
 ENV FLASK_ENV=production
-CMD pipenv run flask run --host 0.0.0.0
+CMD pipenv run gunicorn -w 10 -b 0.0.0.0:5000 app:app
