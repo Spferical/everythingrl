@@ -1,24 +1,30 @@
 use macroquad::prelude::*;
-use net::MonsterDefinition;
+use net::{IdeaGuy, MonsterDefinition};
 use world::PlayerAction;
 
 mod fov;
 mod grid;
+mod intro;
 mod map_gen;
 mod net;
 mod render;
 mod world;
-mod intro;
 
 use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
-struct GameState {
+enum GameState {
+    Intro(intro::IntroState),
+    Startup,
+    Play(PlayState),
+}
+
+struct PlayState {
     sim: world::World,
     memory: world::Memory,
     ui: render::Ui,
 }
 
-impl GameState {
+impl PlayState {
     pub fn new(font: Font, mut monsters: Vec<MonsterDefinition>) -> Self {
         let mut sim = world::World::new();
         sim.mob_kinds.append(&mut monsters);
@@ -174,12 +180,9 @@ async fn main() {
     egui_setup();
     let theme = "Hollow Knight";
 
-    let mut is_intro = true;
-    let mut intro_state = intro::IntroState::new();
-
     let mut last_size = (screen_width(), screen_height());
-    let mut monsters = net::download_monsters(theme, 1);
-    let mut gs = GameState::new(font, monsters);
+    let mut gs = GameState::Intro(intro::IntroState::new());
+    let mut ig = IdeaGuy::new(theme);
     loop {
         clear_background(GRAY);
 
@@ -188,20 +191,31 @@ async fn main() {
             last_size = (screen_width(), screen_height());
         }
 
-        if is_intro {
-            is_intro = intro::intro_loop(&mut intro_state);
-            if intro_state.exit {
-                return;
+        gs = match gs {
+            GameState::Intro(ref mut intro) => {
+                if !intro::intro_loop(intro) {
+                    GameState::Startup
+                } else {
+                    if intro.exit {
+                        return;
+                    } else {
+                        gs
+                    }
+                }
             }
-            next_frame().await;
-            continue;
-        }
+            GameState::Startup => match ig.get_monsters() {
+                Some(monsters) => GameState::Play(PlayState::new(font.clone(), monsters.into())),
+                None => GameState::Startup,
+            },
+            GameState::Play(ref mut ps) => {
+                if let Some(key) = get_last_key_pressed() {
+                    ps.handle_key(key);
+                }
 
-        if let Some(key) = get_last_key_pressed() {
-            gs.handle_key(key);
-        }
-
-        gs.ui.render(&gs.sim, &gs.memory);
+                ps.ui.render(&ps.sim, &ps.memory);
+                gs
+            }
+        };
 
         next_frame().await
     }
