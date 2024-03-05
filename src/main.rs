@@ -4,6 +4,7 @@ use world::PlayerAction;
 mod fov;
 mod grid;
 mod map_gen;
+mod net;
 mod render;
 mod world;
 
@@ -167,6 +168,8 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
+    let theme = "Hollow Knight";
+    net::download_monsters(theme, 1);
 
     let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::new(font);
