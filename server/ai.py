@@ -14,6 +14,12 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 with open(os.path.join(DIR_PATH, "schemas", "monster.json")) as f:
     MONSTER_SCHEMA = json.load(f)
+with open(os.path.join(DIR_PATH, "data", "hk.txt")) as f:
+    HK_SETTING_DESC = f.read()
+with open(os.path.join(DIR_PATH, "data", "hk_areas.json")) as f:
+    HK_AREAS = json.load(f)
+with open(os.path.join(DIR_PATH, "data", "hk_monsters.json")) as f:
+    HK_MONSTERS = json.load(f)
 
 retry_strategy = Retry(
     total=4,
@@ -73,7 +79,7 @@ def ask_google(prompt_parts: list[str]) -> str:
     response.raise_for_status()
     try:
         text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-        text = text.strip('--')
+        text = text.strip("--")
         logging.info(text)
         return text
     except KeyError:
@@ -116,102 +122,23 @@ def ask_google_structured(
     return output
 
 
-def gen_monsters(theme: str, setting_desc: str, area: dict):
+def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
     instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a two sentence description of the monster. Output each monster JSON on its own line."
     examples = [
         (
             {
-                "theme": "nethack",
-                "setting_desc": "asdf",
-                "area": {
-                    "name": "Catacombs of Chaos",
-                    "blurb": "You stumble into a realm of darkness and mystery, where the air is heavy with anticipation. Ancient runes etched into the walls whisper tales of forgotten terrors, and the sound of dripping water echoes through the desolate chambers. Prepare yourself for the perils that lie ahead in these catacombs.",
-                    "enemies": [
-                        "grid bug",
-                        "floating eye",
-                        "yellow mold",
-                    ],
-                    "equipment": [
-                        "ring of protection",
-                        "amulet of life saving",
-                        "wand of magic missile",
-                        "scroll of identify",
-                        "potion of healing",
-                    ],
-                    "melee_weapons": [
-                        "short sword",
-                        "long sword",
-                        "battle axe",
-                        "warhammer",
-                        "mace",
-                    ],
-                },
+                "theme": "Hollow Knight",
+                "setting_desc": HK_SETTING_DESC,
+                "enemy_names": list(
+                    set(name for area in HK_AREAS for name in area["enemies"])
+                ),
             },
-            [
-                {
-                    "name": "grid bug",
-                    "char": "x",
-                    "color": "purple",
-                    "type1": "bug",
-                    "type2": "electric",
-                    "attack_type": "electric",
-                    "description": "These electronically based creatures are not native to this universe. They appear to come from a world whose laws of motion are radically different from ours.",
-                },
-                {
-                    "name": "floating eye",
-                    "char": "e",
-                    "color": "blue",
-                    "type1": "psychic",
-                    "attack_type": "psychic",
-                    "description": "Floating eyes, not surprisingly, are large, floating eyeballs which drift about the dungeon. Though not dangerous in and of themselves, their power to paralyse those who gaze at their large eye in combat is widely feared.",
-                },
-                {
-                    "name": "yellow mold",
-                    "char": "m",
-                    "color": "yellow",
-                    "type1": "poison",
-                    "attack_type": "poison",
-                    "description": "Mold, multicellular organism of the division Fungi, typified by plant bodies composed of a network of cottony filaments.",
-                },
-            ],
-        ),
-        (
-            {
-                "theme": "nethack",
-                "level": 2,
-            },
-            [
-                {
-                    "name": "water nymph",
-                    "char": "n",
-                    "color": "skyblue",
-                    "type1": "water",
-                    "type2": "fairy",
-                    "attack_type": "water",
-                    "description": "A nymph's beauty is beyond words: an ever-young woman with sleek figure and long, thick hair, radiant skin and perfect teeth, full lips and gentle eyes.",
-                },
-                {
-                    "name": "centipede",
-                    "char": "s",
-                    "color": "yellow",
-                    "type1": "bug",
-                    "type2": "poison",
-                    "attack_type": "poison",
-                    "description": "Here they have light reddish bodies and blue legs; great myriapedes are seen crawling every where.",
-                },
-                {
-                    "name": "plains centaur",
-                    "char": "c",
-                    "color": "orange",
-                    "type1": "normal",
-                    "attack_type": "normal",
-                    "description": "Centaurs are peculiar in that their nature, which unites the body of a horse with the trunk and head of a man, involves an unthinkable duplication of vital organs and important members.",
-                },
-            ],
-        ),
+            HK_MONSTERS,
+        )
     ]
-    input = {"theme": theme, "area": area}
-    count = len(area["enemies"])
+    enemy_names = list(set(name for area in areas for name in area["enemies"]))
+    input = {"theme": theme, "enemy_names": enemy_names}
+    count = len(enemy_names)
     return ask_google_structured(instructions, [], input, count, MONSTER_SCHEMA)
 
 

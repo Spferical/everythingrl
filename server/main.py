@@ -46,22 +46,43 @@ def gen_setting_desc(theme: str):
 
 @cli.command()
 @click.argument("theme")
-@click.argument("setting_desc_file", type=click.File('r'))
+@click.argument("setting_desc_file", type=click.File("r"))
 def gen_areas(theme: str, setting_desc_file):
     setting_desc = setting_desc_file.read()
     areas = ai.gen_areas(theme, setting_desc)
     print(json.dumps(areas, indent=2))
 
+
 @cli.command()
 @click.argument("theme")
-@click.argument("setting_desc_file", type=click.File('r'))
-@click.argument("areas_file", type=click.File('r'))
-@click.argument("area_num", type=int)
-def gen_monsters(theme: str, setting_desc_file, areas_file, area_num: int):
+@click.argument("setting_desc_file", type=click.File("r"))
+@click.argument("areas_file", type=click.File("r"))
+def gen_monsters(theme: str, setting_desc_file, areas_file):
     setting_desc = setting_desc_file.read()
     areas = json.load(areas_file)
-    monsters = ai.gen_monsters(theme, setting_desc, areas[area_num])
+    monsters = ai.gen_monsters(theme, setting_desc, areas)
     print(json.dumps(monsters, indent=2))
+
+
+@cli.command()
+@click.argument("theme")
+@click.option("--output-dir", default=None)
+def gen_all(theme: str, output_dir: str | None):
+    setting_desc = ai.gen_setting_desc(theme)
+    print(setting_desc)
+    if output_dir is not None:
+        with open(os.path.join(output_dir, "setting.txt"), "w") as f:
+            f.write(setting_desc)
+    areas = ai.gen_areas(theme, setting_desc)
+    print(json.dumps(areas, indent=2))
+    if output_dir is not None:
+        with open(os.path.join(output_dir, "areas.json"), "w") as f:
+            json.dump(areas, f)
+    monsters = ai.gen_monsters(theme, setting_desc, areas)
+    print(json.dumps(monsters, indent=2))
+    if output_dir is not None:
+        with open(os.path.join(output_dir, "monsters.json"), "w") as f:
+            json.dump(monsters, f)
 
 
 def main():
