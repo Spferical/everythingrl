@@ -178,7 +178,7 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
-    let theme = "Hollow Knight";
+    let theme = "pregen";
 
     let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::Intro(intro::IntroState::new());

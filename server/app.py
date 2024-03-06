@@ -25,6 +25,8 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URI", "sqlite:///db.sqlite"
 )
 
+PREGEN_THEME = "pregen"
+
 
 class Base(DeclarativeBase):
     pass
@@ -32,7 +34,10 @@ class Base(DeclarativeBase):
 
 @app.post("/setting/<theme>")
 def get_setting(theme):
-    setting_desc = ai.gen_setting_desc(theme)
+    if theme == PREGEN_THEME:
+        setting_desc = ai.HK_SETTING_DESC
+    else:
+        setting_desc = ai.gen_setting_desc(theme)
     return jsonify(setting_desc)
 
 
@@ -40,7 +45,10 @@ def get_setting(theme):
 def get_areas():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
-    areas = ai.gen_areas(theme, setting_desc)
+    if theme == PREGEN_THEME:
+        areas = ai.HK_AREAS
+    else:
+        areas = ai.gen_areas(theme, setting_desc)
     logging.info(json.dumps(areas))
     return areas
 
@@ -50,7 +58,10 @@ def monsters():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     areas = flask.request.json["areas"]
-    monsters = ai.gen_monsters(theme, setting_desc, areas)
+    if theme == PREGEN_THEME:
+        monsters = ai.HK_MONSTERS
+    else:
+        monsters = ai.gen_monsters(theme, setting_desc, areas)
     logging.info(json.dumps(monsters))
     return monsters
 
