@@ -1,8 +1,9 @@
+from enum import Enum
 import json
 import logging
 import os
 
-import jsonschema
+import pydantic
 import requests
 from requests.adapters import Retry, HTTPAdapter
 
@@ -12,8 +13,6 @@ AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
-with open(os.path.join(DIR_PATH, "schemas", "monster.json")) as f:
-    MONSTER_SCHEMA = json.load(f)
 with open(os.path.join(DIR_PATH, "data", "hk.txt")) as f:
     HK_SETTING_DESC = f.read()
 with open(os.path.join(DIR_PATH, "data", "hk_areas.json")) as f:
@@ -33,6 +32,62 @@ adapter = HTTPAdapter(max_retries=retry_strategy)
 session = requests.Session()
 session.mount("http://", adapter)
 session.mount("https://", adapter)
+
+
+class Color(str, Enum):
+    lightgray = "lightgray"
+    yellow = "yellow"
+    gold = "gold"
+    orange = "orange"
+    pink = "pink"
+    red = "red"
+    maroon = "maroon"
+    green = "green"
+    lime = "lime"
+    skyblue = "skyblue"
+    blue = "blue"
+    purple = "purple"
+    violet = "violet"
+    beige = "beige"
+    brown = "brown"
+    white = "white"
+    magenta = "magenta"
+    silver = "silver"
+    gray = "gray"
+    grey = "grey"
+    black = "black"
+
+
+class PokemonType(str, Enum):
+    normal = "normal"
+    fire = "fire"
+    water = "water"
+    electric = "electric"
+    grass = "grass"
+    ice = "ice"
+    fighting = "fighting"
+    poison = "poison"
+    ground = "ground"
+    flying = "flying"
+    psychic = "psychic"
+    bug = "bug"
+    rock = "rock"
+    ghost = "ghost"
+    dragon = "dragon"
+    dark = "dark"
+    steel = "steel"
+    fairy = "fairy"
+
+
+class Monster(pydantic.BaseModel):
+    name: str
+    char: str
+    level: int
+    color: Color
+    type1: PokemonType
+    type2: PokemonType | None = None
+    attack_type: PokemonType
+    description: str
 
 
 def ask_mistral(prompt_parts: list[str]) -> str:
@@ -92,7 +147,7 @@ def ask_google_structured(
     examples: list[tuple[dict, list[dict]]],
     input: dict,
     num_outputs: int,
-    schema: dict,
+    model: pydantic.BaseModel,
 ) -> dict:
     prompt_parts = [instructions, "--"]
     for ex_input, ex_outputs in examples:
@@ -115,7 +170,7 @@ def ask_google_structured(
     for response in responses:
         try:
             response_json = json.loads(response)
-            jsonschema.validate(response_json, schema)
+            model(**response_json)
             output.append(response_json)
         except Exception as e:
             logging.error(f"Bad response: {response}: {e}")
@@ -139,7 +194,7 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
     enemy_names = list(set(name for area in areas for name in area["enemies"]))
     input = {"theme": theme, "enemy_names": enemy_names}
     count = len(enemy_names)
-    return ask_google_structured(instructions, [], input, count, MONSTER_SCHEMA)
+    return ask_google_structured(instructions, [], input, count, Monster)
 
 
 def gen_setting_desc(theme: str):

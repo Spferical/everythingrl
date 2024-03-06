@@ -9,8 +9,8 @@ sqlalchemy = "*"
 requests = "*"
 click = "*"
 flask-sqlalchemy = "*"
-jsonschema = "*"
 gunicorn = "*"
+pydantic = "*"
 
 [dev-packages]
 
