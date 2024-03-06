@@ -39,11 +39,29 @@ def gen_monster(theme: str, level: str, count: int):
 
 @cli.command()
 @click.argument("theme")
-def gen_setting(theme: str):
+def gen_setting_desc(theme: str):
     setting_desc = ai.gen_setting_desc(theme)
     print(setting_desc)
+
+
+@cli.command()
+@click.argument("theme")
+@click.argument("setting_desc_file", type=click.File('r'))
+def gen_areas(theme: str, setting_desc_file):
+    setting_desc = setting_desc_file.read()
     areas = ai.gen_areas(theme, setting_desc)
     print(json.dumps(areas, indent=2))
+
+@cli.command()
+@click.argument("theme")
+@click.argument("setting_desc_file", type=click.File('r'))
+@click.argument("areas_file", type=click.File('r'))
+@click.argument("area_num", type=int)
+def gen_monsters(theme: str, setting_desc_file, areas_file, area_num: int):
+    setting_desc = setting_desc_file.read()
+    areas = json.load(areas_file)
+    monsters = ai.gen_monsters(theme, setting_desc, areas[area_num])
+    print(json.dumps(monsters, indent=2))
 
 
 def main():

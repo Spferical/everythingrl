@@ -10,6 +10,11 @@ MISTRAL_API_URL = "https://api.mistral.ai"
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
 
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+
+with open(os.path.join(DIR_PATH, "schemas", "monster.json")) as f:
+    MONSTER_SCHEMA = json.load(f)
+
 retry_strategy = Retry(
     total=4,
     status_forcelist=[429, 500],
@@ -107,73 +112,40 @@ def ask_google_structured(
             jsonschema.validate(response_json, schema)
             output.append(response_json)
         except Exception as e:
-            print(f"Bad response: {response}: {e}")
+            logging.error(f"Bad response: {response}: {e}")
     return output
 
 
-def gen_monster(theme: str, level: int, count: int = 3):
-    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a one-or-two sentence description of the monster."
-    color_schema = {
-        "enum": [
-            "lightgray",
-            "yellow",
-            "gold",
-            "orange",
-            "pink",
-            "red",
-            "maroon",
-            "green",
-            "lime",
-            "skyblue",
-            "blue",
-            "purple",
-            "violet",
-            "beige",
-            "brown",
-            "white",
-            "magenta",
-        ]
-    }
-    type_schema = {
-        "enum": [
-            "normal",
-            "fire",
-            "water",
-            "electric",
-            "grass",
-            "ice",
-            "fighting",
-            "poison",
-            "ground",
-            "flying",
-            "psychic",
-            "bug",
-            "rock",
-            "ghost",
-            "dragon",
-            "dark",
-            "steel",
-            "fairy",
-        ]
-    }
-    schema = {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "char": {"type": "string"},
-            "color": color_schema,
-            "type1": type_schema,
-            "type2": type_schema,
-            "attack_type": type_schema,
-            "description": {"type": "string"},
-        },
-        "required": ["name", "char", "color", "type1", "attack_type", "description"],
-    }
+def gen_monsters(theme: str, setting_desc: str, area: dict):
+    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a two sentence description of the monster. Output each monster JSON on its own line."
     examples = [
         (
             {
                 "theme": "nethack",
-                "level": 1,
+                "setting_desc": "asdf",
+                "area": {
+                    "name": "Catacombs of Chaos",
+                    "blurb": "You stumble into a realm of darkness and mystery, where the air is heavy with anticipation. Ancient runes etched into the walls whisper tales of forgotten terrors, and the sound of dripping water echoes through the desolate chambers. Prepare yourself for the perils that lie ahead in these catacombs.",
+                    "enemies": [
+                        "grid bug",
+                        "floating eye",
+                        "yellow mold",
+                    ],
+                    "equipment": [
+                        "ring of protection",
+                        "amulet of life saving",
+                        "wand of magic missile",
+                        "scroll of identify",
+                        "potion of healing",
+                    ],
+                    "melee_weapons": [
+                        "short sword",
+                        "long sword",
+                        "battle axe",
+                        "warhammer",
+                        "mace",
+                    ],
+                },
             },
             [
                 {
@@ -238,12 +210,13 @@ def gen_monster(theme: str, level: int, count: int = 3):
             ],
         ),
     ]
-    input = {"theme": theme, "level": level}
-    return ask_google_structured(instructions, examples, input, count, schema)
+    input = {"theme": theme, "area": area}
+    count = len(area["enemies"])
+    return ask_google_structured(instructions, [], input, count, MONSTER_SCHEMA)
 
 
 def gen_setting_desc(theme: str):
-    instructions = f"Write a two paragraph summary of a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. Describe the setting, the kinds of monsters, items, level design, and the final boss."
+    instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
     return ask_google([instructions])
 
 
@@ -284,7 +257,7 @@ def gen_areas(theme: str, setting_desc: str):
                         "Bone Needle",
                         "Coiled Sword",
                         "Thorned Whip",
-                    ]
+                    ],
                 },
                 {
                     "name": "Crystal Peak",
@@ -314,7 +287,7 @@ def gen_areas(theme: str, setting_desc: str):
                         "Laser Cutter",
                         "Shard Arrow",
                         "Pickaxe",
-                    ]
+                    ],
                 },
                 {
                     "name": "The Abyss",
@@ -344,7 +317,7 @@ def gen_areas(theme: str, setting_desc: str):
                         "Eclipse Scythe",
                         "Pure Nail",
                         "Dream Nail",
-                    ]
+                    ],
                 },
             ],
         )
