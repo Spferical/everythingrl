@@ -89,6 +89,12 @@ class Monster(pydantic.BaseModel):
     attack_type: PokemonType
     description: str
 
+class Area(pydantic.BaseModel):
+    name: str
+    blurb: str
+    enemies: list[str]
+    equipment: list[str]
+
 
 def ask_mistral(prompt_parts: list[str]) -> str:
     messages = [{"role": "system", "content": "".join(prompt_parts)}]
@@ -304,20 +310,10 @@ def gen_areas(theme: str, setting_desc: str):
             ],
         )
     ]
-    schema = {
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"},
-            "blurb": {"type": "string"},
-            "enemies": {"type": "array", "items": {"type": "string"}},
-            "equipment": {"type": "array", "items": {"type": "string"}},
-        },
-        "required": ["name", "blurb", "enemies", "equipment"],
-    }
     return ask_google_structured(
         instructions,
         examples,
         {"theme": theme, "setting_desc": setting_desc},
         3,
-        schema,
+        Area,
     )
