@@ -100,7 +100,7 @@ def ask_mistral(prompt_parts: list[str]) -> str:
         "Authorization": f"Bearer {AISTUDIO_API_KEY}",
     }
 
-    payload = {"model": "mistral-tiny", "messages": messages, "max_tokens": 300}
+    payload = {"model": "mistral-tiny", "messages": messages, "max_tokens": 2048}
 
     response = session.post(
         f"{MISTRAL_API_URL}/v1/chat/completions",
@@ -126,7 +126,7 @@ def ask_google(prompt_parts: list[str]) -> str:
             "temperature": 0.9,
             "topK": 1,
             "topP": 1,
-            "maxOutputTokens": 2048,
+            "maxOutputTokens": 8192,
             "stopSequences": ["--"],
         },
     }
