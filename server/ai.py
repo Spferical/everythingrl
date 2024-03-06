@@ -171,27 +171,19 @@ def ask_google_structured(
     prompt_parts.append(json.dumps(input))
     prompt_parts.append("\n")
 
-    # Request until we have enough data.
+    prompt = ''.join(prompt_parts)
+    response_text = ask_google([prompt])
+    logging.info(response_text)
+    responses = response_text.split("\n")
     output = []
-    while len(output) < num_outputs:
-        # include output so far on retries
-        prompt = ''.join(prompt_parts)
-        response_text = ask_google([prompt])
-        logging.info(response_text)
-        responses = response_text.split("\n")
-        new_valid_outputs = []
-        for response in responses:
-            try:
-                response_json = json.loads(response)
-                model(**response_json)
-                new_valid_outputs.append(response_json)
-                prompt_parts.append(response_text)
-            except Exception as e:
-                logging.error(f"Bad response: {response}: {e}")
-        if not new_valid_outputs:
-            # None of the new outputs were good, let's stop early.
-            break
-        output.extend(new_valid_outputs)
+    for response in responses:
+        try:
+            response_json = json.loads(response)
+            model(**response_json)
+            output.append(response_json)
+            prompt_parts.append(response_text)
+        except Exception as e:
+            logging.error(f"Bad response: {response}: {e}")
     return output
 
 
