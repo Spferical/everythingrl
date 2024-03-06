@@ -8,7 +8,7 @@
             "type": "string"
         },
         "color": {
-            "enum": [ "lightgray", "yellow", "gold", "orange", "pink", "red", "maroon", "green", "lime", "skyblue", "blue", "purple", "violet", "beige", "brown", "white", "magenta"]
+            "enum": [ "lightgray", "yellow", "gold", "orange", "pink", "red", "maroon", "green", "lime", "skyblue", "blue", "purple", "violet", "beige", "brown", "white", "magenta", "silver", "gray", "grey", "black"]
         },
         "type1": {
             "enum": [ "normal", "fire", "water", "electric", "grass", "ice", "fighting", "poison", "ground", "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"]

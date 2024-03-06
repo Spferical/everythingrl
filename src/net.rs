@@ -30,6 +30,10 @@ pub enum PokemonType {
 #[serde(rename_all = "lowercase")]
 pub enum Color {
     Lightgray,
+    Gray,
+    Grey,
+    Silver,
+    Black,
     Yellow,
     Gold,
     Orange,
@@ -68,6 +72,11 @@ impl From<Color> for macroquad::color::Color {
             Color::Brown => macroquad::color::BROWN,
             Color::White => macroquad::color::WHITE,
             Color::Magenta => macroquad::color::MAGENTA,
+            // These are bad, but the AI sometimes generates them.
+            Color::Gray => macroquad::color::LIGHTGRAY,
+            Color::Grey => macroquad::color::LIGHTGRAY,
+            Color::Silver => macroquad::color::LIGHTGRAY,
+            Color::Black => macroquad::color::LIGHTGRAY,
         }
     }
 }
