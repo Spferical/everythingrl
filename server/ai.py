@@ -61,13 +61,14 @@ def ask_google(prompt_parts: list[str]) -> str:
             "topK": 1,
             "topP": 1,
             "maxOutputTokens": 2048,
-            "stopSequences": [],
+            "stopSequences": ["--"],
         },
     }
     response = session.post(url, headers=headers, json=payload)
     response.raise_for_status()
     try:
         text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+        text = text.strip('--')
         logging.info(text)
         return text
     except KeyError:
