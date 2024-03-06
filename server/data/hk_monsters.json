@@ -1,6 +1,6 @@
 [
   {
-    "name": "Winged Fool",
+    "name": "winged fool",
     "level": 1,
     "char": "F",
     "color": "lightgray",
@@ -40,7 +40,7 @@
     "description": "A formidable knight, its body ablaze with Soul, prepared to defend its master's wishes to the last."
   },
   {
-    "name": "Great Husk Sentry",
+    "name": "great husk sentry",
     "level": 2,
     "char": "G",
     "color": "lightgray",
@@ -60,7 +60,7 @@
     "description": "The pure essence of the Radiance, its blinding light capable of scorching and disorienting."
   },
   {
-    "name": "Lurker",
+    "name": "lurker",
     "level": 2,
     "char": "L",
     "color": "violet",
@@ -70,7 +70,7 @@
     "description": "A grotesque creature of infection, lurking in the shadows, ready to strike with its venomous claws."
   },
   {
-    "name": "Primal Aspid",
+    "name": "primal aspid",
     "level": 1,
     "char": "P",
     "color": "gold",
@@ -79,16 +79,16 @@
     "description": "A venomous Aspid, its acidic spit capable of melting through flesh."
   },
   {
-    "name": "Uoma",
+    "name": "uoma",
     "level": 1,
     "char": "U",
     "color": "green",
     "type1": "bug",
     "attack_type": "bug",
-    "description": "A large, predatory insect, its sharp claws and jagged teeth make it a formidable opponent."
+    "description": "Smallest Jelly form. Passive and unaware, but pulsing with a dangerous electric charge."
   },
   {
-    "name": "Husky Knight",
+    "name": "husky knight",
     "level": 2,
     "char": "H",
     "color": "white",
@@ -98,7 +98,7 @@
     "description": "A robust knight encased in ice armor, its every swing leaving a trail of frostbite."
   },
   {
-    "name": "Baldur",
+    "name": "baldur",
     "level": 1,
     "char": "B",
     "color": "brown",
@@ -117,7 +117,7 @@
     "description": "A spectral king, his ethereal claws capable of tearing through both flesh and soul."
   },
   {
-    "name": "Radiance Knight",
+    "name": "radiance knight",
     "level": 3,
     "char": "R",
     "color": "gold",
@@ -127,7 +127,7 @@
     "description": "A holy knight infused with the power of the Radiance, its blade glowing with divine energy."
   },
   {
-    "name": "Vengefly",
+    "name": "vengefly",
     "level": 1,
     "char": "V",
     "color": "red",
@@ -137,7 +137,7 @@
     "description": "A vengeful fly, its sharp stinger capable of injecting a potent venom."
   },
   {
-    "name": "Stone Golem",
+    "name": "stone golem",
     "level": 2,
     "char": "O",
     "color": "beige",
@@ -146,7 +146,7 @@
     "description": "A massive golem made of stone, its fists capable of shattering bone."
   },
   {
-    "name": "Fungus",
+    "name": "fungus",
     "level": 1,
     "char": "F",
     "color": "green",
@@ -156,7 +156,7 @@
     "description": "A luminescent fungus, its spores capable of causing hallucinations and nausea."
   },
   {
-    "name": "Mantis Petra",
+    "name": "mantis petra",
     "level": 2,
     "char": "M",
     "color": "green",
@@ -166,7 +166,7 @@
     "description": "A skilled mantis, its forearms hardened into deadly blades."
   },
   {
-    "name": "Hollow Warrior",
+    "name": "hollow warrior",
     "level": 1,
     "char": "W",
     "color": "white",
@@ -175,7 +175,7 @@
     "description": "A hollowed warrior, its body a mere vessel for the infection."
   },
   {
-    "name": "Oblobble",
+    "name": "oblobble",
     "level": 1,
     "char": "O",
     "color": "pink",
@@ -184,7 +184,7 @@
     "description": "A small, gelatinous creature, its body capable of absorbing and reflecting attacks."
   },
   {
-    "name": "Diseased Husk",
+    "name": "diseased husk",
     "level": 2,
     "char": "D",
     "color": "lightgray",
@@ -194,7 +194,7 @@
     "description": "A grotesque husk, its body ravaged by infection, spreading disease with every touch."
   },
   {
-    "name": "Crystal Crawler",
+    "name": "crystal crawler",
     "level": 2,
     "char": "C",
     "color": "blue",
@@ -223,7 +223,7 @@
     "description": "A subterranean predator, its gaping maw capable of crushing bone."
   },
   {
-    "name": "Mantis Warrior",
+    "name": "mantis warrior",
     "level": 2,
     "char": "W",
     "color": "green",
@@ -243,7 +243,7 @@
     "description": "The source of the infection, its blinding light capable of corrupting and enslaving."
   },
   {
-    "name": "Crystal Hunter",
+    "name": "crystal hunter",
     "level": 3,
     "char": "H",
     "color": "blue",
@@ -253,7 +253,7 @@
     "description": "A cunning hunter, its crystalline eyes capable of freezing prey in their tracks."
   },
   {
-    "name": "Shrieker",
+    "name": "shrieker",
     "level": 1,
     "char": "S",
     "color": "purple",
