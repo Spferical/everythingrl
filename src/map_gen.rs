@@ -336,8 +336,7 @@ fn gen_alien_nest(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect
             if !world[pos].kind.is_walkable() {
                 continue;
             }
-            let kind = MobKind(rng.gen_range(0..world.mob_kinds.len()));
-            world.add_mob(pos, Mob::new(kind));
+            world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
             break;
         }
     }
@@ -386,8 +385,7 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
         let y = rng.gen_range(room.y1..=room.y2);
         let pos = Pos { x, y };
         let rand = rng.gen::<f32>();
-        let kind = MobKind(rng.gen_range(0..world.mob_kinds.len()));
-        world.add_mob(pos, Mob::new(kind));
+        world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
     }
 
     carve_floor(world, Pos { x: 8, y: 0 }, 1, TileKind::Floor);
@@ -459,17 +457,12 @@ pub fn gen_simple_rooms(
     for _ in 0..sprinkle.num_enemies {
         let room = (&rooms[1..]).choose(rng).unwrap();
         let pos = room.choose(rng);
-        world.add_mob(
-            pos,
-            Mob::new(MobKind(rng.gen_range(0..world.mob_kinds.len()))),
-        );
+        world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
     }
     for _ in 0..sprinkle.num_items {
         let room = (&rooms[1..]).choose(rng).unwrap();
         let pos = room.choose(rng);
-        world[pos].item = Some(Item::Equipment(EquipmentKind(
-            rng.gen_range(0..world.item_kinds.len()),
-        )));
+        world[pos].item = Some(Item::Equipment(world.get_random_equipment_kind(rng)));
     }
 }
 
@@ -485,7 +478,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
     };
     let sprinkle = SprinkleOpts {
         num_enemies: 30,
-        num_items: 10,
+        num_items: 300,
     };
     gen_simple_rooms(world, opts, sprinkle, &mut rng)
 }

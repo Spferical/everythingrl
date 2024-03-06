@@ -29,8 +29,7 @@ impl PlayState {
         assert!(ig.monsters.is_some());
         assert!(ig.items.is_some());
         let mut sim = world::World::new();
-        sim.mob_kinds.append(&mut ig.monsters.clone().unwrap());
-        sim.item_kinds.append(&mut ig.items.clone().unwrap());
+        sim.update_defs(ig);
         map_gen::generate_world(&mut sim, 0x11_22_33_44_55_66_77_88);
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
@@ -220,6 +219,7 @@ async fn main() {
                 }
             }
             GameState::Play(ref mut ps) => {
+                ps.sim.update_defs(&mut ig);
                 if let Some(key) = get_last_key_pressed() {
                     ps.handle_key(key);
                 }

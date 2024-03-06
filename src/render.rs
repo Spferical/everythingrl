@@ -3,7 +3,7 @@ use macroquad::text::Font;
 use std::collections::HashSet;
 
 use crate::net::MonsterDefinition;
-use crate::world::Item;
+use crate::world::{EquipmentSlot, Item};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
 pub struct Ui {
@@ -99,27 +99,33 @@ impl Ui {
                                 let ty;
                                 let display_slot;
                                 let display_equipped;
+                                let level;
                                 match slot.item {
-                                    Item::Corpse(ref mob_kind) => {
-                                        let mob_desc = &sim.mob_kinds[mob_kind.0];
+                                    Item::Corpse(mob_kind) => {
+                                        let mob_desc = &sim.get_mobkind_info(mob_kind);
                                         name = format!("{} Corpse", mob_desc.name);
                                         ty = match mob_desc.type2 {
                                             Some(ty2) => format!("{}/{}", mob_desc.type1, ty2),
                                             None => mob_desc.type1.to_string(),
                                         };
-                                        display_slot = "".to_string();
+                                        display_slot = "";
                                         display_equipped = "";
+                                        level = mob_desc.level.to_string();
                                     }
                                     Item::Equipment(item_kind) => {
-                                        let item_desc = &sim.item_kinds[item_kind.0];
+                                        let item_desc = &sim.get_equipmentkind_info(item_kind);
                                         name = item_desc.name.clone();
                                         ty = item_desc.ty.to_string();
-                                        display_slot = "equipment".to_string();
+                                        display_slot = match item_desc.slot {
+                                            EquipmentSlot::Weapon => "Weapon",
+                                            EquipmentSlot::Equipment => "Equipment",
+                                        };
                                         if slot.equipped {
                                             display_equipped = "YES";
                                         } else {
                                             display_equipped = "CAN";
                                         }
+                                        level = item_desc.level.to_string();
                                     }
                                 }
 
@@ -133,7 +139,7 @@ impl Ui {
                                     ui.label(ty);
                                 });
                                 row.col(|ui| {
-                                    ui.label("4");
+                                    ui.label(level);
                                 });
                                 row.col(|ui| {
                                     ui.label(display_slot);

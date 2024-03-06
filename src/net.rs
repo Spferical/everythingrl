@@ -131,10 +131,11 @@ pub struct ItemDefinition {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Area {
-    name: String,
-    blurb: String,
-    enemies: Vec<String>,
-    equipment: Vec<String>,
+    pub name: String,
+    pub blurb: String,
+    pub enemies: Vec<String>,
+    pub equipment: Vec<String>,
+    pub melee_weapons: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -203,6 +204,7 @@ enum IdeaGuyState {
     Done,
 }
 
+/// Contains raw AI-generated content fetched from the server.
 pub struct IdeaGuy {
     pub theme: String,
     pub api_url: String,

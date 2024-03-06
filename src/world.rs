@@ -1,9 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{ItemDefinition, MonsterDefinition, PokemonType};
+use crate::net::{Color, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
+use rand::Rng;
 use rand::{seq::SliceRandom as _, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
@@ -40,6 +41,15 @@ pub struct EquipmentKind(pub usize);
 pub enum Item {
     Corpse(MobKind),
     Equipment(EquipmentKind),
+}
+
+pub struct EquipmentDefinition {
+    pub name: String,
+    pub level: usize,
+    pub color: Color,
+    pub ty: PokemonType,
+    pub slot: EquipmentSlot,
+    pub description: String,
 }
 
 pub struct TileKindInfo {
@@ -203,13 +213,86 @@ pub struct InventorySlot {
     pub equipped: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct EquipmentKindInfo {
+    pub name: String,
+    pub level: usize,
+    pub color: Color,
+    pub ty: PokemonType,
+    pub description: String,
+    pub slot: EquipmentSlot,
+}
+
+/// Contains post-processed content definitions parsed from AI-generated data.
+#[derive(Debug, Clone)]
+pub struct WorldInfo {
+    equip_kinds: Vec<EquipmentKindInfo>,
+    monster_kinds: Vec<MonsterDefinition>,
+}
+
+impl WorldInfo {
+    pub fn new() -> Self {
+        Self {
+            equip_kinds: Vec::new(),
+            monster_kinds: Vec::new(),
+        }
+    }
+
+    pub fn update(&mut self, ig: &mut IdeaGuy) {
+        let weapon_names = ig
+            .areas
+            .iter()
+            .flatten()
+            .flat_map(|area| area.melee_weapons.clone())
+            .collect::<HashSet<String>>();
+        for item in ig.items.iter().flatten() {
+            let slot = if weapon_names.contains(&item.name) {
+                EquipmentSlot::Weapon
+            } else {
+                EquipmentSlot::Equipment
+            };
+            if self.equip_kinds.iter().any(|e| e.name == item.name) {
+                continue;
+            }
+            let ItemDefinition {
+                name,
+                level,
+                color,
+                ty,
+                description,
+            } = item.clone();
+            self.equip_kinds.push(EquipmentKindInfo {
+                name,
+                level,
+                color,
+                ty,
+                description,
+                slot,
+            });
+        }
+        for mob in ig.monsters.iter().flatten() {
+            if self.equip_kinds.iter().any(|m| m.name == mob.name) {
+                continue;
+            }
+            self.monster_kinds.push(mob.clone());
+        }
+    }
+
+    pub fn get_random_item_kind(&self, rng: &mut impl Rng) -> EquipmentKind {
+        EquipmentKind(rng.gen_range(0..self.equip_kinds.len()))
+    }
+
+    pub fn get_random_mob_kind(&self, rng: &mut impl Rng) -> MobKind {
+        MobKind(rng.gen_range(0..self.monster_kinds.len()))
+    }
+}
+
 #[derive(Clone)]
 pub struct World {
     pub player_pos: Pos,
     pub player_damage: usize,
     tile_map: TileMap<Tile>,
-    pub mob_kinds: Vec<MonsterDefinition>,
-    pub item_kinds: Vec<ItemDefinition>,
+    world_info: WorldInfo,
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Vec<InventorySlot>,
     pub log: VecDeque<(String, macroquad::color::Color)>,
@@ -225,29 +308,31 @@ pub enum PlayerAction {
 
 impl World {
     pub fn new() -> Self {
-        let tile_map = TileMap::new(Tile {
-            kind: TileKind::Wall,
-            item: None,
-        });
-        let player_pos = Pos { x: 0, y: 0 };
-        let player_damage = 0;
-        let mobs = HashMap::new();
-        let mob_kinds = vec![];
-        let item_kinds = vec![];
-        let rng = rand::rngs::SmallRng::seed_from_u64(72);
-        let inventory = vec![];
-        let log = VecDeque::new();
         Self {
-            player_pos,
-            player_damage,
-            tile_map,
-            mob_kinds,
-            item_kinds,
-            mobs,
-            rng,
-            inventory,
-            log,
+            player_pos: Pos { x: 0, y: 0 },
+            player_damage: 0,
+            tile_map: TileMap::new(Tile {
+                kind: TileKind::Wall,
+                item: None,
+            }),
+            world_info: WorldInfo::new(),
+            mobs: HashMap::new(),
+            rng: rand::rngs::SmallRng::seed_from_u64(72),
+            inventory: vec![],
+            log: VecDeque::new(),
         }
+    }
+
+    pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
+        self.world_info.update(ig);
+    }
+
+    pub fn get_random_equipment_kind(&self, rng: &mut impl Rng) -> EquipmentKind {
+        self.world_info.get_random_item_kind(rng)
+    }
+
+    pub fn get_random_mob_kind(&self, rng: &mut impl Rng) -> MobKind {
+        self.world_info.get_random_mob_kind(rng)
     }
 
     pub fn log_message(&mut self, text: &str, color: macroquad::color::Color) {
@@ -496,7 +581,11 @@ impl World {
     }
 
     pub fn get_mobkind_info(&self, kind: MobKind) -> MonsterDefinition {
-        self.mob_kinds[kind.0].clone()
+        self.world_info.monster_kinds[kind.0].clone()
+    }
+
+    pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> EquipmentKindInfo {
+        self.world_info.equip_kinds[kind.0].clone()
     }
 }
 
