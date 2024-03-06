@@ -95,28 +95,31 @@ class Area(pydantic.BaseModel):
     blurb: str
     enemies: list[str]
     equipment: list[str]
+    melee_weapons: list[str]
+
+
+class Item(pydantic.BaseModel):
+    name: str
+    level: int
+    color: Color
+    type: PokemonType
+    description: str
 
 
 def ask_mistral(prompt_parts: list[str]) -> str:
-    messages = [{"role": "system", "content": "".join(prompt_parts)}]
-    model = "mistral-small"
-
+    messages = [{"role": "user", "content": "".join(prompt_parts)}]
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": f"Bearer {AISTUDIO_API_KEY}",
+        "Authorization": f"Bearer {MISTRAL_API_KEY}",
     }
-
-    payload = {"model": "mistral-tiny", "messages": messages, "max_tokens": 2048}
-
+    payload = {"model": "open-mixtral-8x7b", "messages": messages, "max_tokens": 2048}
     response = session.post(
         f"{MISTRAL_API_URL}/v1/chat/completions",
         headers=headers,
         json=payload,
     )
-
     response.raise_for_status()
-
     return response.json()["choices"][0]["message"]["content"]
 
 
@@ -209,14 +212,18 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
 
 
 def gen_items(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; level, a number between 1 and 3 indicating how powerful the monster is; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a two sentence description of the monster. Output each monster JSON on its own line."
+    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; color, one of the valid colors above; type, the pokemon type of the equipment or weapon; slot, either 'item' or 'equipment'; and description, a two sentence description of the item. Output each monster JSON on its own line."
     examples = [
         (
             {
                 "theme": "Hollow Knight",
                 "setting_desc": HK_SETTING_DESC,
-                "enemy_names": list(
-                    set(name for area in HK_AREAS for name in area["enemies"])
+                "item_names": list(
+                    set(
+                        name
+                        for area in HK_AREAS
+                        for name in area["equipment"] + area["melee_weapons"]
+                    )
                 ),
             },
             HK_MONSTERS,
@@ -225,7 +232,7 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
     enemy_names = list(set(name for area in areas for name in area["enemies"]))
     input = {"theme": theme, "enemy_names": enemy_names}
     count = len(enemy_names)
-    return ask_google_structured(instructions, examples, input, count, Monster)
+    return ask_google_structured(instructions, examples, input, count, Item)
 
 
 def gen_setting_desc(theme: str):
