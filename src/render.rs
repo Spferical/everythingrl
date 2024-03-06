@@ -217,7 +217,15 @@ impl Ui {
                     if let Some(item) = tile.item {
                         let (character, color) = match item {
                             Item::Corpse(_) => ('%', MAROON),
-                            Item::Equipment(_) => ('[', SKYBLUE),
+                            Item::Equipment(ek) => {
+                                let equip_def = sim.get_equipmentkind_info(ek);
+                                let char = match equip_def.slot {
+                                    EquipmentSlot::Weapon => '/',
+                                    EquipmentSlot::Equipment => '[',
+                                };
+                                let color = equip_def.ty.get_color().into();
+                                (char, color)
+                            }
                         };
                         glyphs.push(Glyph {
                             character,

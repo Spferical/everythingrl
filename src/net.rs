@@ -27,6 +27,31 @@ pub enum PokemonType {
     Fairy,
 }
 
+impl PokemonType {
+    pub fn get_color(&self) -> Color {
+        match self {
+            PokemonType::Normal => Color::Lightgray,
+            PokemonType::Fire => Color::Red,
+            PokemonType::Water => Color::Blue,
+            PokemonType::Electric => Color::Yellow,
+            PokemonType::Grass => Color::Green,
+            PokemonType::Ice => Color::Skyblue,
+            PokemonType::Fighting => Color::Maroon,
+            PokemonType::Poison => Color::Violet,
+            PokemonType::Ground => Color::Brown,
+            PokemonType::Flying => Color::Skyblue,
+            PokemonType::Psychic => Color::Magenta,
+            PokemonType::Bug => Color::Lime,
+            PokemonType::Rock => Color::Brown,
+            PokemonType::Ghost => Color::Purple,
+            PokemonType::Dragon => Color::Orange,
+            PokemonType::Dark => Color::Black,
+            PokemonType::Steel => Color::Lightgray,
+            PokemonType::Fairy => Color::Pink,
+        }
+    }
+}
+
 impl Display for PokemonType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
