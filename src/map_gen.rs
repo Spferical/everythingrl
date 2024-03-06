@@ -391,7 +391,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
     fill_rect(world, Rect::new(-50, 10, -50, 50), TileKind::Floor);
     let start_room = Rect::new(-10, 10, -10, 10);
 
-    world[Pos::new(3, 3)].item = Some(Item::Equipment(EquipmentKind::Sword));
+    world[Pos::new(3, 3)].item = Some(Item::Equipment(EquipmentKind(0)));
 
     let world_rect = Rect {
         x1: 11,

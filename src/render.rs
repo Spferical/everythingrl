@@ -1,18 +1,10 @@
 use macroquad::prelude::*;
 use macroquad::text::Font;
-use macroquad::ui::{
-    hash, root_ui,
-    widgets::{Group, Window},
-};
 use std::collections::HashSet;
 
 use crate::net::MonsterDefinition;
-use crate::world::{EquipmentKind, Item};
-use crate::{
-    grid::Pos,
-    grid::Rect,
-    world::{MobKind, TileKind},
-};
+use crate::world::Item;
+use crate::{grid::Pos, grid::Rect, world::TileKind};
 
 pub struct Ui {
     grid_size: usize,
@@ -98,12 +90,24 @@ impl Ui {
                             body.rows(text_height, sim.inventory.len(), |mut row| {
                                 let row_index = row.index();
                                 row.set_selected(self.inventory_selected.contains(&row_index));
+                                let slot = &sim.inventory[row_index];
+                                let name;
+                                match slot.item {
+                                    Item::Corpse(ref mob_kind) => {
+                                        let mob_desc = &sim.mob_kinds[mob_kind.0];
+                                        name = format!("Corpse of {}", mob_desc.name);
+                                    }
+                                    Item::Equipment(item_kind) => {
+                                        let item_desc = &sim.item_kinds[item_kind.0];
+                                        name = item_desc.name.clone()
+                                    }
+                                }
 
                                 row.col(|ui| {
                                     ui.label(row_index.to_string());
                                 });
                                 row.col(|ui| {
-                                    ui.label(format!("{:?}", sim.inventory[row_index]));
+                                    ui.label(name);
                                 });
                                 row.col(|ui| {
                                     ui.label("Ice");

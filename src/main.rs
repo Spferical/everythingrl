@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use net::{IdeaGuy, MonsterDefinition};
+use net::{IdeaGuy, ItemDefinition, MonsterDefinition};
 use world::PlayerAction;
 
 mod fov;
@@ -25,9 +25,14 @@ struct PlayState {
 }
 
 impl PlayState {
-    pub fn new(font: Font, mut monsters: Vec<MonsterDefinition>) -> Self {
+    pub fn new(
+        font: Font,
+        mut monsters: Vec<MonsterDefinition>,
+        mut items: Vec<ItemDefinition>,
+    ) -> Self {
         let mut sim = world::World::new();
         sim.mob_kinds.append(&mut monsters);
+        sim.item_kinds.append(&mut items);
         map_gen::generate_world(&mut sim, 0x11_22_33_44_55_66_77_88);
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
@@ -128,8 +133,8 @@ fn egui_setup() {
         egui_ctx.set_fonts(fonts);
 
         let game_size = screen_width().min(screen_height());
-        // let scale_factor = screen_width() / 1024.0;
-        let scale_factor = screen_width() / 500.0;
+        let scale_factor = screen_width() / 1024.0;
+        // let scale_factor = screen_width() / 500.0;
         use egui::FontFamily::*;
         use egui::TextStyle::*;
         let mut style = (*egui_ctx.style()).clone();
@@ -204,12 +209,21 @@ async fn main() {
                     }
                 }
             }
-            GameState::Startup => match ig.monsters {
-                Some(ref monsters) => {
-                    GameState::Play(PlayState::new(font.clone(), monsters.clone()))
+            GameState::Startup => {
+                if let Some(ref monsters) = ig.monsters {
+                    if let Some(ref items) = ig.items {
+                        GameState::Play(PlayState::new(
+                            font.clone(),
+                            monsters.clone(),
+                            items.clone(),
+                        ))
+                    } else {
+                        GameState::Startup
+                    }
+                } else {
+                    GameState::Startup
                 }
-                None => GameState::Startup,
-            },
+            }
             GameState::Play(ref mut ps) => {
                 if let Some(key) = get_last_key_pressed() {
                     ps.handle_key(key);

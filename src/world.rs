@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{self, MonsterDefinition};
+use crate::net::{ItemDefinition, MonsterDefinition};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, SeedableRng};
@@ -30,20 +30,11 @@ impl TileKind {
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum EquipmentSlot {
     Weapon,
+    Equipment,
 }
 
-#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub enum EquipmentKind {
-    Sword,
-}
-
-impl EquipmentKind {
-    fn get_slot(&self) -> EquipmentSlot {
-        match self {
-            EquipmentKind::Sword => EquipmentSlot::Weapon,
-        }
-    }
-}
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+pub struct EquipmentKind(pub usize);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
@@ -102,14 +93,20 @@ impl Mob {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct InventorySlot {
+    pub item: Item,
+    pub equipped: bool,
+}
+
 #[derive(Clone)]
 pub struct World {
     player_pos: Pos,
     tile_map: TileMap<Tile>,
     pub mob_kinds: Vec<MonsterDefinition>,
+    pub item_kinds: Vec<ItemDefinition>,
     pub mobs: HashMap<Pos, Mob>,
-    pub inventory: Vec<Item>,
-    equipment: Vec<Item>,
+    pub inventory: Vec<InventorySlot>,
     pub log: VecDeque<(String, macroquad::color::Color)>,
     rng: rand::rngs::SmallRng,
 }
@@ -131,24 +128,28 @@ impl World {
         let player_pos = Pos { x: 0, y: 0 };
         let mobs = HashMap::new();
         let mob_kinds = vec![];
+        let item_kinds = vec![];
         let rng = rand::rngs::SmallRng::seed_from_u64(72);
         let inventory = vec![];
-        let equipment = vec![];
         let log = VecDeque::new();
         Self {
             player_pos,
             tile_map,
             mob_kinds,
+            item_kinds,
             mobs,
             rng,
             inventory,
-            equipment,
             log,
         }
     }
 
     pub fn log_message(&mut self, text: &str, color: macroquad::color::Color) {
         self.log.push_back((text.into(), color));
+    }
+
+    pub fn sort_inventory(&mut self) {
+        self.inventory.sort_by_key(|x| !x.equipped)
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
@@ -170,7 +171,19 @@ impl World {
             }
             PlayerAction::PickUp => {
                 if let Some(item) = self.tile_map[self.player_pos].item.take() {
-                    self.inventory.push(item);
+                    self.inventory.push(InventorySlot {
+                        item,
+                        equipped: false,
+                    });
+                    if self.inventory.len() > 9 {
+                        for i in 0..self.inventory.len() {
+                            if !self.inventory[i].equipped {
+                                self.tile_map[self.player_pos].item =
+                                    Some(self.inventory.remove(i).item);
+                                break;
+                            }
+                        }
+                    }
                     true
                 } else {
                     false
@@ -180,26 +193,33 @@ impl World {
                 if i >= self.inventory.len() {
                     eprintln!("Bad equip idx: {i}");
                     false
+                } else if self.inventory[i].equipped == true {
+                    eprintln!("Item {i} is already equipped");
+                    false
                 } else {
-                    let item = self.inventory.remove(i);
-                    // unequip anything in the same slot
-                    if let Some(equipped_index) = self.equipment.iter().position(|x| match x {
-                        Item::Equipment(ek) => ek.get_slot() == ek.get_slot(),
-                        _ => false,
-                    }) {
-                        self.inventory.push(self.equipment.remove(equipped_index));
+                    let num_equipped = self.inventory.iter().filter(|x| x.equipped).count();
+                    if num_equipped >= 2 {
+                        for j in 0..self.inventory.len() {
+                            if self.inventory[j].equipped {
+                                self.inventory[j].equipped = false;
+                                break;
+                            }
+                        }
                     }
-                    self.equipment.push(item);
+                    self.inventory[i].equipped = true;
                     true
                 }
             }
             PlayerAction::Unequip(i) => {
-                if i >= self.equipment.len() {
+                if i >= self.inventory.len() {
                     eprintln!("Bad unequip idx: {i}");
                     false
+                } else if !self.inventory[i].equipped {
+                    eprintln!("Item {i} is already unequipped");
+                    false
                 } else {
-                    let item = self.equipment.remove(i);
-                    self.inventory.push(item);
+                    self.inventory[i].equipped = false;
+                    self.sort_inventory();
                     true
                 }
             }
@@ -208,11 +228,14 @@ impl World {
                     eprintln!("Bad drop idx: {i}");
                     false
                 } else {
-                    let item = self.inventory.remove(i);
+                    let slot = self.inventory.remove(i);
                     if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
-                        self.inventory.push(item_on_ground)
+                        self.inventory.push(InventorySlot {
+                            item: item_on_ground,
+                            equipped: false,
+                        })
                     }
-                    self.tile_map[self.player_pos].item = Some(item);
+                    self.tile_map[self.player_pos].item = Some(slot.item);
                     true
                 }
             }
