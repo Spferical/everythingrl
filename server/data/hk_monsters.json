@@ -1,0 +1,272 @@
+[
+  {
+    "name": "Winged Fool",
+    "level": 1,
+    "char": "F",
+    "color": "lightgray",
+    "type1": "ghost",
+    "type2": "flying",
+    "attack_type": "ghost",
+    "description": "An Acolyte infested by the Infection, having taken skeletal wings and a taste for pathogen."
+  },
+  {
+    "name": "Flukemunga",
+    "level": 2,
+    "char": "M",
+    "color": "yellow",
+    "type1": "poison",
+    "type2": "water",
+    "attack_type": "poison",
+    "description": "A monstrous Fluke, infused with a mind of its own. It lingers in dark basins, eager to pull victims down into its domain."
+  },
+  {
+    "name": "Nosk",
+    "level": 3,
+    "char": "N",
+    "color": "violet",
+    "type1": "dark",
+    "type2": "ghost",
+    "attack_type": "dark",
+    "description": "A haunting figure composed of nightmares, revealed to be a manifestation of the Knight's inner fears."
+  },
+  {
+    "name": "Soul Tyrant",
+    "level": 3,
+    "char": "S",
+    "color": "magenta",
+    "type1": "ghost",
+    "type2": "psychic",
+    "attack_type": "psychic",
+    "description": "A formidable knight, its body ablaze with Soul, prepared to defend its master's wishes to the last."
+  },
+  {
+    "name": "Great Husk Sentry",
+    "level": 2,
+    "char": "G",
+    "color": "lightgray",
+    "type1": "rock",
+    "type2": "bug",
+    "attack_type": "rock",
+    "description": "A giant Husk, its body hardened by infection, serving as a guardian to the kingdom's secrets."
+  },
+  {
+    "name": "Absolute Radiance",
+    "level": 3,
+    "char": "A",
+    "color": "gold",
+    "type1": "fairy",
+    "type2": "psychic",
+    "attack_type": "fairy",
+    "description": "The pure essence of the Radiance, its blinding light capable of scorching and disorienting."
+  },
+  {
+    "name": "Lurker",
+    "level": 2,
+    "char": "L",
+    "color": "violet",
+    "type1": "dark",
+    "type2": "poison",
+    "attack_type": "dark",
+    "description": "A grotesque creature of infection, lurking in the shadows, ready to strike with its venomous claws."
+  },
+  {
+    "name": "Primal Aspid",
+    "level": 1,
+    "char": "P",
+    "color": "gold",
+    "type1": "dark",
+    "type2": null,
+    "attack_type": "dark",
+    "description": "A venomous Aspid, its acidic spit capable of melting through flesh."
+  },
+  {
+    "name": "Uoma",
+    "level": 1,
+    "char": "U",
+    "color": "green",
+    "type1": "bug",
+    "type2": null,
+    "attack_type": "bug",
+    "description": "A large, predatory insect, its sharp claws and jagged teeth make it a formidable opponent."
+  },
+  {
+    "name": "Husky Knight",
+    "level": 2,
+    "char": "H",
+    "color": "white",
+    "type1": "ice",
+    "type2": "fighting",
+    "attack_type": "fighting",
+    "description": "A robust knight encased in ice armor, its every swing leaving a trail of frostbite."
+  },
+  {
+    "name": "Baldur",
+    "level": 1,
+    "char": "B",
+    "color": "brown",
+    "type1": "rock",
+    "type2": null,
+    "attack_type": "rock",
+    "description": "A burly miner, utilizing his pickaxe with deadly precision."
+  },
+  {
+    "name": "Nightmare King",
+    "level": 3,
+    "char": "K",
+    "color": "violet",
+    "type1": "ghost",
+    "type2": "dark",
+    "attack_type": "ghost",
+    "description": "A spectral king, his ethereal claws capable of tearing through both flesh and soul."
+  },
+  {
+    "name": "Radiance Knight",
+    "level": 3,
+    "char": "R",
+    "color": "gold",
+    "type1": "fairy",
+    "type2": "fighting",
+    "attack_type": "fighting",
+    "description": "A holy knight infused with the power of the Radiance, its blade glowing with divine energy."
+  },
+  {
+    "name": "Vengefly",
+    "level": 1,
+    "char": "V",
+    "color": "red",
+    "type1": "bug",
+    "type2": "flying",
+    "attack_type": "bug",
+    "description": "A vengeful fly, its sharp stinger capable of injecting a potent venom."
+  },
+  {
+    "name": "Stone Golem",
+    "level": 2,
+    "char": "O",
+    "color": "beige",
+    "type1": "rock",
+    "type2": null,
+    "attack_type": "rock",
+    "description": "A massive golem made of stone, its fists capable of shattering bone."
+  },
+  {
+    "name": "Fungus",
+    "level": 1,
+    "char": "F",
+    "color": "green",
+    "type1": "grass",
+    "type2": "poison",
+    "attack_type": "grass",
+    "description": "A luminescent fungus, its spores capable of causing hallucinations and nausea."
+  },
+  {
+    "name": "Mantis Petra",
+    "level": 2,
+    "char": "M",
+    "color": "green",
+    "type1": "bug",
+    "type2": "rock",
+    "attack_type": "rock",
+    "description": "A skilled mantis, its forearms hardened into deadly blades."
+  },
+  {
+    "name": "Hollow Warrior",
+    "level": 1,
+    "char": "W",
+    "color": "white",
+    "type1": "ghost",
+    "type2": null,
+    "attack_type": "ghost",
+    "description": "A hollowed warrior, its body a mere vessel for the infection."
+  },
+  {
+    "name": "Oblobble",
+    "level": 1,
+    "char": "O",
+    "color": "pink",
+    "type1": "normal",
+    "type2": null,
+    "attack_type": "normal",
+    "description": "A small, gelatinous creature, its body capable of absorbing and reflecting attacks."
+  },
+  {
+    "name": "Diseased Husk",
+    "level": 2,
+    "char": "D",
+    "color": "lightgray",
+    "type1": "poison",
+    "type2": "bug",
+    "attack_type": "poison",
+    "description": "A grotesque husk, its body ravaged by infection, spreading disease with every touch."
+  },
+  {
+    "name": "Crystal Crawler",
+    "level": 2,
+    "char": "C",
+    "color": "blue",
+    "type1": "ice",
+    "type2": "rock",
+    "attack_type": "ice",
+    "description": "A crystalline creature, its sharp claws capable of slicing through flesh with ease."
+  },
+  {
+    "name": "Pure Vessel",
+    "level": 3,
+    "char": "P",
+    "color": "white",
+    "type1": "ghost",
+    "type2": "steel",
+    "attack_type": "ghost",
+    "description": "A perfect vessel, its body untouched by infection, wielding a powerful blade forged from Void."
+  },
+  {
+    "name": "Brooding Mawlek",
+    "level": 2,
+    "char": "M",
+    "color": "red",
+    "type1": "ground",
+    "type2": null,
+    "attack_type": "ground",
+    "description": "A subterranean predator, its gaping maw capable of crushing bone."
+  },
+  {
+    "name": "Mantis Warrior",
+    "level": 2,
+    "char": "W",
+    "color": "green",
+    "type1": "bug",
+    "type2": "fighting",
+    "attack_type": "fighting",
+    "description": "A skilled mantis warrior, utilizing a variety of deadly techniques."
+  },
+  {
+    "name": "The Radiance",
+    "level": 3,
+    "char": "R",
+    "color": "gold",
+    "type1": "fairy",
+    "type2": "psychic",
+    "attack_type": "fairy",
+    "description": "The source of the infection, its blinding light capable of corrupting and enslaving."
+  },
+  {
+    "name": "Crystal Hunter",
+    "level": 3,
+    "char": "H",
+    "color": "blue",
+    "type1": "ice",
+    "type2": "psychic",
+    "attack_type": "ice",
+    "description": "A cunning hunter, its crystalline eyes capable of freezing prey in their tracks."
+  },
+  {
+    "name": "Shrieker",
+    "level": 1,
+    "char": "S",
+    "color": "purple",
+    "type1": "ghost",
+    "type2": "flying",
+    "attack_type": "ghost",
+    "description": "A screeching creature, its high-pitched wail capable of deafening and disorienting."
+  }
+]
