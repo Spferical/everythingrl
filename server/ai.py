@@ -208,6 +208,26 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
     return ask_google_structured(instructions, examples, input, count, Monster)
 
 
+def gen_items(theme: str, setting_desc: str, areas: list[dict]):
+    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; level, a number between 1 and 3 indicating how powerful the monster is; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a two sentence description of the monster. Output each monster JSON on its own line."
+    examples = [
+        (
+            {
+                "theme": "Hollow Knight",
+                "setting_desc": HK_SETTING_DESC,
+                "enemy_names": list(
+                    set(name for area in HK_AREAS for name in area["enemies"])
+                ),
+            },
+            HK_MONSTERS,
+        )
+    ]
+    enemy_names = list(set(name for area in areas for name in area["enemies"]))
+    input = {"theme": theme, "enemy_names": enemy_names}
+    count = len(enemy_names)
+    return ask_google_structured(instructions, examples, input, count, Monster)
+
+
 def gen_setting_desc(theme: str):
     instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
     return ask_google([instructions])
@@ -219,100 +239,9 @@ def gen_areas(theme: str, setting_desc: str):
         (
             {
                 "theme": "Hollow Knight",
-                "setting_desc": "In the depths of Hallownest, a desolate and forsaken kingdom, a roguelike adventure awaits. Journey through three treacherous levels, each teeming with grotesque creatures and dilapidated ruins. As you delve deeper, the horrors that lurk in the shadows grow more terrifying, from ghostly wisps to venomous spiders. Engage in visceral melee combat, mastering your swordsmanship and dodging enemy attacks with precision.\n\nAlong the way, gather materials to craft powerful items and abilities. From healing potions to explosive traps, these creations will aid your survival. The level design is intricate and interconnected, with multiple paths and hidden secrets to uncover. Navigate treacherous chasms, navigate crumbling caverns, and uncover the remnants of Hallownest's tragic past. As you approach the end, prepare to face the Shadow King, a formidable adversary who guards the final secrets of the kingdom. Only by overcoming this formidable foe can you escape the clutches of Hallownest and uncover its forgotten lore.",
+                "setting_desc": HK_SETTING_DESC,
             },
-            [
-                {
-                    "name": "Forgotten Crossroads",
-                    "blurb": "Emerging from the darkness, you step into the forgotten crossroads of Hallownest. Vines cling to dilapidated walls, casting long shadows across the crumbling stone. A chilling wind whispers secrets of a forgotten past.",
-                    "enemies": [
-                        "Husk Sentry",
-                        "Crawler",
-                        "Gloomwing",
-                        "Vengefly",
-                        "Leaper",
-                        "Husk Warrior",
-                        "Tiktik",
-                        "Flukemunga",
-                        "Baldur",
-                        "Aspid Warrior",
-                    ],
-                    "equipment": [
-                        "Ruined Cloak",
-                        "Fungal Boots",
-                        "Nail Sharpener",
-                        "Lantern",
-                        "Baldur Shell",
-                    ],
-                    "melee_weapons": [
-                        "Ancient Nail",
-                        "Nail of Shadows",
-                        "Bone Needle",
-                        "Coiled Sword",
-                        "Thorned Whip",
-                    ],
-                },
-                {
-                    "name": "Crystal Peak",
-                    "blurb": "As you ascend the winding path, the air grows heavy with the scent of minerals. Towering crystalline formations shimmer in the dim light, casting eerie reflections upon the jagged walls. A faint glow emanates from deep within the mine, beckoning you further.",
-                    "enemies": [
-                        "Crystal Crawler",
-                        "Crystal Hunter",
-                        "Vengefly",
-                        "Great Husk Sentinel",
-                        "Crystal Guardian",
-                        "Primal Aspid",
-                        "Mantis Petra",
-                        "Mantis Warrior",
-                        "Stalking Devout",
-                        "Mage",
-                    ],
-                    "equipment": [
-                        "Crystal Shell",
-                        "Quartz Breastplate",
-                        "Luminous Leggings",
-                        "Reflective Cloak",
-                        "Prism Ring",
-                    ],
-                    "weapons": [
-                        "Prismatic Sword",
-                        "Geode Mace",
-                        "Laser Cutter",
-                        "Shard Arrow",
-                        "Pickaxe",
-                    ],
-                },
-                {
-                    "name": "The Abyss",
-                    "blurb": "You stumble into a realm of eternal darkness, where gravity seems to play tricks upon your senses. Strange sounds echo through the chasm, stirring primal fears deep within your soul. A sense of ancient evil lingers in the air, as if the abyss itself is watching your every move.",
-                    "enemies": [
-                        "Voidwalker",
-                        "Abyss Shrieker",
-                        "Abyssal Shade",
-                        "Darkness Devourer",
-                        "Shadow Lurker",
-                        "Nightmare Wisp",
-                        "Void Stalker",
-                        "Obsidian Assassin",
-                        "Dusk Bringer",
-                        "Silence Weaver",
-                    ],
-                    "equipment": [
-                        "Abyssal Armor",
-                        "Void Cloak",
-                        "Phantom Boots",
-                        "Void Heart",
-                        "Weaversong",
-                    ],
-                    "weapons": [
-                        "Shadow Blade",
-                        "Obsidian Dagger",
-                        "Eclipse Scythe",
-                        "Pure Nail",
-                        "Dream Nail",
-                    ],
-                },
-            ],
+            HK_AREAS,
         )
     ]
     return ask_google_structured(
