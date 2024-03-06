@@ -63,11 +63,13 @@ impl PlayState {
             KeyCode::E => {
                 if let Some(&min) = self.ui.inventory_selected.iter().min() {
                     tick |= self.sim.do_player_action(PlayerAction::ToggleEquip(min));
+                    self.ui.inventory_selected.remove(&min);
                 }
             }
             KeyCode::D => {
                 if let Some(&min) = self.ui.inventory_selected.iter().min() {
                     tick |= self.sim.do_player_action(PlayerAction::Drop(min));
+                    self.ui.inventory_selected.remove(&min);
                 }
             }
             KeyCode::Escape => {
