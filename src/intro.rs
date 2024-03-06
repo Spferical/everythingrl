@@ -1,7 +1,7 @@
 use egui;
 use macroquad::prelude::*;
 
-pub const CHARS_PER_SECOND: f32 = 25.;
+pub const CHARS_PER_SECOND: f32 = 35.;
 
 pub const PROMPTS: [&str; 6] = [
     "Welcome, traveler. I am the Storyteller of this roguelike game.",
