@@ -101,7 +101,7 @@ pub struct InventorySlot {
 
 #[derive(Clone)]
 pub struct World {
-    player_pos: Pos,
+    pub player_pos: Pos,
     tile_map: TileMap<Tile>,
     pub mob_kinds: Vec<MonsterDefinition>,
     pub item_kinds: Vec<ItemDefinition>,

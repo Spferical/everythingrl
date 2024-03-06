@@ -25,14 +25,12 @@ struct PlayState {
 }
 
 impl PlayState {
-    pub fn new(
-        font: Font,
-        mut monsters: Vec<MonsterDefinition>,
-        mut items: Vec<ItemDefinition>,
-    ) -> Self {
+    pub fn new(font: Font, ig: &mut IdeaGuy) -> Self {
+        assert!(ig.monsters.is_some());
+        assert!(ig.items.is_some());
         let mut sim = world::World::new();
-        sim.mob_kinds.append(&mut monsters);
-        sim.item_kinds.append(&mut items);
+        sim.mob_kinds.append(&mut ig.monsters.clone().unwrap());
+        sim.item_kinds.append(&mut ig.items.clone().unwrap());
         map_gen::generate_world(&mut sim, 0x11_22_33_44_55_66_77_88);
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
@@ -187,7 +185,7 @@ async fn main() {
     let theme = "pregen";
 
     let mut last_size = (screen_width(), screen_height());
-    let mut gs = GameState::Intro(intro::IntroState::new());
+    let mut gs = GameState::Startup;
     let mut ig = IdeaGuy::new(theme);
     loop {
         ig.tick();
@@ -211,13 +209,9 @@ async fn main() {
                 }
             }
             GameState::Startup => {
-                if let Some(ref monsters) = ig.monsters {
-                    if let Some(ref items) = ig.items {
-                        GameState::Play(PlayState::new(
-                            font.clone(),
-                            monsters.clone(),
-                            items.clone(),
-                        ))
+                if ig.monsters.is_some() {
+                    if ig.items.is_some() {
+                        GameState::Play(PlayState::new(font.clone(), &mut ig))
                     } else {
                         GameState::Startup
                     }

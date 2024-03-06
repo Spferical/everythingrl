@@ -64,6 +64,7 @@ impl Offset {
         self.x * self.x + self.y * self.y
     }
 
+    /// Returns the closest cardinal direction aligned with this offset.
     pub fn closest_dir(self) -> Self {
         let angle = (self.y as f64).atan2(self.x as f64);
         let mut octant = (8f64 * angle / (2f64 * PI) + 8f64) as usize % 8;
@@ -422,6 +423,10 @@ impl Rect {
             x2: self.x2,
             y2: self.y1,
         }
+    }
+
+    pub fn intersects(&self, other: &Rect) -> bool {
+        self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1
     }
 }
 

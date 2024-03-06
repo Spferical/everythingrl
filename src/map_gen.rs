@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use rand::rngs::SmallRng;
 use rand::Rng;
@@ -294,6 +294,14 @@ pub fn carve_line(world: &mut World, start: Pos, end: Pos, brush_size: u8, tile:
     }
 }
 
+pub fn carve_corridor(world: &mut World, start: Pos, end: Pos, tile: TileKind) {
+    let mut pos = start;
+    while pos != end {
+        carve_floor(world, pos, 0, tile);
+        pos += (end - pos).closest_dir();
+    }
+}
+
 pub fn fill_rect(world: &mut World, rect: Rect, kind: TileKind) {
     for x in rect.x1..=rect.x2 {
         for y in rect.y1..=rect.y2 {
@@ -385,99 +393,101 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
     carve_floor(world, Pos { x: 8, y: 0 }, 1, TileKind::Floor);
 }
 
+pub struct SimpleRoomOpts {
+    pub rect: Rect,
+    pub max_rooms: usize,
+    pub min_room_size: i32,
+    pub max_room_size: i32,
+}
+
+pub struct SprinkleOpts {
+    pub num_enemies: usize,
+    pub num_items: usize,
+}
+
+pub fn gen_simple_rooms(
+    world: &mut World,
+    opts: SimpleRoomOpts,
+    sprinkle: SprinkleOpts,
+    rng: &mut impl Rng,
+) {
+    // Create rooms
+    let mut rooms = vec![];
+    for _ in 0..opts.max_rooms {
+        let w = rng.gen_range(opts.min_room_size..=opts.max_room_size);
+        let h = rng.gen_range(opts.min_room_size..=opts.max_room_size);
+        let x = rng.gen_range(opts.rect.x1..=opts.rect.x2 - w as i32);
+        let y = rng.gen_range(opts.rect.y1..=opts.rect.y2 - h as i32);
+        let new_room = Rect::new(x, x + w, y, y + h);
+        let intersects = rooms.iter().any(|r| new_room.intersects(r));
+        if !intersects {
+            rooms.push(new_room);
+        }
+    }
+    // Draw corridors
+    let mut connected: HashSet<usize> = HashSet::new();
+    for (i, room) in rooms.iter().enumerate() {
+        if let Some(nearest_other_room) = rooms
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| i != *j && !connected.contains(j))
+            .map(|(_, other)| ((room.center() - other.center()).mhn_dist(), other))
+            .min_by_key(|(dist, _)| *dist)
+            .map(|(_, other)| other)
+        {
+            carve_corridor(
+                world,
+                room.center(),
+                nearest_other_room.center(),
+                TileKind::Floor,
+            );
+            connected.insert(i);
+        }
+    }
+
+    // Write rooms on top of corridors
+    for room in rooms.iter().copied() {
+        for pos in room {
+            carve_floor(world, pos, 0, TileKind::Floor)
+        }
+    }
+
+    // Put the player in the first room.
+    world.player_pos = rooms[0].center();
+
+    // Sprinkle enemies/items
+    for _ in 0..sprinkle.num_enemies {
+        let room = (&rooms[1..]).choose(rng).unwrap();
+        let pos = room.choose(rng);
+        world.add_mob(
+            pos,
+            Mob::new(MobKind(rng.gen_range(0..world.mob_kinds.len()))),
+        );
+    }
+    for _ in 0..sprinkle.num_items {
+        let room = (&rooms[1..]).choose(rng).unwrap();
+        let pos = room.choose(rng);
+        world[pos].item = Some(Item::Equipment(EquipmentKind(
+            rng.gen_range(0..world.item_kinds.len()),
+        )));
+    }
+}
+
 pub fn generate_world(world: &mut World, seed: u64) {
     let mut rng = SmallRng::seed_from_u64(seed);
-    // left ocean none beef
-    fill_rect(world, Rect::new(-50, 10, -50, 50), TileKind::Floor);
-    let start_room = Rect::new(-10, 10, -10, 10);
-
     world[Pos::new(3, 3)].item = Some(Item::Equipment(EquipmentKind(0)));
-
-    let world_rect = Rect {
-        x1: 11,
-        x2: 111,
-        y1: -50,
-        y2: 50,
+    let rect = Rect::new_centered(Pos::new(0, 0), 80, 50);
+    let opts = SimpleRoomOpts {
+        rect,
+        max_rooms: 30,
+        min_room_size: 6,
+        max_room_size: 10,
     };
-    fill_rect(world, world_rect, TileKind::Wall);
-    let world_rect = world_rect.shrink(1);
-    let bsp_opts = BspSplitOpts {
-        max_width: 36,
-        max_height: 36,
-        min_width: 15,
-        min_height: 15,
+    let sprinkle = SprinkleOpts {
+        num_enemies: 30,
+        num_items: 10,
     };
-    let big_bsp = gen_bsp_tree(world_rect, bsp_opts, &mut rng);
-    let mut room_graph = big_bsp.into_room_graph();
-
-    // create the entrance
-    let next_to_entrance = room_graph.find_spatially_adjacent(start_room).unwrap();
-    let wall = get_connecting_wall(next_to_entrance, start_room).unwrap();
-    fill_rect(world, wall, TileKind::Floor);
-    room_graph.add_connection_oneway(next_to_entrance, start_room);
-
-    // pick the smallest right-most room and empty it and add a computer
-    let final_room = room_graph
-        .iter()
-        .filter(|r| r.x2 == world_rect.x2)
-        .min_by_key(|r| r.x2)
-        .unwrap()
-        .clone();
-    room_graph.remove_room(final_room);
-    fill_rect(world, final_room, TileKind::Floor);
-
-    // add some loops to the rooms
-    let loopiness = 1.0;
-    for _ in 0..((room_graph.len() - 1) as f32 * loopiness) as u32 {
-        loop {
-            let room1 = room_graph.choose(&mut rng).unwrap();
-            let room2 = room_graph.choose(&mut rng).unwrap();
-            if let Some(_wall) = get_connecting_wall(room1, room2) {
-                room_graph.add_connection(room1, room2);
-                break;
-            }
-        }
-    }
-    fn sort_rooms(room1: Rect, room2: Rect) -> (Rect, Rect) {
-        let mut arr = [room1, room2];
-        arr.sort_by_key(|r| (r.x1, r.y1));
-        (arr[0], arr[1])
-    }
-
-    // decide on specific tile to be the entrance between each room pair
-    let mut rooms_to_door = HashMap::new();
-    for room1 in room_graph.iter() {
-        for &room2 in room_graph.get_adj(room1).unwrap() {
-            let (room1, room2) = sort_rooms(room1, room2);
-            if !rooms_to_door.contains_key(&(room1, room2)) {
-                let wall = get_connecting_wall(room1, room2).unwrap();
-                let door = wall.choose(&mut rng);
-                rooms_to_door.insert((room1, room2), door);
-            }
-        }
-    }
-
-    // finally, gen the intermediate rooms
-    for room in room_graph.iter() {
-        let adjs = room_graph.get_adj(room).unwrap();
-        // carve_room(world, room, adjs, &mut rng, TileKind::Floor);
-        let entrances = adjs
-            .iter()
-            .copied()
-            .map(|adj| rooms_to_door.get(&sort_rooms(room, adj)).unwrap())
-            .copied()
-            .collect::<Vec<_>>();
-        let rand = rng.gen::<f32>();
-
-        if rand <= 0.7 {
-            gen_offices(world, &mut rng, &entrances, room);
-        } else {
-            gen_alien_nest(world, &mut rng, &entrances, room);
-            for entrance in entrances {
-                carve_floor(world, entrance, 0, TileKind::Floor);
-            }
-        }
-    }
+    gen_simple_rooms(world, opts, sprinkle, &mut rng)
 }
 
 pub fn carve_floor(world: &mut World, pos: Pos, brush_size: u8, tile: TileKind) {
