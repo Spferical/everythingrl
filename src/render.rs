@@ -67,11 +67,12 @@ impl Ui {
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
+                        .column(egui_extras::Column::auto())
                         .sense(egui::Sense::click());
                     table
                         .header(text_height, |mut header| {
                             header.col(|ui| {
-                                ui.strong("Hotkey");
+                                ui.strong("Key");
                             });
                             header.col(|ui| {
                                 ui.strong("Name");
@@ -83,7 +84,10 @@ impl Ui {
                                 ui.strong("Attack");
                             });
                             header.col(|ui| {
-                                ui.strong("Body Part");
+                                ui.strong("Slot");
+                            });
+                            header.col(|ui| {
+                                ui.strong("Equipped");
                             });
                         })
                         .body(|body| {
@@ -92,14 +96,30 @@ impl Ui {
                                 row.set_selected(self.inventory_selected.contains(&row_index));
                                 let slot = &sim.inventory[row_index];
                                 let name;
+                                let ty;
+                                let display_slot;
+                                let display_equipped;
                                 match slot.item {
                                     Item::Corpse(ref mob_kind) => {
                                         let mob_desc = &sim.mob_kinds[mob_kind.0];
-                                        name = format!("Corpse of {}", mob_desc.name);
+                                        name = format!("{} Corpse", mob_desc.name);
+                                        ty = match mob_desc.type2 {
+                                            Some(ty2) => format!("{}/{}", mob_desc.type1, ty2),
+                                            None => mob_desc.type1.to_string(),
+                                        };
+                                        display_slot = "".to_string();
+                                        display_equipped = "";
                                     }
                                     Item::Equipment(item_kind) => {
                                         let item_desc = &sim.item_kinds[item_kind.0];
-                                        name = item_desc.name.clone()
+                                        name = item_desc.name.clone();
+                                        ty = item_desc.ty.to_string();
+                                        display_slot = "equipment".to_string();
+                                        if slot.equipped {
+                                            display_equipped = "YES";
+                                        } else {
+                                            display_equipped = "CAN";
+                                        }
                                     }
                                 }
 
@@ -110,13 +130,16 @@ impl Ui {
                                     ui.label(name);
                                 });
                                 row.col(|ui| {
-                                    ui.label("Ice");
+                                    ui.label(ty);
                                 });
                                 row.col(|ui| {
-                                    ui.label("4/4");
+                                    ui.label("4");
                                 });
                                 row.col(|ui| {
-                                    ui.label("Head");
+                                    ui.label(display_slot);
+                                });
+                                row.col(|ui| {
+                                    ui.label(display_equipped);
                                 });
 
                                 self.toggle_row_selection(row_index, &row.response());

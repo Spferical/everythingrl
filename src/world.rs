@@ -114,8 +114,7 @@ pub struct World {
 pub enum PlayerAction {
     Move(Offset),
     PickUp,
-    Equip(usize),
-    Unequip(usize),
+    ToggleEquip(usize),
     Drop(usize),
 }
 
@@ -191,14 +190,14 @@ impl World {
                     false
                 }
             }
-            PlayerAction::Equip(i) => {
+            PlayerAction::ToggleEquip(i) => {
                 if i >= self.inventory.len() {
                     eprintln!("Bad equip idx: {i}");
                     false
-                } else if self.inventory[i].equipped == true {
-                    eprintln!("Item {i} is already equipped");
-                    false
-                } else {
+                } else if self.inventory[i].equipped {
+                    self.inventory[i].equipped = false;
+                    true
+                } else if matches!(self.inventory[i].item, Item::Equipment(_)) {
                     let num_equipped = self.inventory.iter().filter(|x| x.equipped).count();
                     if num_equipped >= 2 {
                         for j in 0..self.inventory.len() {
@@ -210,19 +209,9 @@ impl World {
                     }
                     self.inventory[i].equipped = true;
                     true
-                }
-            }
-            PlayerAction::Unequip(i) => {
-                if i >= self.inventory.len() {
-                    eprintln!("Bad unequip idx: {i}");
-                    false
-                } else if !self.inventory[i].equipped {
-                    eprintln!("Item {i} is already unequipped");
-                    false
                 } else {
-                    self.inventory[i].equipped = false;
-                    self.sort_inventory();
-                    true
+                    eprintln!("Item is not equippable");
+                    false
                 }
             }
             PlayerAction::Drop(i) => {
@@ -242,6 +231,7 @@ impl World {
                 }
             }
         };
+        self.sort_inventory();
         if tick {
             self.tick();
         }

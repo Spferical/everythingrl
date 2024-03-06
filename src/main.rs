@@ -64,13 +64,14 @@ impl PlayState {
                 tick |= self.sim.do_player_action(PlayerAction::PickUp);
             }
             KeyCode::E => {
-                tick |= self.sim.do_player_action(PlayerAction::Equip(0));
-            }
-            KeyCode::U => {
-                tick |= self.sim.do_player_action(PlayerAction::Unequip(0));
+                if let Some(&min) = self.ui.inventory_selected.iter().min() {
+                    tick |= self.sim.do_player_action(PlayerAction::ToggleEquip(min));
+                }
             }
             KeyCode::D => {
-                tick |= self.sim.do_player_action(PlayerAction::Drop(0));
+                if let Some(&min) = self.ui.inventory_selected.iter().min() {
+                    tick |= self.sim.do_player_action(PlayerAction::Drop(min));
+                }
             }
             KeyCode::Escape => {
                 self.ui.ui_selected = false;

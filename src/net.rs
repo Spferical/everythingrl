@@ -1,5 +1,5 @@
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    fmt::Display,
     sync::mpsc::{self, Receiver},
     time::Duration,
 };
@@ -25,6 +25,31 @@ pub enum PokemonType {
     Dark,
     Steel,
     Fairy,
+}
+
+impl Display for PokemonType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PokemonType::Normal => write!(f, "Normal"),
+            PokemonType::Fire => write!(f, "Fire"),
+            PokemonType::Water => write!(f, "Water"),
+            PokemonType::Electric => write!(f, "Electric"),
+            PokemonType::Grass => write!(f, "Grass"),
+            PokemonType::Ice => write!(f, "Ice"),
+            PokemonType::Fighting => write!(f, "Fighting"),
+            PokemonType::Poison => write!(f, "Poison"),
+            PokemonType::Ground => write!(f, "Ground"),
+            PokemonType::Flying => write!(f, "Flying"),
+            PokemonType::Psychic => write!(f, "Psychic"),
+            PokemonType::Bug => write!(f, "Bug"),
+            PokemonType::Rock => write!(f, "Rock"),
+            PokemonType::Ghost => write!(f, "Ghost"),
+            PokemonType::Dragon => write!(f, "Dragon"),
+            PokemonType::Dark => write!(f, "Dark"),
+            PokemonType::Steel => write!(f, "Steel"),
+            PokemonType::Fairy => write!(f, "Fairy"),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
