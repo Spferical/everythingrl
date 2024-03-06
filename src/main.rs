@@ -184,6 +184,7 @@ async fn main() {
     let mut gs = GameState::Intro(intro::IntroState::new());
     let mut ig = IdeaGuy::new(theme);
     loop {
+        ig.tick();
         clear_background(GRAY);
 
         if (screen_width(), screen_height()) != last_size {
@@ -203,8 +204,10 @@ async fn main() {
                     }
                 }
             }
-            GameState::Startup => match ig.get_monsters() {
-                Some(monsters) => GameState::Play(PlayState::new(font.clone(), monsters.into())),
+            GameState::Startup => match ig.monsters {
+                Some(ref monsters) => {
+                    GameState::Play(PlayState::new(font.clone(), monsters.clone()))
+                }
                 None => GameState::Startup,
             },
             GameState::Play(ref mut ps) => {

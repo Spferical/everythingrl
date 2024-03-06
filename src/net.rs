@@ -1,6 +1,6 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
-    sync::mpsc::{self, Receiver},
+    sync::mpsc::{self, Receiver}, time::Duration,
 };
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
@@ -92,6 +92,27 @@ pub struct MonsterDefinition {
     pub description: String,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Area {
+    name: String,
+    blurb: String,
+    enemies: Vec<String>,
+    equipment: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct MonstersArgs {
+    theme: String,
+    setting: String,
+    areas: Vec<Area>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AreasArgs {
+    theme: String,
+    setting: String,
+}
+
 pub struct BootlegFuture<T> {
     rx: Receiver<T>,
     state: Option<T>,
@@ -108,63 +129,107 @@ impl<T> BootlegFuture<T> {
     }
 }
 
-pub fn request(url: String) -> BootlegFuture<Result<String, String>> {
+pub fn request<Input, Output>(url: String, input: Input) -> BootlegFuture<Result<Output, String>>
+where
+    Output: serde::de::DeserializeOwned + Send + 'static,
+    Input: serde::Serialize + Send + 'static,
+{
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
+        let client = reqwest::blocking::Client::new();
         tx.send(
-            reqwest::blocking::get(url)
+            client
+                .post(url)
+                .json(&input)
+                .timeout(Duration::from_secs(60 * 3))
+                .send()
                 .map_err(|e| e.to_string())
-                .and_then(|r| r.text().map_err(|e| e.to_string())),
+                .and_then(|r| r.error_for_status().map_err(|e| e.to_string()))
+                .and_then(|r| r.text().map_err(|e| e.to_string()))
+                .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string())),
         )
         .ok();
     });
     BootlegFuture { rx, state: None }
 }
 
-pub fn api_url() -> Option<String> {
-    std::env::var("SERVER_URL").ok()
+pub fn api_url() -> String {
+    // TODO: change default url
+    std::env::var("SERVER_URL").unwrap_or("http://localhost:5000".into())
 }
 
-pub enum IdeaGuy {
-    Starting(BootlegFuture<Result<String, String>>),
-    GotMonsters(Vec<MonsterDefinition>),
+enum IdeaGuyState {
+    GetSetting(BootlegFuture<Result<String, String>>),
+    GetAreas(BootlegFuture<Result<Vec<Area>, String>>),
+    GetMonsters(BootlegFuture<Result<Vec<MonsterDefinition>, String>>),
+    Done,
+}
+
+pub struct IdeaGuy {
+    pub theme: String,
+    pub api_url: String,
+    pub setting: Option<String>,
+    pub areas: Option<Vec<Area>>,
+    pub monsters: Option<Vec<MonsterDefinition>>,
+    state: IdeaGuyState,
 }
 
 impl IdeaGuy {
     pub fn new(theme: &str) -> Self {
-        if let Some(url) = api_url() {
-            let boot_fut = request(format!("{url}/monsters/{theme}/1"));
-            Self::Starting(boot_fut)
-        } else {
-            Self::GotMonsters([
-        MonsterDefinition{name: "grid bug".into(), char: "x".into(), color: Color::Purple, type1: PokemonType::Bug, type2: Some(PokemonType::Electric), attack_type: PokemonType::Electric, description: "These electronically based creatures are not native to this universe. They appear to come from a world whose laws of motion are radically different from ours.".into()},
-        MonsterDefinition{name: "floating eye".into(), char: "e".into(), color: Color::Blue, type1: PokemonType::Psychic, type2: None, attack_type: PokemonType::Psychic, description: "Floating eyes, not surprisingly, are large, floating eyeballs which drift about the dungeon. Though not dangerous in and of themselves, their power to paralyse those who gaze at their large eye in combat is widely feared.".into()},
-        MonsterDefinition{name: "yellow mold".into(), char: "m".into(), color: Color::Yellow, type1: PokemonType::Poison, type2: None, attack_type: PokemonType::Poison, description: "Mold, multicellular organism of the division Fungi, typified by plant bodies composed of a network of cottony filaments.".into()},
-
-        ].into())
+        let api_url = api_url();
+        let boot_fut = request(format!("{api_url}/setting/{theme}"), "");
+        Self {
+            theme: theme.into(),
+            api_url,
+            setting: None,
+            areas: None,
+            monsters: None,
+            state: IdeaGuyState::GetSetting(boot_fut),
         }
     }
 
-    pub fn get_monsters(&mut self) -> Option<Vec<MonsterDefinition>> {
-        match self {
-            Self::GotMonsters(monsters) => Some(monsters.clone()),
-            Self::Starting(boot_fut) => match boot_fut.get() {
-                None => None,
-                Some(Ok(resp)) => match serde_json::from_str(&resp) {
-                    Ok(monsters) => {
-                        *self = Self::GotMonsters(monsters);
-                        self.get_monsters()
-                    }
-                    Err(err) => {
-                        println!("Error parsing monsters: {}", err);
-                        todo!()
-                    }
-                },
-                Some(Err(err_msg)) => {
-                    println!("Error fetching monsters: {}", err_msg);
-                    panic!()
+    pub fn tick(&mut self) {
+        match self.state {
+            IdeaGuyState::GetSetting(ref mut fut) => match fut.get() {
+                Some(Ok(resp)) => {
+                    self.setting = Some(resp.clone());
+                    let api_url = &self.api_url;
+                    self.state = IdeaGuyState::GetAreas(request(
+                        format!("{api_url}/areas"),
+                        AreasArgs {
+                            theme: self.theme.clone(),
+                            setting: self.setting.clone().unwrap(),
+                        },
+                    ))
                 }
+                Some(Err(e)) => panic!("{}", e),
+                None => {}
             },
+            IdeaGuyState::GetAreas(ref mut fut) => match fut.get() {
+                Some(Ok(resp)) => {
+                    self.areas = Some(resp.clone());
+                    let api_url = &self.api_url;
+                    self.state = IdeaGuyState::GetMonsters(request(
+                        format!("{api_url}/monsters"),
+                        MonstersArgs {
+                            theme: self.theme.clone(),
+                            setting: self.setting.clone().unwrap().clone(),
+                            areas: self.areas.clone().unwrap().clone(),
+                        },
+                    ))
+                }
+                Some(Err(e)) => panic!("{}", e),
+                None => {}
+            },
+            IdeaGuyState::GetMonsters(ref mut fut) => match fut.get() {
+                Some(Ok(resp)) => {
+                    self.monsters = Some(resp.clone());
+                    self.state = IdeaGuyState::Done
+                }
+                Some(Err(e)) => panic!("{}", e),
+                None => {}
+            },
+            IdeaGuyState::Done => {},
         }
     }
 }

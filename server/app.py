@@ -1,15 +1,20 @@
 #!/usr/bin/env python
-import os
 import json
+import logging
+import os
 
-from flask import Flask, send_from_directory
+import flask
+from flask import Flask, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.serving import is_running_from_reloader
 
 import ai
 
+
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -25,10 +30,28 @@ class Base(DeclarativeBase):
     pass
 
 
-@app.route("/monsters/<theme>/<int:level>")
-def monsters(theme, level):
-    monsters = ai.gen_monster(theme, level, 10)
-    print(json.dumps(monsters, indent=2))
+@app.post("/setting/<theme>")
+def get_setting(theme):
+    setting_desc = ai.gen_setting_desc(theme)
+    return jsonify(setting_desc)
+
+
+@app.post("/areas")
+def get_areas():
+    theme = flask.request.json["theme"]
+    setting_desc = flask.request.json["setting"]
+    areas = ai.gen_areas(theme, setting_desc)
+    logging.info(json.dumps(areas))
+    return areas
+
+
+@app.post("/monsters")
+def monsters():
+    theme = flask.request.json["theme"]
+    setting_desc = flask.request.json["setting"]
+    areas = flask.request.json["areas"]
+    monsters = ai.gen_monsters(theme, setting_desc, areas)
+    logging.info(json.dumps(monsters))
     return monsters
 
 
@@ -43,7 +66,18 @@ def serve_static(path):
 
 
 print(f"Using database {app.config['SQLALCHEMY_DATABASE_URI']}")
+
 db = SQLAlchemy(model_class=Base)
+
+
+class Game(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    theme: Mapped[str] = mapped_column()
+    setting_desc: Mapped[str] = mapped_column()
+    areas: Mapped[str] = mapped_column()
+    monsters: Mapped[str] = mapped_column()
+    items: Mapped[str] = mapped_column()
+
 
 if __name__ == "__main__":
     db.init_app(app)
