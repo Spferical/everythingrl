@@ -390,16 +390,34 @@ impl World {
                 } else if self.inventory[i].equipped {
                     self.inventory[i].equipped = false;
                     true
-                } else if matches!(self.inventory[i].item, Item::Equipment(_)) {
-                    let num_equipped = self.inventory.iter().filter(|x| x.equipped).count();
-                    if num_equipped >= 2 {
-                        for j in 0..self.inventory.len() {
-                            if self.inventory[j].equipped {
-                                self.inventory[j].equipped = false;
-                                break;
+                } else if let Item::Equipment(ek) = self.inventory[i].item {
+                    let ek_def = self.get_equipmentkind_info(ek);
+
+                    // Unequip another item if that slot is full.
+                    let max_per_slot = |slot: EquipmentSlot| match slot {
+                        EquipmentSlot::Weapon => 1,
+                        EquipmentSlot::Equipment => 2,
+                    };
+                    let max = max_per_slot(ek_def.slot);
+                    let other_equipped_in_slot = self
+                        .inventory
+                        .iter()
+                        .enumerate()
+                        .filter(|(_i, x)| x.equipped)
+                        .filter_map(|(i, x)| {
+                            if let Item::Equipment(ek) = x.item {
+                                Some((i, self.get_equipmentkind_info(ek)))
+                            } else {
+                                None
                             }
-                        }
+                        })
+                        .filter(|(_i, other_ek_def)| other_ek_def.slot == ek_def.slot)
+                        .map(|(i, _)| i)
+                        .collect::<Vec<_>>();
+                    if other_equipped_in_slot.len() >= max {
+                        self.inventory[other_equipped_in_slot[0]].equipped = false;
                     }
+
                     self.inventory[i].equipped = true;
                     true
                 } else {
