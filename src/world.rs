@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{ItemDefinition, MonsterDefinition};
+use crate::net::{ItemDefinition, MonsterDefinition, PokemonType};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, SeedableRng};
@@ -93,6 +93,110 @@ impl Mob {
     }
 }
 
+enum AttackEffectiveness {
+    Zero,
+    Quarter,
+    Half,
+    One,
+    Two,
+    Four,
+}
+
+fn pokemon_effectiveness1(attack: PokemonType, defense: PokemonType) -> AttackEffectiveness {
+    use AttackEffectiveness::*;
+    use PokemonType::*;
+    match (attack, defense) {
+        (Normal, Rock | Steel) => Half,
+        (Normal, Ghost) => Zero,
+
+        (Fire, Fire | Water | Rock | Dragon) => Half,
+        (Fire, Grass | Ice | Bug | Steel) => Two,
+
+        (Water, Water | Grass | Dragon) => Half,
+        (Water, Fire | Ground | Rock) => Two,
+
+        (Electric, Water | Flying) => Two,
+        (Electric, Electric | Grass) => Half,
+        (Electric, Ground) => Zero,
+
+        (Grass, Water | Ground | Rock) => Two,
+        (Grass, Fire | Grass | Poison | Flying | Bug | Dragon | Steel) => Half,
+
+        (Ice, Grass | Ground | Flying | Dragon) => Two,
+        (Ice, Fire | Water | Ice | Steel) => Half,
+
+        (Fighting, Ice | Rock | Normal | Dark | Steel) => Two,
+        (Fighting, Flying | Poison | Bug | Psychic | Fairy) => Half,
+        (Fighting, Ghost) => Zero,
+
+        (Poison, Grass | Fairy) => Two,
+        (Poison, Poison | Ground | Rock | Ghost) => Half,
+        (Poison, Steel) => Zero,
+
+        (Ground, Fire | Electric | Poison | Rock | Steel) => Two,
+        (Ground, Grass | Bug) => Half,
+        (Ground, Flying) => Zero,
+
+        (Flying, Grass | Fighting | Bug) => Two,
+        (Flying, Electric | Rock | Steel) => Half,
+
+        (Psychic, Fighting | Poison) => Two,
+        (Psychic, Psychic | Steel) => Half,
+        (Psychic, Dark) => Zero,
+
+        (Bug, Grass | Psychic | Dark) => Two,
+        (Bug, Fire | Fighting | Poison | Flying | Ghost | Steel | Fairy) => Half,
+
+        (Rock, Fire | Ice | Flying | Bug) => Two,
+        (Rock, Fighting | Ground | Steel) => Half,
+
+        (Ghost, Psychic | Ghost) => Two,
+        (Ghost, Dark) => Half,
+        (Ghost, Normal) => Zero,
+
+        (Dragon, Dragon) => Two,
+        (Dragon, Steel) => Half,
+        (Dragon, Fairy) => Zero,
+
+        (Dark, Psychic | Ghost) => Two,
+        (Dark, Fighting | Dark | Fairy) => Half,
+
+        (Steel, Ice | Rock | Fairy) => Two,
+        (Steel, Fire | Water | Electric | Steel) => Half,
+
+        (Fairy, Fighting | Dragon | Dark) => Two,
+        (Fairy, Fire | Poison | Steel) => Half,
+
+        _ => One,
+    }
+}
+fn multiply_effectiveness(
+    eff1: AttackEffectiveness,
+    eff2: AttackEffectiveness,
+) -> AttackEffectiveness {
+    use AttackEffectiveness::*;
+    match (eff1, eff2) {
+        (Zero, _) | (_, Zero) => Zero,
+        (Half, Half) => Quarter,
+        (Half, Two) | (Two, Half) => One,
+        (Two, Two) => Four,
+        (eff1, One) => eff1,
+        (One, eff2) => eff2,
+        _ => One,
+    }
+}
+
+fn pokemon_effectiveness2(
+    attack: PokemonType,
+    defense1: PokemonType,
+    defense2: Option<PokemonType>,
+) -> AttackEffectiveness {
+    use AttackEffectiveness::*;
+    let eff1 = pokemon_effectiveness1(attack, defense1);
+    let eff2 = defense2.map(|defense2| pokemon_effectiveness1(attack, defense2));
+    multiply_effectiveness(eff1, eff2.unwrap_or(One))
+}
+
 #[derive(Debug, Clone)]
 pub struct InventorySlot {
     pub item: Item,
@@ -102,6 +206,7 @@ pub struct InventorySlot {
 #[derive(Clone)]
 pub struct World {
     pub player_pos: Pos,
+    pub player_damage: usize,
     tile_map: TileMap<Tile>,
     pub mob_kinds: Vec<MonsterDefinition>,
     pub item_kinds: Vec<ItemDefinition>,
@@ -125,6 +230,7 @@ impl World {
             item: None,
         });
         let player_pos = Pos { x: 0, y: 0 };
+        let player_damage = 0;
         let mobs = HashMap::new();
         let mob_kinds = vec![];
         let item_kinds = vec![];
@@ -133,6 +239,7 @@ impl World {
         let log = VecDeque::new();
         Self {
             player_pos,
+            player_damage,
             tile_map,
             mob_kinds,
             item_kinds,
