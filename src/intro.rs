@@ -40,7 +40,7 @@ pub fn create_info_prompt(
 ) {
     let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.dt) as usize;
     let typewritten_prompt: String = prompt.chars().take(num_typewritten_chars).collect();
-    let width = screen_width().min(screen_height()) * 2.0;
+    let width = screen_width();
     egui::Window::new("StoryTeller")
         .resizable(false)
         .collapsible(false)
