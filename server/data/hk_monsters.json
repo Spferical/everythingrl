@@ -75,7 +75,6 @@
     "char": "P",
     "color": "gold",
     "type1": "dark",
-    "type2": null,
     "attack_type": "dark",
     "description": "A venomous Aspid, its acidic spit capable of melting through flesh."
   },
@@ -85,7 +84,6 @@
     "char": "U",
     "color": "green",
     "type1": "bug",
-    "type2": null,
     "attack_type": "bug",
     "description": "A large, predatory insect, its sharp claws and jagged teeth make it a formidable opponent."
   },
@@ -105,7 +103,6 @@
     "char": "B",
     "color": "brown",
     "type1": "rock",
-    "type2": null,
     "attack_type": "rock",
     "description": "A burly miner, utilizing his pickaxe with deadly precision."
   },
@@ -145,7 +142,6 @@
     "char": "O",
     "color": "beige",
     "type1": "rock",
-    "type2": null,
     "attack_type": "rock",
     "description": "A massive golem made of stone, its fists capable of shattering bone."
   },
@@ -175,7 +171,6 @@
     "char": "W",
     "color": "white",
     "type1": "ghost",
-    "type2": null,
     "attack_type": "ghost",
     "description": "A hollowed warrior, its body a mere vessel for the infection."
   },
@@ -185,7 +180,6 @@
     "char": "O",
     "color": "pink",
     "type1": "normal",
-    "type2": null,
     "attack_type": "normal",
     "description": "A small, gelatinous creature, its body capable of absorbing and reflecting attacks."
   },
@@ -225,7 +219,6 @@
     "char": "M",
     "color": "red",
     "type1": "ground",
-    "type2": null,
     "attack_type": "ground",
     "description": "A subterranean predator, its gaping maw capable of crushing bone."
   },
