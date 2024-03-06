@@ -81,7 +81,7 @@ impl Ui {
                                 ui.strong("Type");
                             });
                             header.col(|ui| {
-                                ui.strong("Attack");
+                                ui.strong("Level");
                             });
                             header.col(|ui| {
                                 ui.strong("Slot");
