@@ -89,6 +89,7 @@ class Monster(pydantic.BaseModel):
     attack_type: PokemonType
     description: str
 
+
 class Area(pydantic.BaseModel):
     name: str
     blurb: str
@@ -171,7 +172,7 @@ def ask_google_structured(
     prompt_parts.append(json.dumps(input))
     prompt_parts.append("\n")
 
-    prompt = ''.join(prompt_parts)
+    prompt = "".join(prompt_parts)
     response_text = ask_google([prompt])
     logging.info(response_text)
     responses = response_text.split("\n")
