@@ -60,6 +60,9 @@ impl PlayState {
             KeyCode::Comma | KeyCode::G => {
                 tick |= self.sim.do_player_action(PlayerAction::PickUp);
             }
+            KeyCode::Period | KeyCode::Space => {
+                tick |= self.sim.do_player_action(PlayerAction::Wait);
+            }
             KeyCode::E => {
                 if let Some(&min) = self.ui.inventory_selected.iter().min() {
                     tick |= self.sim.do_player_action(PlayerAction::ToggleEquip(min));

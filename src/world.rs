@@ -304,6 +304,7 @@ pub enum PlayerAction {
     PickUp,
     ToggleEquip(usize),
     Drop(usize),
+    Wait,
 }
 
 impl World {
@@ -422,6 +423,7 @@ impl World {
                     true
                 }
             }
+            PlayerAction::Wait => true,
         };
         self.sort_inventory();
         if tick {
