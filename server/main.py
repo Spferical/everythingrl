@@ -63,6 +63,7 @@ def gen_monsters(theme: str, setting_desc_file, areas_file):
     monsters = ai.gen_monsters(theme, setting_desc, areas)
     print(json.dumps(monsters, indent=2))
 
+
 @cli.command()
 @click.argument("theme")
 @click.argument("setting_desc_file", type=click.File("r"))
