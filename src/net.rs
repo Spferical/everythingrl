@@ -1,6 +1,7 @@
 use std::{
     collections::{hash_map::Entry, HashMap},
-    sync::mpsc::{self, Receiver}, time::Duration,
+    sync::mpsc::{self, Receiver},
+    time::Duration,
 };
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
@@ -90,6 +91,17 @@ pub struct MonsterDefinition {
     pub type1: PokemonType,
     pub type2: Option<PokemonType>,
     pub description: String,
+    pub level: usize,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct ItemDefinition {
+    pub name: String,
+    pub level: usize,
+    pub color: Color,
+    #[serde(rename = "type")]
+    pub ty: PokemonType,
+    pub description: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -162,6 +174,7 @@ enum IdeaGuyState {
     GetSetting(BootlegFuture<Result<String, String>>),
     GetAreas(BootlegFuture<Result<Vec<Area>, String>>),
     GetMonsters(BootlegFuture<Result<Vec<MonsterDefinition>, String>>),
+    GetItems(BootlegFuture<Result<Vec<ItemDefinition>, String>>),
     Done,
 }
 
@@ -171,6 +184,7 @@ pub struct IdeaGuy {
     pub setting: Option<String>,
     pub areas: Option<Vec<Area>>,
     pub monsters: Option<Vec<MonsterDefinition>>,
+    pub items: Option<Vec<ItemDefinition>>,
     state: IdeaGuyState,
 }
 
@@ -184,6 +198,7 @@ impl IdeaGuy {
             setting: None,
             areas: None,
             monsters: None,
+            items: None,
             state: IdeaGuyState::GetSetting(boot_fut),
         }
     }
@@ -224,12 +239,28 @@ impl IdeaGuy {
             IdeaGuyState::GetMonsters(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
                     self.monsters = Some(resp.clone());
-                    self.state = IdeaGuyState::Done
+                    let api_url = &self.api_url;
+                    self.state = IdeaGuyState::GetItems(request(
+                        format!("{api_url}/items"),
+                        MonstersArgs {
+                            theme: self.theme.clone(),
+                            setting: self.setting.clone().unwrap().clone(),
+                            areas: self.areas.clone().unwrap().clone(),
+                        },
+                    ))
                 }
                 Some(Err(e)) => panic!("{}", e),
                 None => {}
             },
-            IdeaGuyState::Done => {},
+            IdeaGuyState::GetItems(ref mut fut) => match fut.get() {
+                Some(Ok(resp)) => {
+                    self.items = Some(resp.clone());
+                    self.state = IdeaGuyState::Done;
+                }
+                Some(Err(e)) => panic!("{}", e),
+                None => {}
+            },
+            IdeaGuyState::Done => {}
         }
     }
 }

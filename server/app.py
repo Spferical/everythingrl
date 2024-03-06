@@ -66,6 +66,19 @@ def monsters():
     return monsters
 
 
+@app.post("/items")
+def items():
+    theme = flask.request.json["theme"]
+    setting_desc = flask.request.json["setting"]
+    areas = flask.request.json["areas"]
+    if theme == PREGEN_THEME:
+        items = ai.HK_ITEMS
+    else:
+        items = ai.gen_items(theme, setting_desc, areas)
+    logging.info(json.dumps(items))
+    return items
+
+
 @app.route("/")
 def root():
     return send_from_directory("../dist", "index.html")

@@ -19,6 +19,8 @@ with open(os.path.join(DIR_PATH, "data", "hk_areas.json")) as f:
     HK_AREAS = json.load(f)
 with open(os.path.join(DIR_PATH, "data", "hk_monsters.json")) as f:
     HK_MONSTERS = json.load(f)
+with open(os.path.join(DIR_PATH, "data", "hk_items.json")) as f:
+    HK_ITEMS = json.load(f)
 
 retry_strategy = Retry(
     total=4,
@@ -96,6 +98,11 @@ class Area(pydantic.BaseModel):
     enemies: list[str]
     equipment: list[str]
     melee_weapons: list[str]
+
+
+class ItemSlot(str, Enum):
+    equipment = "equipment"
+    weapon = "weapon"
 
 
 class Item(pydantic.BaseModel):
@@ -212,7 +219,7 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
 
 
 def gen_items(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; color, one of the valid colors above; type, the pokemon type of the equipment or weapon; slot, either 'item' or 'equipment'; and description, a two sentence description of the item. Output each monster JSON on its own line."
+    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; color, one of the valid colors above; type, the pokemon type of the equipment or weapon; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore."
     examples = [
         (
             {
@@ -226,13 +233,17 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
                     )
                 ),
             },
-            HK_MONSTERS,
+            HK_ITEMS,
         )
     ]
-    enemy_names = list(set(name for area in areas for name in area["enemies"]))
-    input = {"theme": theme, "enemy_names": enemy_names}
-    count = len(enemy_names)
-    return ask_google_structured(instructions, examples, input, count, Item)
+    item_names = list(
+        set(
+            name for area in areas for name in area["equipment"] + area["melee_weapons"]
+        )
+    )
+    input = {"theme": theme, "item_names": item_names}
+    count = len(item_names)
+    return ask_google_structured(instructions, [], input, count, Item)
 
 
 def gen_setting_desc(theme: str):
