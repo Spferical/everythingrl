@@ -149,7 +149,9 @@ impl World {
     }
 
     pub fn sort_inventory(&mut self) {
-        self.inventory.sort_by_key(|x| !x.equipped)
+        self.inventory
+            // Equipped to the top, corpses to the bottom.
+            .sort_by_key(|x| (!x.equipped, matches!(x.item, Item::Corpse(_))))
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
