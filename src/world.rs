@@ -4,7 +4,6 @@ use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
 use crate::net::{Color, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
-use rand::seq::IteratorRandom;
 use rand::Rng;
 use rand::{seq::SliceRandom as _, SeedableRng};
 
@@ -138,10 +137,6 @@ impl MobKindInfo {
     pub fn max_hp(&self) -> usize {
         self.level * 16
     }
-
-    fn base_damage(&self) -> usize {
-        self.level
-    }
 }
 
 /// Contains post-processed content definitions parsed from AI-generated data.
@@ -263,14 +258,6 @@ impl WorldInfo {
             .collect();
     }
 
-    pub fn get_random_item_kind(&self, level: usize, rng: &mut impl Rng) -> EquipmentKind {
-        *self.equipment_per_level[level].choose(rng).unwrap()
-    }
-
-    pub fn get_random_mob_kind(&self, level: usize, rng: &mut impl Rng) -> MobKind {
-        *self.monsters_per_level[level].choose(rng).unwrap()
-    }
-
     pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
         &self.equip_kinds[kind.0]
     }
@@ -359,8 +346,7 @@ impl Inventory {
                 Item::Equipment(ek) => Some(ek),
             })
             .map(|ek| wi.get_equipmentkind_info(ek))
-            .filter(|eki| eki.slot == EquipmentSlot::Weapon)
-            .next()
+            .find(|eki| eki.slot == EquipmentSlot::Weapon)
             .cloned()
     }
     fn get_equipped_armor_info(&self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
@@ -793,7 +779,7 @@ impl World {
                         let mult = eff.get_scale();
                         let damage = mki.level * mult;
                         self.log_message(vec![
-                            (format!("{}", mki.name), mki.color),
+                            (mki.name.to_string(), mki.color),
                             (" hits you for ".into(), Color::White),
                             (format!("{}", damage), Color::Red),
                         ]);

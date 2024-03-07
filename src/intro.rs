@@ -1,4 +1,4 @@
-use egui;
+
 use macroquad::prelude::*;
 
 pub const CHARS_PER_SECOND: f32 = 35.;
@@ -72,7 +72,7 @@ pub fn create_info_prompt(
                         );
                     }
                     if ui.button("OK").clicked() {
-                        if edit_text_box && intro_state.prompt.len() == 0 {
+                        if edit_text_box && intro_state.prompt.is_empty() {
                             return;
                         }
                         intro_state.step += 1;
@@ -87,7 +87,7 @@ pub fn create_info_prompt(
             if !yes_no {
                 if edit_text_box {
                     // Don't continue if nothing is written
-                    if intro_state.prompt.len() == 0 {
+                    if intro_state.prompt.is_empty() {
                         return;
                     }
                 }

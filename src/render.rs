@@ -177,7 +177,7 @@ impl Ui {
     pub fn render(&mut self, sim: &crate::world::World, memory: &crate::world::Memory) {
         egui_macroquad::ui(|egui_ctx| {
             if self.ui_selected {
-                self.render_inventory(&egui_ctx, &sim);
+                self.render_inventory(egui_ctx, sim);
             }
             let player_pos = sim.get_player_pos();
             let grid_rect =
@@ -284,7 +284,7 @@ impl Ui {
                     .collect::<Vec<Glyph>>(),
                 screen_width() * (1. / 4.),
             );
-            self.render_side_ui(&egui_ctx, sim, screen_width() * (1. / 4.));
+            self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
         });
 
         egui_macroquad::draw();
@@ -375,7 +375,7 @@ impl Ui {
                             },
                         );
                         job.append(
-                            &format!("{} ", type1.to_string()),
+                            &format!("{} ", type1),
                             0.0,
                             egui::TextFormat {
                                 font_id: egui::FontId::new(
@@ -388,7 +388,7 @@ impl Ui {
                         );
                         if let Some(type2) = type2 {
                             job.append(
-                                &format!("{} ", type2.to_string()),
+                                &format!("{} ", type2),
                                 0.0,
                                 egui::TextFormat {
                                     font_id: egui::FontId::new(
@@ -415,7 +415,7 @@ impl Ui {
                         );
 
                         job.append(
-                            &format!("{} ", attack_type.to_string()),
+                            &format!("{} ", attack_type),
                             0.0,
                             egui::TextFormat {
                                 font_id: egui::FontId::new(

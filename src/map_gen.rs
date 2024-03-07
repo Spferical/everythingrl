@@ -5,8 +5,8 @@ use rand::rngs::SmallRng;
 use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
-use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
-use crate::world::{EquipmentKind, Item, Mob, MobKind, Tile, TileKind, World};
+use crate::grid::{Offset, Pos, Rect, CARDINALS};
+use crate::world::{EquipmentKind, Item, Mob, MobKind, TileKind, World};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -383,7 +383,7 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
         let room = rooms.choose(rng).unwrap();
         let x = rng.gen_range(room.x1..=room.x2);
         let y = rng.gen_range(room.y1..=room.y2);
-        let pos = Pos { x, y };
+        let _pos = Pos { x, y };
         // world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
     }
 
@@ -415,8 +415,8 @@ pub fn gen_simple_rooms(
     for _ in 0..opts.max_rooms {
         let w = rng.gen_range(opts.min_room_size..=opts.max_room_size);
         let h = rng.gen_range(opts.min_room_size..=opts.max_room_size);
-        let x = rng.gen_range(opts.rect.x1..=opts.rect.x2 - w as i32);
-        let y = rng.gen_range(opts.rect.y1..=opts.rect.y2 - h as i32);
+        let x = rng.gen_range(opts.rect.x1..=opts.rect.x2 - w);
+        let y = rng.gen_range(opts.rect.y1..=opts.rect.y2 - h);
         let new_room = Rect::new(x, x + w, y, y + h);
         let intersects = rooms.iter().any(|r| new_room.intersects(r));
         if !intersects {
@@ -453,12 +453,12 @@ pub fn gen_simple_rooms(
 
     // Sprinkle enemies/items
     for _ in 0..sprinkle.num_enemies {
-        let room = (&rooms[1..]).choose(rng).unwrap();
+        let room = rooms[1..].choose(rng).unwrap();
         let pos = room.choose(rng);
         world.add_mob(pos, Mob::new(*sprinkle.valid_enemies.choose(rng).unwrap()));
     }
     for _ in 0..sprinkle.num_items {
-        let room = (&rooms[0..]).choose(rng).unwrap();
+        let room = rooms[0..].choose(rng).unwrap();
         let pos = room.choose(rng);
         world[pos].item = Some(Item::Equipment(
             *sprinkle.valid_equipment.choose(rng).unwrap(),
