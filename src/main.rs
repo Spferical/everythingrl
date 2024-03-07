@@ -136,8 +136,7 @@ fn egui_setup() {
         egui_ctx.set_fonts(fonts);
 
         let _game_size = screen_width().min(screen_height());
-        let scale_factor = screen_width() / 1024.0;
-        // let scale_factor = screen_width() / 500.0;
+        let scale_factor = screen_width() / (250.0 * miniquad::window::dpi_scale());
         use egui::FontFamily::*;
         use egui::TextStyle::*;
         let mut style = (*egui_ctx.style()).clone();
