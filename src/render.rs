@@ -157,18 +157,20 @@ impl Ui {
                             });
                         });
                 });
-                if ui.button("Equip/Unequip (e)").clicked() {
-                    println!("Equipped {:?}", self.inventory_selected);
-                }
-                if ui.button("Drop (d)").clicked() {
-                    println!("Dropped {:?}", self.inventory_selected);
-                };
-                if ui.button("Combine (c)").clicked() {
-                    println!("Combined {:?}", self.inventory_selected);
-                };
-                if ui.button("What is this? (?)").clicked() {
-                    println!("What is {:?}", self.inventory_selected);
-                }
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+                    if ui.button("Equip/Unequip (e)").clicked() {
+                        println!("Equipped {:?}", self.inventory_selected);
+                    }
+                    if ui.button("Drop (d)").clicked() {
+                        println!("Dropped {:?}", self.inventory_selected);
+                    };
+                    if ui.button("Combine (c)").clicked() {
+                        println!("Combined {:?}", self.inventory_selected);
+                    };
+                    if ui.button("What is this? (/)").clicked() {
+                        println!("What is {:?}", self.inventory_selected);
+                    }
+                });
             });
     }
 
