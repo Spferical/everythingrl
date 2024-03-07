@@ -40,11 +40,12 @@ pub fn create_info_prompt(
 ) {
     let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.dt) as usize;
     let typewritten_prompt: String = prompt.chars().take(num_typewritten_chars).collect();
-    let width = (screen_width() * miniquad::window::dpi_scale()) / 2.;
+    let width = screen_width() * miniquad::window::dpi_scale();
     egui::Window::new("StoryTeller")
         .resizable(false)
         .collapsible(false)
-        .min_width(width)
+        .min_width(width / 2.0)
+        .max_width(width)
         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
             ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
