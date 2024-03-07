@@ -284,7 +284,7 @@ impl Ui {
                     .collect::<Vec<Glyph>>(),
                 screen_width() * (1. / 4.),
             );
-            self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
+            self.render_side_ui(&egui_ctx, sim, screen_width() * (1. / 4.));
         });
 
         egui_macroquad::draw();
@@ -296,7 +296,7 @@ impl Ui {
         sim: &crate::world::World,
         right_offset: f32,
     ) {
-        let scale_factor = screen_width() / (500.0 * miniquad::window::dpi_scale());
+        let scale_factor = miniquad::window::dpi_scale();
 
         let game_width = screen_width() - right_offset;
         let game_size = game_width.min(screen_height());
