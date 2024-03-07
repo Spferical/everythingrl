@@ -6,7 +6,7 @@ use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, CARDINALS};
-use crate::world::{EquipmentKind, Item, Mob, MobKind, TileKind, World};
+use crate::world::{EquipmentKind, Item, Mob, TileKind, World};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -384,7 +384,6 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
         let x = rng.gen_range(room.x1..=room.x2);
         let y = rng.gen_range(room.y1..=room.y2);
         let pos = Pos { x, y };
-        let rand = rng.gen::<f32>();
         world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
     }
 

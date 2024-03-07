@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use net::{IdeaGuy, ItemDefinition, MonsterDefinition};
+use net::IdeaGuy;
 use world::PlayerAction;
 
 mod fov;
@@ -135,7 +135,7 @@ fn egui_setup() {
 
         egui_ctx.set_fonts(fonts);
 
-        let game_size = screen_width().min(screen_height());
+        let _game_size = screen_width().min(screen_height());
         let scale_factor = screen_width() / 1024.0;
         // let scale_factor = screen_width() / 500.0;
         use egui::FontFamily::*;

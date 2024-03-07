@@ -2,7 +2,6 @@ use macroquad::prelude::*;
 use macroquad::text::Font;
 use std::collections::HashSet;
 
-use crate::net::MonsterDefinition;
 use crate::world::{EquipmentSlot, Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
