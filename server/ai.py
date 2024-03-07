@@ -131,7 +131,7 @@ def ask_mistral(prompt_parts: list[str]) -> str:
 
 
 def ask_google(prompt_parts: list[str]) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={AISTUDIO_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key={AISTUDIO_API_KEY}"
     headers = {"Content-Type": "application/json"}
     payload = {
         "contents": [
