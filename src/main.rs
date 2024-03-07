@@ -91,6 +91,21 @@ impl PlayState {
                     self.ui.inventory_selected.remove(&min);
                 }
             }
+            KeyCode::Slash | KeyCode::Semicolon => {
+                for item in self.ui.inventory_selected.iter() {
+                    let item = self.sim.inventory.items[*item].item;
+                    self.sim.log_message(vec![match item {
+                        world::Item::Corpse(item) => {
+                            let mob_desc = &self.sim.get_mobkind_info(item);
+                            (format!("{} Corpse", mob_desc.name), net::Color::Maroon)
+                        }
+                        world::Item::Equipment(item_kind) => {
+                            let item_desc = &self.sim.get_equipmentkind_info(item_kind);
+                            (item_desc.description.clone(), item_desc.color)
+                        }
+                    }]);
+                }
+            }
             KeyCode::Escape => {
                 self.ui.ui_selected = false;
             }
