@@ -3,6 +3,7 @@ use macroquad::prelude::*;
 use macroquad::text::Font;
 use std::collections::HashSet;
 
+use crate::net::Color;
 use crate::world::{EquipmentSlot, Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
@@ -18,7 +19,7 @@ pub struct Ui {
 #[derive(Clone, Copy, Debug)]
 pub struct Glyph {
     character: char,
-    color: Color,
+    color: macroquad::color::Color,
     location: (usize, usize),
     layer: usize,
 }
@@ -165,6 +166,9 @@ impl Ui {
                 if ui.button("Combine (c)").clicked() {
                     println!("Combined {:?}", self.inventory_selected);
                 };
+                if ui.button("What is this? (?)").clicked() {
+                    println!("What is {:?}", self.inventory_selected);
+                }
             });
     }
 
@@ -278,118 +282,253 @@ impl Ui {
                     .collect::<Vec<Glyph>>(),
                 screen_width() * (1. / 4.),
             );
-            self.render_side_ui(sim, screen_width() * (1. / 4.));
+            self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
         });
 
         egui_macroquad::draw();
     }
 
-    fn render_side_ui(&self, sim: &crate::world::World, right_offset: f32) {
+    fn render_side_ui(
+        &self,
+        egui_ctx: &egui::Context,
+        sim: &crate::world::World,
+        right_offset: f32,
+    ) {
+        let scale_factor = screen_width() / (500.0 * miniquad::window::dpi_scale());
+
         let game_width = screen_width() - right_offset;
         let game_size = game_width.min(screen_height());
-        let game_height = game_size;
 
-        let offset_x = (screen_width() + game_size - right_offset) / 2. + 10.;
+        let offset_x = (screen_width() + game_size - right_offset) / 2. + 5.;
         let offset_y = (screen_height() - game_size) / 2. + 10.;
-        let window_lower_bound = offset_y + (game_size - 20.);
 
-        let sq_size = (game_height - offset_y * 2.) / self.grid_size as f32;
+        let panel_height = game_size - 20.;
+        let panel_width = screen_width() - offset_x - 10.0;
 
-        let window_width = screen_width() - offset_x - 10.0;
+        let mobs_lower_bound = offset_y + panel_height * 0.3;
 
-        // Rectangle for mob info.
-        draw_rectangle(
-            offset_x,
-            offset_y,
-            window_width,
-            game_size / 2. - 20.,
-            BLACK,
-        );
+        let font_scale_base = 22.;
+        let font_scale_details = 18.;
 
-        let mob_texts: Vec<(String, macroquad::color::Color)> = sim
-            .get_visible_mobs()
-            .iter()
-            .map(|mob| {
-                let damage = mob.damage;
-                let mob_kind = mob.kind;
-                let mob_kind_def = sim.get_mobkind_info(mob_kind);
-                let MobKindInfo {
-                    char, color, name, ..
-                } = mob_kind_def;
-                (
-                    format!("{} - {:?}. DAM: {:?}", char, name, damage),
-                    color.clone().into(),
-                )
-            })
-            .collect();
+        let to_egui = |c: &Color| {
+            let color = macroquad::color::Color::from(*c);
+            let [r, g, b, _a] = color.into();
+            Color32::from_rgb(r, g, b)
+        };
 
-        let mut mob_text_buffer: Vec<(String, macroquad::color::Color)> = Vec::new();
-        for (text, color) in mob_texts {
-            let wrapped = textwrap::wrap(&text, (window_width / (sq_size * 0.5)) as usize);
-            for text in wrapped {
-                mob_text_buffer.push((text.into(), color));
-            }
-        }
-        mob_text_buffer.truncate(10);
+        egui::Window::new("Pokédex")
+            .resizable(false)
+            .collapsible(false)
+            .fixed_size(egui::Vec2::new(
+                panel_width * miniquad::window::dpi_scale(),
+                (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale(),
+            ))
+            .fixed_pos(egui::Pos2::new(
+                offset_x * miniquad::window::dpi_scale(),
+                offset_y * miniquad::window::dpi_scale(),
+            ))
+            .show(egui_ctx, |ui| {
+                ui.set_height(ui.available_height());
+                ui.set_width(ui.available_width());
+                ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                    for (i, mob) in sim.get_visible_mobs().iter().enumerate() {
+                        let damage = mob.damage;
+                        let mob_kind = mob.kind;
+                        let mob_kind_def = sim.get_mobkind_info(mob_kind);
 
-        for (i, (line, color)) in mob_text_buffer.iter().enumerate() {
-            draw_text_ex(
-                &line,
-                offset_x + 2.,
-                offset_y + (i + 1) as f32 * sq_size,
-                TextParams {
-                    font_size: (sq_size * 0.8) as u16,
-                    font: Some(&self.font),
-                    color: *color,
-                    ..Default::default()
-                },
-            )
-        }
+                        let MobKindInfo {
+                            char,
+                            color,
+                            name,
+                            attack_type,
+                            type1,
+                            type2,
+                            description,
+                            level,
+                        } = mob_kind_def;
 
-        let log_offset_y_base = offset_y + game_size / 2. - 10.;
-        let mut log_offset_y = log_offset_y_base;
-        let lower_bound = window_lower_bound - sq_size.max(30.0) - 10.;
-        let height = lower_bound - log_offset_y;
+                        let mut job = egui::text::LayoutJob::default();
+                        job.append(
+                            char,
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_base * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: to_egui(color),
+                                ..Default::default()
+                            },
+                        );
+                        job.append(
+                            &format!(" - {name}\n    "),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_base * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: to_egui(color),
+                                ..Default::default()
+                            },
+                        );
+                        job.append(
+                            &format!("{} ", type1.to_string()),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_details * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: to_egui(&type1.get_color()),
+                                ..Default::default()
+                            },
+                        );
+                        if let Some(type2) = type2 {
+                            job.append(
+                                &format!("{} ", type2.to_string()),
+                                0.0,
+                                egui::TextFormat {
+                                    font_id: egui::FontId::new(
+                                        font_scale_details * scale_factor,
+                                        egui::FontFamily::Proportional,
+                                    ),
+                                    color: to_egui(&type2.get_color()),
+                                    ..Default::default()
+                                },
+                            );
+                        }
 
-        draw_rectangle(offset_x, log_offset_y, window_width, height, BLACK);
+                        job.append(
+                            "| ATT ",
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_details * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: Color32::WHITE,
+                                ..Default::default()
+                            },
+                        );
 
-        for (log_message, log_color) in sim.log.iter().rev().take(10) {
-            let wrapped_text =
-                textwrap::wrap(&log_message, (window_width / (sq_size * 0.5)) as usize);
-            for (i, substr) in wrapped_text.iter().enumerate() {
-                let y = log_offset_y + (i + 1) as f32 * sq_size;
-                draw_text_ex(
-                    &substr,
-                    offset_x + 2.,
-                    y,
-                    TextParams {
-                        font_size: (sq_size * 0.8) as u16,
-                        font: Some(&self.font),
-                        color: *log_color,
-                        ..Default::default()
-                    },
-                );
-            }
-            log_offset_y += wrapped_text.len() as f32 * sq_size;
-        }
+                        job.append(
+                            &format!("{} ", attack_type.to_string()),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_details * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: to_egui(&attack_type.get_color()),
+                                ..Default::default()
+                            },
+                        );
 
-        let lower_bound = window_lower_bound;
-        let height = sq_size.max(30.0);
-        let offset_y = window_lower_bound - height;
-        draw_rectangle(offset_x, offset_y, window_width, height, BLACK);
+                        job.append(
+                            &format!("| Level {} | HP ", level),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_details * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: Color32::WHITE,
+                                ..Default::default()
+                            },
+                        );
 
-        let status = "10 HP 10 AMMO";
-        draw_text_ex(
-            status,
-            offset_x + 5.,
-            lower_bound - height / 4.,
-            TextParams {
-                font_size: (sq_size * 0.8) as u16,
-                font: Some(&self.font),
-                color: RED,
-                ..Default::default()
-            },
-        );
+                        let max_hp = mob_kind_def.max_hp();
+                        let hp = max_hp - damage;
+                        let hp_color = if hp < max_hp / 5 {
+                            Color32::RED
+                        } else if hp < max_hp / 2 {
+                            Color32::YELLOW
+                        } else {
+                            Color32::WHITE
+                        };
+                        job.append(
+                            &format!("{}", hp),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_details * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: hp_color,
+                                ..Default::default()
+                            },
+                        );
+                        job.append(
+                            &format!("/ {}", max_hp),
+                            0.0,
+                            egui::TextFormat {
+                                font_id: egui::FontId::new(
+                                    font_scale_details * scale_factor,
+                                    egui::FontFamily::Proportional,
+                                ),
+                                color: Color32::WHITE,
+                                ..Default::default()
+                            },
+                        );
+
+                        ui.label(job);
+
+                        ui.push_id(i, |ui| {
+                            egui::CollapsingHeader::new(format!("    {}...", &description[..30]))
+                                .show(ui, |ui| {
+                                    ui.label(egui::RichText::new(description).small().italics());
+                                });
+                        });
+                    }
+                });
+            });
+
+        let log_upper_bound = offset_y + panel_height * 0.35;
+        let log_lower_bound = offset_y + panel_height * 0.85;
+        let log_height = log_lower_bound - log_upper_bound;
+
+        egui::Window::new("Logs")
+            .resizable(false)
+            .collapsible(false)
+            .fixed_size(egui::Vec2::new(
+                panel_width * miniquad::window::dpi_scale(),
+                log_height * miniquad::window::dpi_scale(),
+            ))
+            .fixed_pos(egui::Pos2::new(
+                offset_x * miniquad::window::dpi_scale(),
+                log_upper_bound * miniquad::window::dpi_scale(),
+            ))
+            .show(egui_ctx, |ui| {
+                ui.set_height(ui.available_height());
+                ui.set_width(ui.available_width());
+                egui::ScrollArea::vertical()
+                    .drag_to_scroll(true)
+                    .stick_to_bottom(true)
+                    .show(ui, |ui| {
+                        ui.set_width(ui.available_width());
+                        let start_index = sim.log.len() as i64 - 100;
+                        let start_index = (start_index.max(0)) as usize;
+                        for log_entry in sim.log.iter().skip(start_index) {
+                            let mut job = egui::text::LayoutJob::default();
+                            for (log_entry_str, log_entry_color) in log_entry {
+                                job.append(
+                                    log_entry_str,
+                                    0.0,
+                                    egui::TextFormat {
+                                        font_id: egui::FontId::new(
+                                            font_scale_base * scale_factor,
+                                            egui::FontFamily::Proportional,
+                                        ),
+                                        color: to_egui(log_entry_color),
+                                        ..Default::default()
+                                    },
+                                );
+                            }
+                            ui.label(job);
+                        }
+                    });
+            });
     }
 
     fn render_glyphs(&self, glyphs: &[Glyph], right_offset: f32) {

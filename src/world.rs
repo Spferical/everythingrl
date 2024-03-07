@@ -127,7 +127,7 @@ pub struct MobKindInfo {
 }
 
 impl MobKindInfo {
-    fn max_hp(&self) -> usize {
+    pub fn max_hp(&self) -> usize {
         self.level * 16
     }
 
@@ -471,7 +471,7 @@ pub struct World {
     pub world_info: WorldInfo,
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Inventory,
-    pub log: VecDeque<(String, macroquad::color::Color)>,
+    pub log: VecDeque<Vec<(String, Color)>>,
     rng: rand::rngs::SmallRng,
 }
 
@@ -505,8 +505,8 @@ impl World {
         self.world_info.update(ig);
     }
 
-    pub fn log_message(&mut self, text: String, color: macroquad::color::Color) {
-        self.log.push_back((text.into(), color));
+    pub fn log_message(&mut self, text: Vec<(String, Color)>) {
+        self.log.push_back(text);
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
@@ -525,12 +525,21 @@ impl World {
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
                     mob.damage += damage;
-                    self.log_message(
-                        format!("You hit {} for {}!", mki.name, damage),
-                        macroquad::color::LIGHTGRAY,
-                    );
+                    /*self.log_message(
+                            format!("You hit {} for {}!", mki.name, damage),
+                            macroquad::color::LIGHTGRAY,
+                    );*/
+                    self.log_message(vec![
+                        ("You hit ".into(), Color::White),
+                        (mki.name.clone(), mki.color),
+                        (" for ".into(), Color::White),
+                        (format!("{}", damage), Color::Red),
+                    ]);
                     if mob.damage >= mki.max_hp() {
-                        self.log_message(format!("{} dies!", mki.name), macroquad::color::RED);
+                        self.log_message(vec![
+                            (mki.name, mki.color),
+                            (" dies".into(), Color::White),
+                        ]);
                         self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
                     } else {
                         self.mobs.insert(new_pos, mob);
@@ -727,10 +736,15 @@ impl World {
                         let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
                         let mult = eff.get_scale();
                         let damage = mki.level * mult;
-                        self.log_message(
-                            format!("{} hits you for {}!", mki.name, damage),
-                            macroquad::color::LIGHTGRAY,
-                        );
+                        /*self.log_message(
+                                format!("{} hits you for {}!", mki.name, damage),
+                                macroquad::color::LIGHTGRAY,
+                        );*/
+                        self.log_message(vec![
+                            (format!("{}", mki.name), mki.color),
+                            (" hits you for ".into(), Color::White),
+                            (format!("{}", damage), Color::Red),
+                        ]);
                         self.player_damage += damage;
                         new_pos = pos;
                     } else {
