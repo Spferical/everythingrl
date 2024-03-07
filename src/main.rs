@@ -186,13 +186,15 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
-    let theme = "pregen";
+    let theme = "Hollow Knight";
 
     let mut last_size = (screen_width(), screen_height());
-    let mut gs = GameState::Startup;
-    let mut ig = IdeaGuy::new(theme);
+    let mut gs = GameState::Intro(intro::IntroState::new());
+    let mut ig: Option<IdeaGuy> = None;
     loop {
-        ig.tick();
+        if let Some(ref mut ig) = ig {
+            ig.tick()
+        };
         clear_background(GRAY);
 
         if (screen_width(), screen_height()) != last_size {
@@ -207,15 +209,16 @@ async fn main() {
                 } else {
                     if intro.exit {
                         return;
-                    } else {
-                        gs
                     }
+                    ig = Some(IdeaGuy::new(theme));
+                    gs
                 }
             }
             GameState::Startup => {
+                let ig = ig.as_mut().unwrap();
                 if ig.monsters.is_some() {
                     if ig.items.is_some() {
-                        GameState::Play(PlayState::new(font.clone(), &mut ig))
+                        GameState::Play(PlayState::new(font.clone(), ig))
                     } else {
                         GameState::Startup
                     }
@@ -224,7 +227,8 @@ async fn main() {
                 }
             }
             GameState::Play(ref mut ps) => {
-                ps.sim.update_defs(&mut ig);
+                let ig = ig.as_mut().unwrap();
+                ps.sim.update_defs(ig);
                 if let Some(key) = get_last_key_pressed() {
                     ps.handle_key(key);
                 }
