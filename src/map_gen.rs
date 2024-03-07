@@ -460,7 +460,7 @@ pub fn gen_simple_rooms(
         world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
     }
     for _ in 0..sprinkle.num_items {
-        let room = (&rooms[1..]).choose(rng).unwrap();
+        let room = (&rooms[0..]).choose(rng).unwrap();
         let pos = room.choose(rng);
         world[pos].item = Some(Item::Equipment(world.get_random_equipment_kind(rng)));
     }

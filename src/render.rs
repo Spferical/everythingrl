@@ -3,7 +3,7 @@ use macroquad::text::Font;
 use std::collections::HashSet;
 
 use crate::net::MonsterDefinition;
-use crate::world::{EquipmentSlot, Item};
+use crate::world::{EquipmentSlot, Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
 pub struct Ui {
@@ -91,10 +91,10 @@ impl Ui {
                             });
                         })
                         .body(|body| {
-                            body.rows(text_height, sim.inventory.len(), |mut row| {
+                            body.rows(text_height, sim.inventory.items.len(), |mut row| {
                                 let row_index = row.index();
                                 row.set_selected(self.inventory_selected.contains(&row_index));
-                                let slot = &sim.inventory[row_index];
+                                let slot = &sim.inventory.items[row_index];
                                 let name;
                                 let ty;
                                 let display_slot;
@@ -118,7 +118,7 @@ impl Ui {
                                         ty = item_desc.ty.to_string();
                                         display_slot = match item_desc.slot {
                                             EquipmentSlot::Weapon => "Weapon",
-                                            EquipmentSlot::Equipment => "Equipment",
+                                            EquipmentSlot::Armor => "Equipment",
                                         };
                                         if slot.equipped {
                                             display_equipped = "YES";
@@ -221,7 +221,7 @@ impl Ui {
                                 let equip_def = sim.get_equipmentkind_info(ek);
                                 let char = match equip_def.slot {
                                     EquipmentSlot::Weapon => '/',
-                                    EquipmentSlot::Equipment => '[',
+                                    EquipmentSlot::Armor => '[',
                                 };
                                 let color = equip_def.ty.get_color().into();
                                 (char, color)
@@ -307,12 +307,12 @@ impl Ui {
                 let damage = mob.damage;
                 let mob_kind = mob.kind;
                 let mob_kind_def = sim.get_mobkind_info(mob_kind);
-                let MonsterDefinition {
+                let MobKindInfo {
                     char, color, name, ..
                 } = mob_kind_def;
                 (
                     format!("{} - {:?}. DAM: {:?}", char, name, damage),
-                    color.into(),
+                    color.clone().into(),
                 )
             })
             .collect();

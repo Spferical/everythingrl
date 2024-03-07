@@ -31,7 +31,7 @@ impl TileKind {
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum EquipmentSlot {
     Weapon,
-    Equipment,
+    Armor,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
@@ -41,15 +41,6 @@ pub struct EquipmentKind(pub usize);
 pub enum Item {
     Corpse(MobKind),
     Equipment(EquipmentKind),
-}
-
-pub struct EquipmentDefinition {
-    pub name: String,
-    pub level: usize,
-    pub color: Color,
-    pub ty: PokemonType,
-    pub slot: EquipmentSlot,
-    pub description: String,
 }
 
 pub struct TileKindInfo {
@@ -89,7 +80,7 @@ pub enum MobAi {
 #[derive(Hash, Debug, Clone)]
 pub struct Mob {
     pub kind: MobKind,
-    pub damage: u32,
+    pub damage: usize,
     pub ai: MobAi,
 }
 
@@ -103,116 +94,6 @@ impl Mob {
     }
 }
 
-enum AttackEffectiveness {
-    Zero,
-    Quarter,
-    Half,
-    One,
-    Two,
-    Four,
-}
-
-fn pokemon_effectiveness1(attack: PokemonType, defense: PokemonType) -> AttackEffectiveness {
-    use AttackEffectiveness::*;
-    use PokemonType::*;
-    match (attack, defense) {
-        (Normal, Rock | Steel) => Half,
-        (Normal, Ghost) => Zero,
-
-        (Fire, Fire | Water | Rock | Dragon) => Half,
-        (Fire, Grass | Ice | Bug | Steel) => Two,
-
-        (Water, Water | Grass | Dragon) => Half,
-        (Water, Fire | Ground | Rock) => Two,
-
-        (Electric, Water | Flying) => Two,
-        (Electric, Electric | Grass) => Half,
-        (Electric, Ground) => Zero,
-
-        (Grass, Water | Ground | Rock) => Two,
-        (Grass, Fire | Grass | Poison | Flying | Bug | Dragon | Steel) => Half,
-
-        (Ice, Grass | Ground | Flying | Dragon) => Two,
-        (Ice, Fire | Water | Ice | Steel) => Half,
-
-        (Fighting, Ice | Rock | Normal | Dark | Steel) => Two,
-        (Fighting, Flying | Poison | Bug | Psychic | Fairy) => Half,
-        (Fighting, Ghost) => Zero,
-
-        (Poison, Grass | Fairy) => Two,
-        (Poison, Poison | Ground | Rock | Ghost) => Half,
-        (Poison, Steel) => Zero,
-
-        (Ground, Fire | Electric | Poison | Rock | Steel) => Two,
-        (Ground, Grass | Bug) => Half,
-        (Ground, Flying) => Zero,
-
-        (Flying, Grass | Fighting | Bug) => Two,
-        (Flying, Electric | Rock | Steel) => Half,
-
-        (Psychic, Fighting | Poison) => Two,
-        (Psychic, Psychic | Steel) => Half,
-        (Psychic, Dark) => Zero,
-
-        (Bug, Grass | Psychic | Dark) => Two,
-        (Bug, Fire | Fighting | Poison | Flying | Ghost | Steel | Fairy) => Half,
-
-        (Rock, Fire | Ice | Flying | Bug) => Two,
-        (Rock, Fighting | Ground | Steel) => Half,
-
-        (Ghost, Psychic | Ghost) => Two,
-        (Ghost, Dark) => Half,
-        (Ghost, Normal) => Zero,
-
-        (Dragon, Dragon) => Two,
-        (Dragon, Steel) => Half,
-        (Dragon, Fairy) => Zero,
-
-        (Dark, Psychic | Ghost) => Two,
-        (Dark, Fighting | Dark | Fairy) => Half,
-
-        (Steel, Ice | Rock | Fairy) => Two,
-        (Steel, Fire | Water | Electric | Steel) => Half,
-
-        (Fairy, Fighting | Dragon | Dark) => Two,
-        (Fairy, Fire | Poison | Steel) => Half,
-
-        _ => One,
-    }
-}
-fn multiply_effectiveness(
-    eff1: AttackEffectiveness,
-    eff2: AttackEffectiveness,
-) -> AttackEffectiveness {
-    use AttackEffectiveness::*;
-    match (eff1, eff2) {
-        (Zero, _) | (_, Zero) => Zero,
-        (Half, Half) => Quarter,
-        (Half, Two) | (Two, Half) => One,
-        (Two, Two) => Four,
-        (eff1, One) => eff1,
-        (One, eff2) => eff2,
-        _ => One,
-    }
-}
-
-fn pokemon_effectiveness2(
-    attack: PokemonType,
-    defense1: PokemonType,
-    defense2: Option<PokemonType>,
-) -> AttackEffectiveness {
-    use AttackEffectiveness::*;
-    let eff1 = pokemon_effectiveness1(attack, defense1);
-    let eff2 = defense2.map(|defense2| pokemon_effectiveness1(attack, defense2));
-    multiply_effectiveness(eff1, eff2.unwrap_or(One))
-}
-
-#[derive(Debug, Clone)]
-pub struct InventorySlot {
-    pub item: Item,
-    pub equipped: bool,
-}
-
 #[derive(Debug, Clone)]
 pub struct EquipmentKindInfo {
     pub name: String,
@@ -223,11 +104,33 @@ pub struct EquipmentKindInfo {
     pub slot: EquipmentSlot,
 }
 
+#[derive(Debug, Clone)]
+pub struct MobKindInfo {
+    pub name: String,
+    pub char: String,
+    pub color: Color,
+    pub attack_type: PokemonType,
+    pub type1: PokemonType,
+    pub type2: Option<PokemonType>,
+    pub description: String,
+    pub level: usize,
+}
+
+impl MobKindInfo {
+    fn max_hp(&self) -> usize {
+        self.level * 16
+    }
+
+    fn base_damage(&self) -> usize {
+        self.level
+    }
+}
+
 /// Contains post-processed content definitions parsed from AI-generated data.
 #[derive(Debug, Clone)]
 pub struct WorldInfo {
     equip_kinds: Vec<EquipmentKindInfo>,
-    monster_kinds: Vec<MonsterDefinition>,
+    monster_kinds: Vec<MobKindInfo>,
 }
 
 impl WorldInfo {
@@ -249,7 +152,7 @@ impl WorldInfo {
             let slot = if weapon_names.contains(&item.name) {
                 EquipmentSlot::Weapon
             } else {
-                EquipmentSlot::Equipment
+                EquipmentSlot::Armor
             };
             if self.equip_kinds.iter().any(|e| e.name == item.name) {
                 continue;
@@ -274,7 +177,26 @@ impl WorldInfo {
             if self.equip_kinds.iter().any(|m| m.name == mob.name) {
                 continue;
             }
-            self.monster_kinds.push(mob.clone());
+            let MonsterDefinition {
+                name,
+                char,
+                color,
+                attack_type,
+                type1,
+                type2,
+                description,
+                level,
+            } = mob.clone();
+            self.monster_kinds.push(MobKindInfo {
+                name,
+                char,
+                color,
+                attack_type,
+                type1,
+                type2,
+                description,
+                level,
+            });
         }
     }
 
@@ -285,6 +207,127 @@ impl WorldInfo {
     pub fn get_random_mob_kind(&self, rng: &mut impl Rng) -> MobKind {
         MobKind(rng.gen_range(0..self.monster_kinds.len()))
     }
+
+    pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
+        &self.equip_kinds[kind.0]
+    }
+
+    pub fn get_mobkind_info(&self, kind: MobKind) -> &MobKindInfo {
+        &self.monster_kinds[kind.0]
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct InventoryItem {
+    pub item: Item,
+    pub equipped: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct Inventory {
+    pub items: Vec<InventoryItem>,
+}
+
+impl Inventory {
+    fn new() -> Self {
+        Self { items: vec![] }
+    }
+
+    fn get_equipped_weapon_info(&self, wi: &WorldInfo) -> Option<EquipmentKindInfo> {
+        self.items
+            .iter()
+            .filter(|x| x.equipped)
+            .filter_map(|x| match x.item {
+                Item::Corpse(_) => None,
+                Item::Equipment(ek) => Some(ek),
+            })
+            .map(|ek| wi.get_equipmentkind_info(ek))
+            .filter(|eki| eki.slot == EquipmentSlot::Weapon)
+            .next()
+            .cloned()
+    }
+    fn get_equipped_armor_info(&self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
+        self.items
+            .iter()
+            .filter(|x| x.equipped)
+            .filter_map(|x| match x.item {
+                Item::Corpse(_) => None,
+                Item::Equipment(ek) => Some(ek),
+            })
+            .map(|ek| wi.get_equipmentkind_info(ek))
+            .filter(|eki| eki.slot == EquipmentSlot::Armor)
+            .cloned()
+            .collect()
+    }
+
+    fn sort(&mut self) {
+        // Equipped to the top, corpses to the bottom.
+        self.items
+            .sort_by_key(|x| (!x.equipped, matches!(x.item, Item::Corpse(_))))
+    }
+    fn add(&mut self, item: Item) -> Option<Item> {
+        self.items.push(InventoryItem {
+            item,
+            equipped: false,
+        });
+        if self.items.len() > 9 {
+            for i in 0..self.items.len() {
+                if !self.items[i].equipped {
+                    return Some(self.items.remove(i).item);
+                }
+            }
+        }
+        None
+    }
+    fn remove(&mut self, i: usize) -> Option<Item> {
+        if i < self.items.len() {
+            Some(self.items.remove(i).item)
+        } else {
+            None
+        }
+    }
+    fn toggle_equip(&mut self, i: usize, wi: &WorldInfo) -> bool {
+        if i >= self.items.len() {
+            eprintln!("Bad equip idx: {i}");
+            false
+        } else if self.items[i].equipped {
+            self.items[i].equipped = false;
+            true
+        } else if let Item::Equipment(ek) = self.items[i].item {
+            let ek_def = wi.get_equipmentkind_info(ek);
+
+            // Unequip another item if that slot is full.
+            let max_per_slot = |slot: EquipmentSlot| match slot {
+                EquipmentSlot::Weapon => 1,
+                EquipmentSlot::Armor => 2,
+            };
+            let max = max_per_slot(ek_def.slot);
+            let other_equipped_in_slot = self
+                .items
+                .iter()
+                .enumerate()
+                .filter(|(_i, x)| x.equipped)
+                .filter_map(|(i, x)| {
+                    if let Item::Equipment(ek) = x.item {
+                        Some((i, wi.get_equipmentkind_info(ek)))
+                    } else {
+                        None
+                    }
+                })
+                .filter(|(_i, other_ek_def)| other_ek_def.slot == ek_def.slot)
+                .map(|(i, _)| i)
+                .collect::<Vec<_>>();
+            if other_equipped_in_slot.len() >= max {
+                self.items[other_equipped_in_slot[0]].equipped = false;
+            }
+
+            self.items[i].equipped = true;
+            true
+        } else {
+            eprintln!("Item is not equippable");
+            false
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -294,7 +337,7 @@ pub struct World {
     tile_map: TileMap<Tile>,
     world_info: WorldInfo,
     pub mobs: HashMap<Pos, Mob>,
-    pub inventory: Vec<InventorySlot>,
+    pub inventory: Inventory,
     pub log: VecDeque<(String, macroquad::color::Color)>,
     rng: rand::rngs::SmallRng,
 }
@@ -319,7 +362,7 @@ impl World {
             world_info: WorldInfo::new(),
             mobs: HashMap::new(),
             rng: rand::rngs::SmallRng::seed_from_u64(72),
-            inventory: vec![],
+            inventory: Inventory::new(),
             log: VecDeque::new(),
         }
     }
@@ -336,14 +379,8 @@ impl World {
         self.world_info.get_random_mob_kind(rng)
     }
 
-    pub fn log_message(&mut self, text: &str, color: macroquad::color::Color) {
+    pub fn log_message(&mut self, text: String, color: macroquad::color::Color) {
         self.log.push_back((text.into(), color));
-    }
-
-    pub fn sort_inventory(&mut self) {
-        self.inventory
-            // Equipped to the top, corpses to the bottom.
-            .sort_by_key(|x| (!x.equipped, matches!(x.item, Item::Corpse(_))))
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
@@ -351,10 +388,27 @@ impl World {
             PlayerAction::Move(offset) => {
                 assert!(offset.mhn_dist() == 1);
                 let new_pos = self.player_pos + offset;
-                if let Some(mob) = self.mobs.remove(&new_pos) {
-                    // TODO: more advanced combat
-                    self.log_message("death has happened", macroquad::color::RED);
-                    self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
+                if let Some(mut mob) = self.mobs.remove(&new_pos) {
+                    let mki = self.get_mobkind_info(mob.kind).clone();
+                    let player_weapon_info =
+                        self.inventory.get_equipped_weapon_info(&self.world_info);
+                    let (att_type, att_level) = player_weapon_info
+                        .map(|w| (w.ty, w.level))
+                        .unwrap_or((PokemonType::Normal, 0));
+                    let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
+                    let mult = eff.get_scale();
+                    let damage = (att_level + 1) * mult;
+                    mob.damage += damage;
+                    self.log_message(
+                        format!("You hit {} for {}!", mki.name, damage),
+                        macroquad::color::RED,
+                    );
+                    if mob.damage >= mki.max_hp() {
+                        self.log_message(format!("{} dies!", mki.name), macroquad::color::RED);
+                        self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
+                    } else {
+                        self.mobs.insert(new_pos, mob);
+                    }
                     true
                 } else if self.tile_map[new_pos].kind.is_walkable() {
                     self.player_pos += offset;
@@ -365,85 +419,30 @@ impl World {
             }
             PlayerAction::PickUp => {
                 if let Some(item) = self.tile_map[self.player_pos].item.take() {
-                    self.inventory.push(InventorySlot {
-                        item,
-                        equipped: false,
-                    });
-                    if self.inventory.len() > 9 {
-                        for i in 0..self.inventory.len() {
-                            if !self.inventory[i].equipped {
-                                self.tile_map[self.player_pos].item =
-                                    Some(self.inventory.remove(i).item);
-                                break;
-                            }
-                        }
+                    if let Some(popped) = self.inventory.add(item) {
+                        self.tile_map[self.player_pos].item = Some(popped);
                     }
                     true
                 } else {
                     false
                 }
             }
-            PlayerAction::ToggleEquip(i) => {
-                if i >= self.inventory.len() {
-                    eprintln!("Bad equip idx: {i}");
-                    false
-                } else if self.inventory[i].equipped {
-                    self.inventory[i].equipped = false;
-                    true
-                } else if let Item::Equipment(ek) = self.inventory[i].item {
-                    let ek_def = self.get_equipmentkind_info(ek);
-
-                    // Unequip another item if that slot is full.
-                    let max_per_slot = |slot: EquipmentSlot| match slot {
-                        EquipmentSlot::Weapon => 1,
-                        EquipmentSlot::Equipment => 2,
-                    };
-                    let max = max_per_slot(ek_def.slot);
-                    let other_equipped_in_slot = self
-                        .inventory
-                        .iter()
-                        .enumerate()
-                        .filter(|(_i, x)| x.equipped)
-                        .filter_map(|(i, x)| {
-                            if let Item::Equipment(ek) = x.item {
-                                Some((i, self.get_equipmentkind_info(ek)))
-                            } else {
-                                None
-                            }
-                        })
-                        .filter(|(_i, other_ek_def)| other_ek_def.slot == ek_def.slot)
-                        .map(|(i, _)| i)
-                        .collect::<Vec<_>>();
-                    if other_equipped_in_slot.len() >= max {
-                        self.inventory[other_equipped_in_slot[0]].equipped = false;
-                    }
-
-                    self.inventory[i].equipped = true;
-                    true
-                } else {
-                    eprintln!("Item is not equippable");
-                    false
-                }
-            }
+            PlayerAction::ToggleEquip(i) => self.inventory.toggle_equip(i, &self.world_info),
             PlayerAction::Drop(i) => {
-                if i >= self.inventory.len() {
+                if let Some(item) = self.inventory.remove(i) {
+                    self.tile_map[self.player_pos].item = Some(item);
+                    if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
+                        self.inventory.add(item_on_ground);
+                    }
+                    true
+                } else {
                     eprintln!("Bad drop idx: {i}");
                     false
-                } else {
-                    let slot = self.inventory.remove(i);
-                    if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
-                        self.inventory.push(InventorySlot {
-                            item: item_on_ground,
-                            equipped: false,
-                        })
-                    }
-                    self.tile_map[self.player_pos].item = Some(slot.item);
-                    true
                 }
             }
             PlayerAction::Wait => true,
         };
-        self.sort_inventory();
+        self.inventory.sort();
         if tick {
             self.tick();
         }
@@ -600,12 +599,12 @@ impl World {
         self.mobs.insert(pos, mob);
     }
 
-    pub fn get_mobkind_info(&self, kind: MobKind) -> MonsterDefinition {
-        self.world_info.monster_kinds[kind.0].clone()
+    pub fn get_mobkind_info(&self, kind: MobKind) -> &MobKindInfo {
+        self.world_info.get_mobkind_info(kind)
     }
 
-    pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> EquipmentKindInfo {
-        self.world_info.equip_kinds[kind.0].clone()
+    pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
+        self.world_info.get_equipmentkind_info(kind)
     }
 }
 

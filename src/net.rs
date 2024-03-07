@@ -50,6 +50,124 @@ impl PokemonType {
             PokemonType::Fairy => Color::Pink,
         }
     }
+
+    pub fn get_effectiveness(self, defense: PokemonType) -> AttackEffectiveness {
+        use AttackEffectiveness::*;
+        use PokemonType::*;
+        let attack = self;
+        match (attack, defense) {
+            (Normal, Rock | Steel) => Half,
+            (Normal, Ghost) => Zero,
+
+            (Fire, Fire | Water | Rock | Dragon) => Half,
+            (Fire, Grass | Ice | Bug | Steel) => Two,
+
+            (Water, Water | Grass | Dragon) => Half,
+            (Water, Fire | Ground | Rock) => Two,
+
+            (Electric, Water | Flying) => Two,
+            (Electric, Electric | Grass) => Half,
+            (Electric, Ground) => Zero,
+
+            (Grass, Water | Ground | Rock) => Two,
+            (Grass, Fire | Grass | Poison | Flying | Bug | Dragon | Steel) => Half,
+
+            (Ice, Grass | Ground | Flying | Dragon) => Two,
+            (Ice, Fire | Water | Ice | Steel) => Half,
+
+            (Fighting, Ice | Rock | Normal | Dark | Steel) => Two,
+            (Fighting, Flying | Poison | Bug | Psychic | Fairy) => Half,
+            (Fighting, Ghost) => Zero,
+
+            (Poison, Grass | Fairy) => Two,
+            (Poison, Poison | Ground | Rock | Ghost) => Half,
+            (Poison, Steel) => Zero,
+
+            (Ground, Fire | Electric | Poison | Rock | Steel) => Two,
+            (Ground, Grass | Bug) => Half,
+            (Ground, Flying) => Zero,
+
+            (Flying, Grass | Fighting | Bug) => Two,
+            (Flying, Electric | Rock | Steel) => Half,
+
+            (Psychic, Fighting | Poison) => Two,
+            (Psychic, Psychic | Steel) => Half,
+            (Psychic, Dark) => Zero,
+
+            (Bug, Grass | Psychic | Dark) => Two,
+            (Bug, Fire | Fighting | Poison | Flying | Ghost | Steel | Fairy) => Half,
+
+            (Rock, Fire | Ice | Flying | Bug) => Two,
+            (Rock, Fighting | Ground | Steel) => Half,
+
+            (Ghost, Psychic | Ghost) => Two,
+            (Ghost, Dark) => Half,
+            (Ghost, Normal) => Zero,
+
+            (Dragon, Dragon) => Two,
+            (Dragon, Steel) => Half,
+            (Dragon, Fairy) => Zero,
+
+            (Dark, Psychic | Ghost) => Two,
+            (Dark, Fighting | Dark | Fairy) => Half,
+
+            (Steel, Ice | Rock | Fairy) => Two,
+            (Steel, Fire | Water | Electric | Steel) => Half,
+
+            (Fairy, Fighting | Dragon | Dark) => Two,
+            (Fairy, Fire | Poison | Steel) => Half,
+
+            _ => One,
+        }
+    }
+    pub fn get_effectiveness2(
+        self: PokemonType,
+        defense1: PokemonType,
+        defense2: Option<PokemonType>,
+    ) -> AttackEffectiveness {
+        use AttackEffectiveness::*;
+        let attack = self;
+        let eff1 = attack.get_effectiveness(defense1);
+        let eff2 = defense2.map(|defense2| attack.get_effectiveness(defense2));
+        multiply_effectiveness(eff1, eff2.unwrap_or(One))
+    }
+}
+pub enum AttackEffectiveness {
+    Zero,
+    Quarter,
+    Half,
+    One,
+    Two,
+    Four,
+}
+
+impl AttackEffectiveness {
+    pub fn get_scale(&self) -> usize {
+        match self {
+            AttackEffectiveness::Zero => 0,
+            AttackEffectiveness::Quarter => 1,
+            AttackEffectiveness::Half => 2,
+            AttackEffectiveness::One => 4,
+            AttackEffectiveness::Two => 8,
+            AttackEffectiveness::Four => 16,
+        }
+    }
+}
+
+fn multiply_effectiveness(
+    eff1: AttackEffectiveness,
+    eff2: AttackEffectiveness,
+) -> AttackEffectiveness {
+    use AttackEffectiveness::*;
+    match (eff1, eff2) {
+        (Zero, _) | (_, Zero) => Zero,
+        (Half, Half) => Quarter,
+        (Half, Two) | (Two, Half) => One,
+        (Two, Two) => Four,
+        (eff1, One) => eff1,
+        (One, eff2) => eff2,
+        _ => One,
+    }
 }
 
 impl Display for PokemonType {
