@@ -525,10 +525,6 @@ impl World {
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
                     mob.damage += damage;
-                    /*self.log_message(
-                            format!("You hit {} for {}!", mki.name, damage),
-                            macroquad::color::LIGHTGRAY,
-                    );*/
                     self.log_message(vec![
                         ("You hit ".into(), Color::White),
                         (mki.name.clone(), mki.color),
@@ -736,10 +732,6 @@ impl World {
                         let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
                         let mult = eff.get_scale();
                         let damage = mki.level * mult;
-                        /*self.log_message(
-                                format!("{} hits you for {}!", mki.name, damage),
-                                macroquad::color::LIGHTGRAY,
-                        );*/
                         self.log_message(vec![
                             (format!("{}", mki.name), mki.color),
                             (" hits you for ".into(), Color::White),
