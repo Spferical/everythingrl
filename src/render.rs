@@ -121,7 +121,7 @@ impl Ui {
                                         if slot.equipped {
                                             display_equipped = "YES";
                                         } else {
-                                            display_equipped = "CAN";
+                                            display_equipped = "";
                                         }
                                         level = item_desc.level.to_string();
                                     }
