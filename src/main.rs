@@ -69,6 +69,22 @@ impl PlayState {
                     self.ui.inventory_selected.remove(&min);
                 }
             }
+            KeyCode::C => {
+                let mut selected = self
+                    .ui
+                    .inventory_selected
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>();
+                selected.sort();
+                if selected.len() >= 2 {
+                    tick |= self
+                        .sim
+                        .do_player_action(PlayerAction::Craft(selected[0], selected[1]));
+                    self.ui.inventory_selected.remove(&selected[0]);
+                    self.ui.inventory_selected.remove(&selected[1]);
+                }
+            }
             KeyCode::D => {
                 if let Some(&min) = self.ui.inventory_selected.iter().min() {
                     tick |= self.sim.do_player_action(PlayerAction::Drop(min));

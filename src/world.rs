@@ -4,6 +4,7 @@ use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
 use crate::net::{Color, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
+use rand::seq::IteratorRandom;
 use rand::Rng;
 use rand::{seq::SliceRandom as _, SeedableRng};
 
@@ -43,6 +44,13 @@ pub struct EquipmentKind(pub usize);
 pub enum Item {
     Corpse(MobKind),
     Equipment(EquipmentKind),
+}
+
+pub struct CraftingInfo {
+    level: usize,
+    type1: PokemonType,
+    type2: Option<PokemonType>,
+    color: Color,
 }
 
 pub struct TileKindInfo {
@@ -135,6 +143,7 @@ pub struct WorldInfo {
     pub monster_kinds: Vec<MobKindInfo>,
     pub monsters_per_level: Vec<Vec<MobKind>>,
     pub equipment_per_level: Vec<Vec<EquipmentKind>>,
+    pub recipes: HashMap<(Item, Item), Item>,
 }
 
 impl WorldInfo {
@@ -144,6 +153,7 @@ impl WorldInfo {
             monster_kinds: Vec::new(),
             monsters_per_level: Vec::new(),
             equipment_per_level: Vec::new(),
+            recipes: HashMap::new(),
         }
     }
 
@@ -260,6 +270,60 @@ impl WorldInfo {
     pub fn get_mobkind_info(&self, kind: MobKind) -> &MobKindInfo {
         &self.monster_kinds[kind.0]
     }
+
+    fn get_craft_info(&self, item: Item) -> CraftingInfo {
+        match item {
+            Item::Corpse(mk) => {
+                let mki = self.get_mobkind_info(mk);
+                CraftingInfo {
+                    level: mki.level,
+                    type1: mki.type1,
+                    type2: mki.type2,
+                    color: mki.color,
+                }
+            }
+            Item::Equipment(ek) => {
+                let eki = self.get_equipmentkind_info(ek);
+                CraftingInfo {
+                    level: eki.level,
+                    type1: eki.ty,
+                    type2: None,
+                    color: eki.color,
+                }
+            }
+        }
+    }
+
+    pub fn craft(&mut self, item1: Item, item2: Item, rng: &mut impl Rng) -> Option<Item> {
+        if let Some(item) = self.recipes.get(&(item1, item2)) {
+            return Some(*item);
+        }
+        let ci1 = self.get_craft_info(item1);
+        let ci2 = self.get_craft_info(item2);
+        if ci1.level != ci2.level {
+            None
+        } else {
+            let mut types = vec![];
+            types.push(ci1.type1);
+            types.push(ci2.type1);
+            types.extend(ci1.type2);
+            types.extend(ci2.type2);
+            let ty = *types.choose(rng).unwrap();
+            self.equip_kinds.push(EquipmentKindInfo {
+                name: "???".into(),
+                level: ci1.level + 1,
+                color: *[ci1.color, ci2.color].choose(rng).unwrap(),
+                ty,
+                description: "????".into(),
+                slot: *[EquipmentSlot::Armor, EquipmentSlot::Weapon]
+                    .choose(rng)
+                    .unwrap(),
+            });
+            let new_item = Item::Equipment(EquipmentKind(self.equip_kinds.len() - 1));
+            self.recipes.insert((item1, item2), new_item);
+            Some(new_item)
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -336,6 +400,18 @@ impl Inventory {
         }
         None
     }
+
+    fn get(&self, i: usize) -> Option<Item> {
+        self.items.get(i).map(|x| x.item)
+    }
+
+    fn remove_all(&mut self, mut indices: Vec<usize>) {
+        indices.sort();
+        indices.dedup();
+        for i in indices.iter().rev() {
+            self.remove(*i);
+        }
+    }
     fn remove(&mut self, i: usize) -> Option<Item> {
         if i < self.items.len() {
             Some(self.items.remove(i).item)
@@ -404,6 +480,7 @@ pub enum PlayerAction {
     PickUp,
     ToggleEquip(usize),
     Drop(usize),
+    Craft(usize, usize),
     Wait,
 }
 
@@ -490,6 +567,25 @@ impl World {
                 }
             }
             PlayerAction::Wait => true,
+            PlayerAction::Craft(i, j) => {
+                if i == j {
+                    false
+                } else if let Some(item1) = self.inventory.get(i) {
+                    if let Some(item2) = self.inventory.get(j) {
+                        if let Some(new_item) = self.world_info.craft(item1, item2, &mut self.rng) {
+                            self.inventory.remove_all(vec![i, j]);
+                            self.inventory.add(new_item);
+                            true
+                        } else {
+                            false
+                        }
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            }
         };
         self.inventory.sort(&self.world_info);
         if tick {
