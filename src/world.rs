@@ -450,7 +450,7 @@ impl World {
                     mob.damage += damage;
                     self.log_message(
                         format!("You hit {} for {}!", mki.name, damage),
-                        macroquad::color::RED,
+                        macroquad::color::LIGHTGRAY,
                     );
                     if mob.damage >= mki.max_hp() {
                         self.log_message(format!("{} dies!", mki.name), macroquad::color::RED);
@@ -621,7 +621,21 @@ impl World {
                 MobAi::Move { dest } => {
                     let target = self.path_towards(pos, dest, false, true, None);
                     if target == self.player_pos {
-                        // TODO: combat
+                        let mki = self.get_mobkind_info(mob.kind);
+                        let armor = self.inventory.get_equipped_armor_info(&self.world_info);
+                        let defense1 = armor
+                            .get(0)
+                            .map(|eki| eki.ty)
+                            .unwrap_or(PokemonType::Normal);
+                        let defense2 = armor.get(1).map(|eki| eki.ty);
+                        let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
+                        let mult = eff.get_scale();
+                        let damage = mki.level * mult;
+                        self.log_message(
+                            format!("{} hits you for {}!", mki.name, damage),
+                            macroquad::color::LIGHTGRAY,
+                        );
+                        self.player_damage += damage;
                         new_pos = pos;
                     } else {
                         new_pos = target;
