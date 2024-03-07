@@ -10,6 +10,14 @@ use rand::{seq::SliceRandom as _, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
 
+pub const PICK_UP_MESSAGES: [&str; 5] = [
+    "You see here a ",
+    "You step over a ",
+    "You notice a ",
+    "You find a ",
+    "You discover a ",
+];
+
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum TileKind {
     Floor,
@@ -509,6 +517,19 @@ impl World {
         self.log.push_back(text);
     }
 
+    pub fn get_item_log_message(&self, item: &Item) -> (String, Color) {
+        match item {
+            Item::Corpse(mob_kind) => {
+                let mob_desc = &self.get_mobkind_info(*mob_kind);
+                (format!("{} Corpse", mob_desc.name), Color::Maroon)
+            }
+            Item::Equipment(item_kind) => {
+                let item_desc = &self.get_equipmentkind_info(*item_kind);
+                (item_desc.name.clone(), item_desc.color)
+            }
+        }
+    }
+
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
         let tick = match action {
             PlayerAction::Move(offset) => {
@@ -540,8 +561,25 @@ impl World {
                     } else {
                         self.mobs.insert(new_pos, mob);
                     }
+
                     true
                 } else if self.tile_map[new_pos].kind.is_walkable() {
+                    // Check if player walks over an item.
+                    if let Some(item) = self.tile_map[new_pos].item {
+                        let msg = vec![
+                            (
+                                PICK_UP_MESSAGES
+                                    .choose(&mut self.rng)
+                                    .unwrap()
+                                    .to_owned()
+                                    .to_owned(),
+                                Color::White,
+                            ),
+                            self.get_item_log_message(&item),
+                        ];
+                        self.log_message(msg);
+                    }
+
                     self.player_pos += offset;
                     true
                 } else {
@@ -551,7 +589,18 @@ impl World {
             PlayerAction::PickUp => {
                 if let Some(item) = self.tile_map[self.player_pos].item.take() {
                     if let Some(popped) = self.inventory.add(item) {
+                        self.log_message(vec![
+                            ("Inventory full, so swapped out ".to_owned(), Color::White),
+                            self.get_item_log_message(&popped),
+                            (" for ".to_owned(), Color::White),
+                            self.get_item_log_message(&item),
+                        ]);
                         self.tile_map[self.player_pos].item = Some(popped);
+                    } else {
+                        self.log_message(vec![
+                            ("Picked up ".to_owned(), Color::White),
+                            self.get_item_log_message(&item),
+                        ]);
                     }
                     true
                 } else {
@@ -562,7 +611,18 @@ impl World {
             PlayerAction::Drop(i) => {
                 if let Some(item) = self.inventory.remove(i) {
                     if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
+                        self.log_message(vec![
+                            ("Swapped out ".to_owned(), Color::White),
+                            self.get_item_log_message(&item),
+                            (" for ".to_owned(), Color::White),
+                            self.get_item_log_message(&item_on_ground),
+                        ]);
                         self.inventory.add(item_on_ground);
+                    } else {
+                        self.log_message(vec![
+                            ("Dropped ".to_owned(), Color::White),
+                            self.get_item_log_message(&item),
+                        ]);
                     }
                     self.tile_map[self.player_pos].item = Some(item);
                     true
