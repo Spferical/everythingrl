@@ -305,10 +305,22 @@ impl Inventory {
             .collect()
     }
 
-    fn sort(&mut self) {
-        // Equipped to the top, corpses to the bottom.
-        self.items
-            .sort_by_key(|x| (!x.equipped, matches!(x.item, Item::Corpse(_))))
+    fn sort(&mut self, wi: &WorldInfo) {
+        self.items.sort_by_key(|x| match x {
+            InventoryItem {
+                item: Item::Equipment(ek),
+                equipped,
+            } => match (equipped, wi.get_equipmentkind_info(*ek).slot) {
+                (true, EquipmentSlot::Weapon) => 1,
+                (true, EquipmentSlot::Armor) => 2,
+                (false, EquipmentSlot::Weapon) => 3,
+                (false, EquipmentSlot::Armor) => 4,
+            },
+            InventoryItem {
+                item: Item::Corpse(_),
+                ..
+            } => 5,
+        });
     }
     fn add(&mut self, item: Item) -> Option<Item> {
         self.items.push(InventoryItem {
@@ -479,7 +491,7 @@ impl World {
             }
             PlayerAction::Wait => true,
         };
-        self.inventory.sort();
+        self.inventory.sort(&self.world_info);
         if tick {
             self.tick();
         }
