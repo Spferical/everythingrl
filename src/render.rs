@@ -1,3 +1,4 @@
+use egui::Color32;
 use macroquad::prelude::*;
 use macroquad::text::Font;
 use std::collections::HashSet;
@@ -95,18 +96,16 @@ impl Ui {
                                 row.set_selected(self.inventory_selected.contains(&row_index));
                                 let slot = &sim.inventory.items[row_index];
                                 let name;
-                                let ty;
                                 let display_slot;
                                 let display_equipped;
                                 let level;
+                                let mut types = vec![];
                                 match slot.item {
                                     Item::Corpse(mob_kind) => {
                                         let mob_desc = &sim.get_mobkind_info(mob_kind);
                                         name = format!("{} Corpse", mob_desc.name);
-                                        ty = match mob_desc.type2 {
-                                            Some(ty2) => format!("{}/{}", mob_desc.type1, ty2),
-                                            None => mob_desc.type1.to_string(),
-                                        };
+                                        types.push(mob_desc.type1);
+                                        types.extend(mob_desc.type2);
                                         display_slot = "";
                                         display_equipped = "";
                                         level = mob_desc.level.to_string();
@@ -114,7 +113,7 @@ impl Ui {
                                     Item::Equipment(item_kind) => {
                                         let item_desc = &sim.get_equipmentkind_info(item_kind);
                                         name = item_desc.name.clone();
-                                        ty = item_desc.ty.to_string();
+                                        types.push(item_desc.ty);
                                         display_slot = match item_desc.slot {
                                             EquipmentSlot::Weapon => "Weapon",
                                             EquipmentSlot::Armor => "Equipment",
@@ -135,7 +134,13 @@ impl Ui {
                                     ui.label(name);
                                 });
                                 row.col(|ui| {
-                                    ui.label(ty);
+                                    for ty in types {
+                                        let mq_color =
+                                            macroquad::color::Color::from(ty.get_color());
+                                        let [r, g, b, _a] = mq_color.into();
+                                        let color = Color32::from_rgb(r, g, b);
+                                        ui.colored_label(color, ty.to_string());
+                                    }
                                 });
                                 row.col(|ui| {
                                     ui.label(level);
