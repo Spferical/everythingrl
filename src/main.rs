@@ -136,7 +136,7 @@ fn egui_setup() {
         egui_ctx.set_fonts(fonts);
 
         let _game_size = screen_width().min(screen_height());
-        let scale_factor = screen_width() / (250.0 * miniquad::window::dpi_scale());
+        let scale_factor = screen_width() / (500.0 * miniquad::window::dpi_scale());
         use egui::FontFamily::*;
         use egui::TextStyle::*;
         let mut style = (*egui_ctx.style()).clone();
@@ -185,7 +185,8 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
-    let theme = "Hollow Knight";
+    // let theme = "Hollow Knight";
+    let theme = "pregen";
 
     let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::Intro(intro::IntroState::new());
