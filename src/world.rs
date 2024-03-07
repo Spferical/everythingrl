@@ -16,6 +16,8 @@ pub enum TileKind {
     YellowFloor,
     YellowWall,
     BloodyFloor,
+    StairsDown,
+    StairsUp,
 }
 
 impl TileKind {
@@ -50,7 +52,7 @@ pub struct TileKindInfo {
 
 lazy_static! {
     pub static ref TILE_INFOS: EnumMap<TileKind, TileKindInfo> = enum_map! {
-        TileKind::Floor | TileKind::YellowFloor | TileKind::BloodyFloor => TileKindInfo {
+        TileKind::Floor | TileKind::YellowFloor | TileKind::BloodyFloor | TileKind::StairsDown | TileKind::StairsUp => TileKindInfo {
             opaque: false,
             walkable: true,
         },
@@ -129,8 +131,10 @@ impl MobKindInfo {
 /// Contains post-processed content definitions parsed from AI-generated data.
 #[derive(Debug, Clone)]
 pub struct WorldInfo {
-    equip_kinds: Vec<EquipmentKindInfo>,
-    monster_kinds: Vec<MobKindInfo>,
+    pub equip_kinds: Vec<EquipmentKindInfo>,
+    pub monster_kinds: Vec<MobKindInfo>,
+    pub monsters_per_level: Vec<Vec<MobKind>>,
+    pub equipment_per_level: Vec<Vec<EquipmentKind>>,
 }
 
 impl WorldInfo {
@@ -138,6 +142,8 @@ impl WorldInfo {
         Self {
             equip_kinds: Vec::new(),
             monster_kinds: Vec::new(),
+            monsters_per_level: Vec::new(),
+            equipment_per_level: Vec::new(),
         }
     }
 
@@ -198,14 +204,53 @@ impl WorldInfo {
                 level,
             });
         }
+
+        let get_monster_by_name = |name: &String| {
+            self.monster_kinds
+                .iter()
+                .position(|k| &k.name == name)
+                .map(MobKind)
+        };
+
+        self.monsters_per_level = ig
+            .areas
+            .iter()
+            .flatten()
+            .map(|area| {
+                area.enemies
+                    .iter()
+                    .filter_map(get_monster_by_name)
+                    .collect()
+            })
+            .collect();
+
+        let get_equipment_by_name = |name: &String| {
+            self.equip_kinds
+                .iter()
+                .position(|k| &k.name == name)
+                .map(EquipmentKind)
+        };
+
+        self.equipment_per_level = ig
+            .areas
+            .iter()
+            .flatten()
+            .map(|area| {
+                area.equipment
+                    .iter()
+                    .chain(area.melee_weapons.iter())
+                    .filter_map(get_equipment_by_name)
+                    .collect()
+            })
+            .collect();
     }
 
-    pub fn get_random_item_kind(&self, rng: &mut impl Rng) -> EquipmentKind {
-        EquipmentKind(rng.gen_range(0..self.equip_kinds.len()))
+    pub fn get_random_item_kind(&self, level: usize, rng: &mut impl Rng) -> EquipmentKind {
+        *self.equipment_per_level[level].choose(rng).unwrap()
     }
 
-    pub fn get_random_mob_kind(&self, rng: &mut impl Rng) -> MobKind {
-        MobKind(rng.gen_range(0..self.monster_kinds.len()))
+    pub fn get_random_mob_kind(&self, level: usize, rng: &mut impl Rng) -> MobKind {
+        *self.monsters_per_level[level].choose(rng).unwrap()
     }
 
     pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
@@ -335,7 +380,7 @@ pub struct World {
     pub player_pos: Pos,
     pub player_damage: usize,
     tile_map: TileMap<Tile>,
-    world_info: WorldInfo,
+    pub world_info: WorldInfo,
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Inventory,
     pub log: VecDeque<(String, macroquad::color::Color)>,
@@ -369,14 +414,6 @@ impl World {
 
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
         self.world_info.update(ig);
-    }
-
-    pub fn get_random_equipment_kind(&self, rng: &mut impl Rng) -> EquipmentKind {
-        self.world_info.get_random_item_kind(rng)
-    }
-
-    pub fn get_random_mob_kind(&self, rng: &mut impl Rng) -> MobKind {
-        self.world_info.get_random_mob_kind(rng)
     }
 
     pub fn log_message(&mut self, text: String, color: macroquad::color::Color) {
@@ -430,10 +467,10 @@ impl World {
             PlayerAction::ToggleEquip(i) => self.inventory.toggle_equip(i, &self.world_info),
             PlayerAction::Drop(i) => {
                 if let Some(item) = self.inventory.remove(i) {
-                    self.tile_map[self.player_pos].item = Some(item);
                     if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
                         self.inventory.add(item_on_ground);
                     }
+                    self.tile_map[self.player_pos].item = Some(item);
                     true
                 } else {
                     eprintln!("Bad drop idx: {i}");

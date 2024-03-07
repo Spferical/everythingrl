@@ -424,6 +424,22 @@ impl Rect {
             y2: self.y1,
         }
     }
+    pub fn left_edge(&self) -> Rect {
+        Rect {
+            x1: self.x1,
+            x2: self.x1,
+            y1: self.y1,
+            y2: self.y2,
+        }
+    }
+    pub fn right_edge(&self) -> Rect {
+        Rect {
+            x1: self.x2,
+            x2: self.x2,
+            y1: self.y1,
+            y2: self.y2,
+        }
+    }
 
     pub fn intersects(&self, other: &Rect) -> bool {
         self.x1 <= other.x2 && self.x2 >= other.x1 && self.y1 <= other.y2 && self.y2 >= other.y1

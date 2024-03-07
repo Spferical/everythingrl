@@ -5,8 +5,8 @@ use rand::rngs::SmallRng;
 use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
-use crate::grid::{Offset, Pos, Rect, CARDINALS};
-use crate::world::{EquipmentKind, Item, Mob, TileKind, World};
+use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
+use crate::world::{EquipmentKind, Item, Mob, MobKind, Tile, TileKind, World};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -336,7 +336,7 @@ fn gen_alien_nest(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect
             if !world[pos].kind.is_walkable() {
                 continue;
             }
-            world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
+            // world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
             break;
         }
     }
@@ -384,7 +384,7 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
         let x = rng.gen_range(room.x1..=room.x2);
         let y = rng.gen_range(room.y1..=room.y2);
         let pos = Pos { x, y };
-        world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
+        // world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
     }
 
     carve_floor(world, Pos { x: 8, y: 0 }, 1, TileKind::Floor);
@@ -400,6 +400,8 @@ pub struct SimpleRoomOpts {
 pub struct SprinkleOpts {
     pub num_enemies: usize,
     pub num_items: usize,
+    pub valid_enemies: Vec<MobKind>,
+    pub valid_equipment: Vec<EquipmentKind>,
 }
 
 pub fn gen_simple_rooms(
@@ -407,7 +409,7 @@ pub fn gen_simple_rooms(
     opts: SimpleRoomOpts,
     sprinkle: SprinkleOpts,
     rng: &mut impl Rng,
-) {
+) -> Vec<Rect> {
     // Create rooms
     let mut rooms = vec![];
     for _ in 0..opts.max_rooms {
@@ -449,26 +451,26 @@ pub fn gen_simple_rooms(
         }
     }
 
-    // Put the player in the first room.
-    world.player_pos = rooms[0].center();
-
     // Sprinkle enemies/items
     for _ in 0..sprinkle.num_enemies {
         let room = (&rooms[1..]).choose(rng).unwrap();
         let pos = room.choose(rng);
-        world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
+        world.add_mob(pos, Mob::new(*sprinkle.valid_enemies.choose(rng).unwrap()));
     }
     for _ in 0..sprinkle.num_items {
         let room = (&rooms[0..]).choose(rng).unwrap();
         let pos = room.choose(rng);
-        world[pos].item = Some(Item::Equipment(world.get_random_equipment_kind(rng)));
+        world[pos].item = Some(Item::Equipment(
+            *sprinkle.valid_equipment.choose(rng).unwrap(),
+        ));
     }
+    rooms
 }
 
 pub fn generate_world(world: &mut World, seed: u64) {
     let mut rng = SmallRng::seed_from_u64(seed);
-    world[Pos::new(3, 3)].item = Some(Item::Equipment(EquipmentKind(0)));
     let rect = Rect::new_centered(Pos::new(0, 0), 80, 50);
+    // Level 1
     let opts = SimpleRoomOpts {
         rect,
         max_rooms: 30,
@@ -478,8 +480,12 @@ pub fn generate_world(world: &mut World, seed: u64) {
     let sprinkle = SprinkleOpts {
         num_enemies: 30,
         num_items: 300,
+        valid_enemies: world.world_info.monsters_per_level[0].clone(),
+        valid_equipment: world.world_info.equipment_per_level[0].clone(),
     };
-    gen_simple_rooms(world, opts, sprinkle, &mut rng)
+    let rooms = gen_simple_rooms(world, opts, sprinkle, &mut rng);
+    // bfs to find spot to put player
+    world.player_pos = rooms[0].center();
 }
 
 pub fn carve_floor(world: &mut World, pos: Pos, brush_size: u8, tile: TileKind) {
