@@ -6,7 +6,7 @@ use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, CARDINALS};
-use crate::world::{EquipmentKind, Item, Mob, MobKind, TileKind, World};
+use crate::world::{self, EquipmentInstance, EquipmentKind, Item, Mob, MobKind, TileKind, World};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -461,9 +461,10 @@ pub fn gen_simple_rooms(
     for _ in 0..sprinkle.num_items {
         let room = rooms[0..].choose(rng).unwrap();
         let pos = room.choose(rng);
-        world[pos].item = Some(Item::Equipment(
+        world[pos].item = Some(Item::Equipment(EquipmentInstance::new(
             *sprinkle.valid_equipment.choose(rng).unwrap(),
-        ));
+            world::STARTING_DURABILITY,
+        )));
     }
     rooms
 }

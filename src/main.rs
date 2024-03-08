@@ -101,8 +101,8 @@ impl PlayState {
                             let mob_desc = &self.sim.get_mobkind_info(item);
                             (format!("{} Corpse", mob_desc.name), net::Color::Maroon)
                         }
-                        world::Item::Equipment(item_kind) => {
-                            let item_desc = &self.sim.get_equipmentkind_info(item_kind);
+                        world::Item::Equipment(item) => {
+                            let item_desc = &self.sim.get_equipmentkind_info(item.kind);
                             (item_desc.description.clone(), item_desc.color)
                         }
                     }]);
@@ -218,8 +218,8 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
-    // let theme = "Hollow Knight";
-    let theme = "pregen";
+    let theme = "Hollow Knight";
+    // let theme = "pregen";
 
     let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::Intro(intro::IntroState::new());

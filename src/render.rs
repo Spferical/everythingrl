@@ -111,8 +111,8 @@ impl Ui {
                                         display_equipped = "";
                                         level = mob_desc.level.to_string();
                                     }
-                                    Item::Equipment(item_kind) => {
-                                        let item_desc = &sim.get_equipmentkind_info(item_kind);
+                                    Item::Equipment(item) => {
+                                        let item_desc = &sim.get_equipmentkind_info(item.kind);
                                         name = item_desc.name.clone();
                                         types.push(item_desc.ty);
                                         display_slot = match item_desc.slot {
@@ -229,7 +229,7 @@ impl Ui {
                         let (character, color) = match item {
                             Item::Corpse(_) => ('%', MAROON),
                             Item::Equipment(ek) => {
-                                let equip_def = sim.get_equipmentkind_info(ek);
+                                let equip_def = sim.get_equipmentkind_info(ek.kind);
                                 let char = match equip_def.slot {
                                     EquipmentSlot::Weapon => '/',
                                     EquipmentSlot::Armor => '[',

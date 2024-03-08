@@ -8,6 +8,7 @@ use rand::Rng;
 use rand::{seq::SliceRandom as _, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
+pub const STARTING_DURABILITY: usize = 100;
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",
@@ -46,10 +47,25 @@ pub enum EquipmentSlot {
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub struct EquipmentKind(pub usize);
 
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+pub struct EquipmentInstance {
+    pub kind: EquipmentKind,
+    pub item_durability: usize,
+}
+
+impl EquipmentInstance {
+    pub fn new(kind: EquipmentKind, item_durability: usize) -> EquipmentInstance {
+        EquipmentInstance {
+            kind,
+            item_durability,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Item {
     Corpse(MobKind),
-    Equipment(EquipmentKind),
+    Equipment(EquipmentInstance),
 }
 
 pub struct CraftingInfo {
@@ -277,7 +293,7 @@ impl WorldInfo {
                 }
             }
             Item::Equipment(ek) => {
-                let eki = self.get_equipmentkind_info(ek);
+                let eki = self.get_equipmentkind_info(ek.kind);
                 CraftingInfo {
                     level: eki.level,
                     type1: eki.ty,
@@ -313,7 +329,10 @@ impl WorldInfo {
                     .choose(rng)
                     .unwrap(),
             });
-            let new_item = Item::Equipment(EquipmentKind(self.equip_kinds.len() - 1));
+            let new_item = Item::Equipment(EquipmentInstance::new(
+                EquipmentKind(self.equip_kinds.len() - 1),
+                STARTING_DURABILITY,
+            ));
             self.recipes.insert((item1, item2), new_item);
             Some(new_item)
         }
@@ -344,7 +363,7 @@ impl Inventory {
                 Item::Corpse(_) => None,
                 Item::Equipment(ek) => Some(ek),
             })
-            .map(|ek| wi.get_equipmentkind_info(ek))
+            .map(|ek| wi.get_equipmentkind_info(ek.kind))
             .find(|eki| eki.slot == EquipmentSlot::Weapon)
             .cloned()
     }
@@ -356,7 +375,7 @@ impl Inventory {
                 Item::Corpse(_) => None,
                 Item::Equipment(ek) => Some(ek),
             })
-            .map(|ek| wi.get_equipmentkind_info(ek))
+            .map(|ek| wi.get_equipmentkind_info(ek.kind))
             .filter(|eki| eki.slot == EquipmentSlot::Armor)
             .cloned()
             .collect()
@@ -367,7 +386,7 @@ impl Inventory {
             InventoryItem {
                 item: Item::Equipment(ek),
                 equipped,
-            } => match (equipped, wi.get_equipmentkind_info(*ek).slot) {
+            } => match (equipped, wi.get_equipmentkind_info(ek.kind).slot) {
                 (true, EquipmentSlot::Weapon) => 1,
                 (true, EquipmentSlot::Armor) => 2,
                 (false, EquipmentSlot::Weapon) => 3,
@@ -420,7 +439,7 @@ impl Inventory {
             self.items[i].equipped = false;
             true
         } else if let Item::Equipment(ek) = self.items[i].item {
-            let ek_def = wi.get_equipmentkind_info(ek);
+            let ek_def = wi.get_equipmentkind_info(ek.kind);
 
             // Unequip another item if that slot is full.
             let max_per_slot = |slot: EquipmentSlot| match slot {
@@ -435,7 +454,7 @@ impl Inventory {
                 .filter(|(_i, x)| x.equipped)
                 .filter_map(|(i, x)| {
                     if let Item::Equipment(ek) = x.item {
-                        Some((i, wi.get_equipmentkind_info(ek)))
+                        Some((i, wi.get_equipmentkind_info(ek.kind)))
                     } else {
                         None
                     }
@@ -515,8 +534,8 @@ impl World {
                 let mob_desc = &self.get_mobkind_info(*mob_kind);
                 (format!("{} Corpse", mob_desc.name), Color::Maroon)
             }
-            Item::Equipment(item_kind) => {
-                let item_desc = &self.get_equipmentkind_info(*item_kind);
+            Item::Equipment(item) => {
+                let item_desc = &self.get_equipmentkind_info(item.kind);
                 (item_desc.name.clone(), item_desc.color)
             }
         }
