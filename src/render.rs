@@ -295,8 +295,6 @@ impl Ui {
         sim: &crate::world::World,
         right_offset: f32,
     ) {
-        let scale_factor = miniquad::window::dpi_scale();
-
         let game_width = screen_width() - right_offset;
         let game_size = game_width.min(screen_height());
 
