@@ -137,7 +137,7 @@ def ask_mistral(prompt_parts: list[str]) -> str:
 
 
 def init_vertex_ai():
-    vertexai.init(project="sevendrl-gemini", location="us-east4")
+    vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
 
 
 def ask_google_vertex_ai(prompt_parts: list[str]) -> str:

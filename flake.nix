@@ -63,6 +63,7 @@
             libGL
             fontconfig
             pkg-config
+            stdenv.cc.cc
           ] ++ lib.optionals pkgs.stdenv.isLinux [
             libxkbcommon
             glew-egl

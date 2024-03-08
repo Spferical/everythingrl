@@ -11,6 +11,7 @@ click = "*"
 flask-sqlalchemy = "*"
 gunicorn = "*"
 pydantic = "*"
+google-cloud-aiplatform = "*"
 
 [dev-packages]
 
