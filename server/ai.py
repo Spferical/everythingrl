@@ -7,11 +7,17 @@ import pydantic
 import requests
 from requests.adapters import Retry, HTTPAdapter
 
+import vertexai
+from vertexai.preview.generative_models import GenerativeModel, Part
+import vertexai.preview.generative_models as generative_models
+
 MISTRAL_API_URL = "https://api.mistral.ai"
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+
+USE_VERTEX_AI = True
 
 with open(os.path.join(DIR_PATH, "data", "hk.txt")) as f:
     HK_SETTING_DESC = f.read()
@@ -130,7 +136,39 @@ def ask_mistral(prompt_parts: list[str]) -> str:
     return response.json()["choices"][0]["message"]["content"]
 
 
-def ask_google(prompt_parts: list[str]) -> str:
+def init_vertex_ai():
+    vertexai.init(project="sevendrl-gemini", location="us-east4")
+
+
+def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
+    model = GenerativeModel("gemini-1.0-pro-001")
+    responses = model.generate_content(
+        "".join(prompt_parts),
+        generation_config={
+            "max_output_tokens": 2048,
+            "temperature": 0.9,
+            "top_p": 1,
+            "stop_sequences": ["--"],
+        },
+        safety_settings={
+            generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+            generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+        },
+        stream=False,
+    )
+    try:
+        text = responses.candidates[0].content.parts[0].text
+        text = text.strip("--")
+        logging.info(text)
+        return text
+    except KeyError:
+        logging.error(response.json())
+        raise
+
+
+def ask_google_ai_studio(prompt_parts: list[str]) -> str:
     url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key={AISTUDIO_API_KEY}"
     headers = {"Content-Type": "application/json"}
     payload = {
@@ -157,6 +195,13 @@ def ask_google(prompt_parts: list[str]) -> str:
     except KeyError:
         logging.error(response.json())
         raise
+
+
+def ask_google(prompt_parts: list[str]):
+    if USE_VERTEX_AI:
+        return ask_google_vertex_ai(prompt_parts)
+    else:
+        return ask_google_ai_studio(prompt_parts)
 
 
 def ask_google_structured(
@@ -269,3 +314,7 @@ def gen_areas(theme: str, setting_desc: str):
         3,
         Area,
     )
+
+
+if USE_VERTEX_AI:
+    init_vertex_ai()
