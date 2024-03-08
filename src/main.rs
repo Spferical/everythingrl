@@ -238,11 +238,13 @@ async fn main() {
         gs = match gs {
             GameState::Intro(ref mut intro) => {
                 if !intro::intro_loop(intro) {
-                    ig = Some(IdeaGuy::new(theme));
                     GameState::Startup
                 } else {
                     if intro.exit {
                         return;
+                    }
+                    if intro.ready_for_generation && ig.is_none() {
+                        ig = Some(IdeaGuy::new(&intro.theme));
                     }
                     gs
                 }

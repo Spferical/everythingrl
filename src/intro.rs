@@ -1,4 +1,3 @@
-
 use macroquad::prelude::*;
 
 pub const CHARS_PER_SECOND: f32 = 35.;
@@ -17,7 +16,8 @@ pub struct IntroState {
     step: usize,
     dt: f32,
     pub exit: bool,
-    prompt: String,
+    pub theme: String,
+    pub ready_for_generation: bool,
 }
 
 impl IntroState {
@@ -26,7 +26,8 @@ impl IntroState {
             step: 0,
             dt: 0.,
             exit: false,
-            prompt: String::new(),
+            theme: String::new(),
+            ready_for_generation: false,
         }
     }
 }
@@ -67,12 +68,12 @@ pub fn create_info_prompt(
 
                     if edit_text_box {
                         ui.add(
-                            egui::widgets::TextEdit::singleline(&mut intro_state.prompt)
+                            egui::widgets::TextEdit::singleline(&mut intro_state.theme)
                                 .desired_width(width * 0.8),
                         );
                     }
                     if ui.button("OK").clicked() {
-                        if edit_text_box && intro_state.prompt.is_empty() {
+                        if edit_text_box && intro_state.theme.is_empty() {
                             return;
                         }
                         intro_state.step += 1;
@@ -87,9 +88,10 @@ pub fn create_info_prompt(
             if !yes_no {
                 if edit_text_box {
                     // Don't continue if nothing is written
-                    if intro_state.prompt.is_empty() {
+                    if intro_state.theme.is_empty() {
                         return;
                     }
+                    intro_state.ready_for_generation = true;
                 }
                 intro_state.step += 1;
                 intro_state.dt = 0.;
