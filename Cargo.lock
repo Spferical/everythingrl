@@ -1272,6 +1272,7 @@ dependencies = [
  "macroquad",
  "rand",
  "reqwest",
+ "sapp-jsutils",
  "serde",
  "serde_json",
  "textwrap",

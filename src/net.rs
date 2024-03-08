@@ -316,6 +316,9 @@ where
     Input: serde::Serialize + Send + 'static,
 {
     let (tx, rx) = mpsc::channel();
+    #[cfg(target_family = "wasm")]
+    crate::wasm::post(url, input);
+    #[cfg(not(target_family = "wasm"))]
     std::thread::spawn(move || {
         let client = reqwest::blocking::Client::new();
         tx.send(
