@@ -308,8 +308,11 @@ impl Ui {
 
         let mobs_lower_bound = offset_y + panel_height * 0.3;
 
-        let font_scale_base = 22.;
-        let font_scale_details = 18.;
+        let game_scale = screen_width().min(screen_height());
+        let scale_factor = miniquad::window::dpi_scale() * (game_scale / 1200.);
+
+        let font_scale_base = 22. * scale_factor;
+        let font_scale_details = 18. * scale_factor;
 
         let to_egui = |c: &Color| {
             let color = macroquad::color::Color::from(*c);
@@ -321,6 +324,10 @@ impl Ui {
             .resizable(false)
             .collapsible(false)
             .fixed_size(egui::Vec2::new(
+                panel_width * miniquad::window::dpi_scale(),
+                (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale(),
+            ))
+            .max_size(egui::Vec2::new(
                 panel_width * miniquad::window::dpi_scale(),
                 (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale(),
             ))
@@ -476,10 +483,14 @@ impl Ui {
                         ui.label(job);
 
                         ui.push_id(i, |ui| {
-                            egui::CollapsingHeader::new(format!("    {}...", &description[..30]))
-                                .show(ui, |ui| {
-                                    ui.label(egui::RichText::new(description).small().italics());
-                                });
+                            egui::CollapsingHeader::new("Details...").show(ui, |ui| {
+                                ui.add(
+                                    egui::Label::new(
+                                        egui::RichText::new(description).small().italics(),
+                                    )
+                                    .truncate(true),
+                                )
+                            });
                         });
                     }
                 });
