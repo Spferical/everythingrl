@@ -474,7 +474,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
     let mut rooms = vec![];
     for i in 0..3 {
         let opts = SimpleRoomOpts {
-            rect: Rect::new_centered(Pos::new(i * 200, 0), 80, 50),
+            rect: Rect::new_centered(Pos::new(i * 80, 0), 80, 50),
             max_rooms: 30,
             min_room_size: 6,
             max_room_size: 10,

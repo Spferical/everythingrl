@@ -1,7 +1,6 @@
 use std::{
     fmt::Display,
-    sync::mpsc::{self, Receiver},
-    time::Duration,
+    sync::mpsc::{self, Receiver}, time::Duration,
 };
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
@@ -310,14 +309,14 @@ impl<T> BootlegFuture<T> {
     }
 }
 
-pub fn request<Input, Output>(url: String, input: Input) -> BootlegFuture<Result<Output, String>>
+pub fn request<Input>(url: String, input: Input) -> BootlegFuture<Result<String, String>>
 where
-    Output: serde::de::DeserializeOwned + Send + 'static,
     Input: serde::Serialize + Send + 'static,
 {
     let (tx, rx) = mpsc::channel();
     #[cfg(target_family = "wasm")]
-    crate::wasm::post(url, input);
+    crate::wasm::post(url, serde_json::to_string(&input).unwrap(), tx);
+
     #[cfg(not(target_family = "wasm"))]
     std::thread::spawn(move || {
         let client = reqwest::blocking::Client::new();
@@ -329,8 +328,7 @@ where
                 .send()
                 .map_err(|e| e.to_string())
                 .and_then(|r| r.error_for_status().map_err(|e| e.to_string()))
-                .and_then(|r| r.text().map_err(|e| e.to_string()))
-                .and_then(|s| serde_json::from_str(&s).map_err(|e| e.to_string())),
+                .and_then(|r| r.text().map_err(|e| e.to_string())),
         )
         .ok();
     });
@@ -344,9 +342,9 @@ pub fn api_url() -> String {
 
 enum IdeaGuyState {
     GetSetting(BootlegFuture<Result<String, String>>),
-    GetAreas(BootlegFuture<Result<Vec<Area>, String>>),
-    GetMonsters(BootlegFuture<Result<Vec<MonsterDefinition>, String>>),
-    GetItems(BootlegFuture<Result<Vec<ItemDefinition>, String>>),
+    GetAreas(BootlegFuture<Result<String, String>>),
+    GetMonsters(BootlegFuture<Result<String, String>>),
+    GetItems(BootlegFuture<Result<String, String>>),
     Done,
 }
 
@@ -380,7 +378,8 @@ impl IdeaGuy {
         match self.state {
             IdeaGuyState::GetSetting(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    self.setting = Some(resp.clone());
+                    let resp = serde_json::from_str(&resp).unwrap();
+                    self.setting = Some(resp);
                     let api_url = &self.api_url;
                     self.state = IdeaGuyState::GetAreas(request(
                         format!("{api_url}/areas"),
@@ -395,7 +394,8 @@ impl IdeaGuy {
             },
             IdeaGuyState::GetAreas(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    self.areas = Some(resp.clone());
+                    let resp = serde_json::from_str(&resp).unwrap();
+                    self.areas = Some(resp);
                     let api_url = &self.api_url;
                     self.state = IdeaGuyState::GetMonsters(request(
                         format!("{api_url}/monsters"),
@@ -411,7 +411,8 @@ impl IdeaGuy {
             },
             IdeaGuyState::GetMonsters(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    self.monsters = Some(resp.clone());
+                    let resp = serde_json::from_str(&resp).unwrap();
+                    self.monsters = Some(resp);
                     let api_url = &self.api_url;
                     self.state = IdeaGuyState::GetItems(request(
                         format!("{api_url}/items"),
@@ -427,7 +428,8 @@ impl IdeaGuy {
             },
             IdeaGuyState::GetItems(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    self.items = Some(resp.clone());
+                    let resp = serde_json::from_str(&resp).unwrap();
+                    self.items = Some(resp);
                     self.state = IdeaGuyState::Done;
                 }
                 Some(Err(e)) => panic!("{}", e),
