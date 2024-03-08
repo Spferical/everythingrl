@@ -162,6 +162,7 @@ pub struct WorldInfo {
     pub monsters_per_level: Vec<Vec<MobKind>>,
     pub equipment_per_level: Vec<Vec<EquipmentKind>>,
     pub recipes: HashMap<(Item, Item), Item>,
+    pub level_blurbs: Vec<String>,
 }
 
 impl WorldInfo {
@@ -172,6 +173,7 @@ impl WorldInfo {
             monsters_per_level: Vec::new(),
             equipment_per_level: Vec::new(),
             recipes: HashMap::new(),
+            level_blurbs: Vec::new(),
         }
     }
 
@@ -270,6 +272,12 @@ impl WorldInfo {
                     .filter_map(get_equipment_by_name)
                     .collect()
             })
+            .collect();
+        self.level_blurbs = ig
+            .areas
+            .iter()
+            .flatten()
+            .map(|area| area.blurb.clone())
             .collect();
     }
 
@@ -485,6 +493,7 @@ pub struct World {
     pub inventory: Inventory,
     pub log: VecDeque<Vec<(String, Color)>>,
     stairs: HashMap<Pos, Pos>,
+    level_id: usize,
     rng: rand::rngs::SmallRng,
 }
 
@@ -512,7 +521,15 @@ impl World {
             inventory: Inventory::new(),
             log: VecDeque::new(),
             stairs: HashMap::new(),
+            level_id: 0,
         }
+    }
+
+    pub fn post_init(&mut self) {
+        self.log_message(vec![(
+            self.world_info.level_blurbs[0].clone(),
+            Color::White,
+        )]);
     }
 
     pub fn add_stairs(&mut self, pos: Pos, dest: Pos) {
@@ -594,6 +611,11 @@ impl World {
                     if let Some(dest) = self.stairs.get(&new_pos) {
                         self.player_pos = *dest;
                         self.mobs.remove(dest);
+                        self.level_id += 1;
+                        self.log_message(vec![(
+                            self.world_info.level_blurbs[self.level_id].clone(),
+                            Color::White,
+                        )]);
                     } else {
                         self.player_pos += offset;
                     }

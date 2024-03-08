@@ -35,8 +35,10 @@ impl PlayState {
         map_gen::generate_world(&mut sim, 0x11_22_33_44_55_66_77_88);
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
+        sim.post_init();
         let mut slf = Self { sim, ui, memory };
         slf.update_memory();
+
         slf
     }
 
