@@ -91,7 +91,6 @@ pub fn create_info_prompt(
                     if intro_state.theme.is_empty() {
                         return;
                     }
-                    intro_state.ready_for_generation = true;
                 }
                 intro_state.step += 1;
                 intro_state.dt = 0.;
@@ -119,6 +118,9 @@ pub fn intro_loop(state: &mut IntroState) -> bool {
             continuing = false;
         }
     });
+    if state.step >= 5 {
+        state.ready_for_generation = true;
+    }
 
     egui_macroquad::draw();
     continuing

@@ -220,8 +220,6 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_setup();
-    let theme = "Hollow Knight";
-    // let theme = "pregen";
 
     let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::Intro(intro::IntroState::new());
@@ -239,14 +237,14 @@ async fn main() {
 
         gs = match gs {
             GameState::Intro(ref mut intro) => {
+                if intro.ready_for_generation && ig.is_none() {
+                    ig = Some(IdeaGuy::new(&intro.theme));
+                }
                 if !intro::intro_loop(intro) {
                     GameState::Startup
                 } else {
                     if intro.exit {
                         return;
-                    }
-                    if intro.ready_for_generation && ig.is_none() {
-                        ig = Some(IdeaGuy::new(&intro.theme));
                     }
                     gs
                 }
