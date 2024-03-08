@@ -8,9 +8,9 @@ mod intro;
 mod map_gen;
 mod net;
 mod render;
-mod world;
 #[cfg(target_family = "wasm")]
 mod wasm;
+mod world;
 
 use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
@@ -238,12 +238,12 @@ async fn main() {
         gs = match gs {
             GameState::Intro(ref mut intro) => {
                 if !intro::intro_loop(intro) {
+                    ig = Some(IdeaGuy::new(theme));
                     GameState::Startup
                 } else {
                     if intro.exit {
                         return;
                     }
-                    ig = Some(IdeaGuy::new(theme));
                     gs
                 }
             }
