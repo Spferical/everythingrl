@@ -24,8 +24,7 @@ pub enum TileKind {
     YellowFloor,
     YellowWall,
     BloodyFloor,
-    StairsDown,
-    StairsUp,
+    Stairs,
 }
 
 impl TileKind {
@@ -67,7 +66,7 @@ pub struct TileKindInfo {
 
 lazy_static! {
     pub static ref TILE_INFOS: EnumMap<TileKind, TileKindInfo> = enum_map! {
-        TileKind::Floor | TileKind::YellowFloor | TileKind::BloodyFloor | TileKind::StairsDown | TileKind::StairsUp => TileKindInfo {
+        TileKind::Floor | TileKind::YellowFloor | TileKind::BloodyFloor | TileKind::Stairs=> TileKindInfo {
             opaque: false,
             walkable: true,
         },
@@ -466,6 +465,7 @@ pub struct World {
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Inventory,
     pub log: VecDeque<Vec<(String, Color)>>,
+    stairs: HashMap<Pos, Pos>,
     rng: rand::rngs::SmallRng,
 }
 
@@ -492,7 +492,13 @@ impl World {
             rng: rand::rngs::SmallRng::seed_from_u64(72),
             inventory: Inventory::new(),
             log: VecDeque::new(),
+            stairs: HashMap::new(),
         }
+    }
+
+    pub fn add_stairs(&mut self, pos: Pos, dest: Pos) {
+        self.stairs.insert(pos, dest);
+        self[pos].kind = TileKind::Stairs;
     }
 
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
@@ -566,7 +572,12 @@ impl World {
                         self.log_message(msg);
                     }
 
-                    self.player_pos += offset;
+                    if let Some(dest) = self.stairs.get(&new_pos) {
+                        self.player_pos = *dest;
+                        self.mobs.remove(dest);
+                    } else {
+                        self.player_pos += offset;
+                    }
                     true
                 } else {
                     false

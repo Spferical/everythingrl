@@ -390,6 +390,7 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
     carve_floor(world, Pos { x: 8, y: 0 }, 1, TileKind::Floor);
 }
 
+#[derive(Debug, Clone)]
 pub struct SimpleRoomOpts {
     pub rect: Rect,
     pub max_rooms: usize,
@@ -469,23 +470,29 @@ pub fn gen_simple_rooms(
 
 pub fn generate_world(world: &mut World, seed: u64) {
     let mut rng = SmallRng::seed_from_u64(seed);
-    let rect = Rect::new_centered(Pos::new(0, 0), 80, 50);
-    // Level 1
-    let opts = SimpleRoomOpts {
-        rect,
-        max_rooms: 30,
-        min_room_size: 6,
-        max_room_size: 10,
-    };
-    let sprinkle = SprinkleOpts {
-        num_enemies: 30,
-        num_items: 300,
-        valid_enemies: world.world_info.monsters_per_level[0].clone(),
-        valid_equipment: world.world_info.equipment_per_level[0].clone(),
-    };
-    let rooms = gen_simple_rooms(world, opts, sprinkle, &mut rng);
-    // bfs to find spot to put player
-    world.player_pos = rooms[0].center();
+    let mut rooms = vec![];
+    for i in 0..3 {
+        let opts = SimpleRoomOpts {
+            rect: Rect::new_centered(Pos::new(i * 200, 0), 80, 50),
+            max_rooms: 30,
+            min_room_size: 6,
+            max_room_size: 10,
+        };
+        let sprinkle = SprinkleOpts {
+            num_enemies: 30,
+            num_items: 300,
+            valid_enemies: world.world_info.monsters_per_level[i as usize].clone(),
+            valid_equipment: world.world_info.equipment_per_level[i as usize].clone(),
+        };
+        rooms.push(gen_simple_rooms(world, opts.clone(), sprinkle, &mut rng));
+    }
+    world.player_pos = rooms[0][0].center();
+    for i in 0..2 {
+        world.add_stairs(
+            rooms[i][rooms[i].len() - 1].center(),
+            rooms[i + 1][0].center(),
+        );
+    }
 }
 
 pub fn carve_floor(world: &mut World, pos: Pos, brush_size: u8, tile: TileKind) {

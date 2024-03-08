@@ -217,8 +217,7 @@ impl Ui {
                         TileKind::YellowFloor => ('.', YELLOW),
                         TileKind::YellowWall => ('#', YELLOW),
                         TileKind::BloodyFloor => ('.', RED),
-                        TileKind::StairsDown => ('>', LIGHTGRAY),
-                        TileKind::StairsUp => ('<', LIGHTGRAY),
+                        TileKind::Stairs => ('>', LIGHTGRAY),
                     };
                     glyphs.push(Glyph {
                         character,
