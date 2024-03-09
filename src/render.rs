@@ -484,10 +484,8 @@ impl Ui {
                         ui.push_id(i, |ui| {
                             egui::CollapsingHeader::new("Details...").show(ui, |ui| {
                                 ui.add(
-                                    egui::Label::new(
-                                        egui::RichText::new(description).small().italics(),
-                                    )
-                                    .truncate(true),
+                                    egui::Label::new(egui::RichText::new(description).italics())
+                                        .wrap(true),
                                 )
                             });
                         });
