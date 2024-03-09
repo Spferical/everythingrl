@@ -10,6 +10,7 @@ use rand::{seq::SliceRandom as _, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
 pub const STARTING_DURABILITY: usize = 10;
+pub const PLAYER_MAX_HEALTH: usize = 100;
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",
@@ -684,6 +685,9 @@ impl World {
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
+        if self.player_is_dead() {
+            return false;
+        }
         let tick = match action {
             PlayerAction::Move(offset) => {
                 assert!(offset.mhn_dist() == 1);
@@ -999,6 +1003,13 @@ impl World {
             }
             self.mobs.insert(new_pos, mob);
         }
+        if self.player_is_dead() {
+            self.log_message(vec![("YOU DIED".into(), Color::Red)]);
+        }
+    }
+
+    pub fn player_is_dead(&self) -> bool {
+        self.player_damage > PLAYER_MAX_HEALTH
     }
 
     pub fn get_player_pos(&self) -> Pos {
