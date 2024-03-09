@@ -23,6 +23,43 @@ pub struct Glyph {
     location: (usize, usize),
     layer: usize,
 }
+#[derive(Hash, Debug, Clone, Copy)]
+pub enum ItemCondition {
+    New,
+    LikeNew,
+    VeryGood,
+    Good,
+    Acceptable,
+    Poor,
+}
+
+fn condition_color(condition: ItemCondition) -> Color {
+    match condition {
+        ItemCondition::Poor => Color::Red,
+        ItemCondition::Acceptable => Color::Brown,
+        ItemCondition::Good => Color::Gray,
+        ItemCondition::VeryGood => Color::Green,
+        ItemCondition::LikeNew => Color::Gold,
+        ItemCondition::New => Color::White,
+    }
+}
+
+fn get_item_condition(durability: usize) -> ItemCondition {
+    match durability {
+        0..=20 => ItemCondition::Poor,
+        21..=50 => ItemCondition::Acceptable,
+        51..=70 => ItemCondition::Good,
+        71..=95 => ItemCondition::VeryGood,
+        96..=99 => ItemCondition::LikeNew,
+        _ => ItemCondition::New,
+    }
+}
+
+fn to_egui(c: &Color) -> egui::Color32 {
+    let color = macroquad::color::Color::from(*c);
+    let [r, g, b, _a] = color.into();
+    Color32::from_rgb(r, g, b)
+}
 
 impl Ui {
     pub fn new(grid_size: Option<usize>, font: Font) -> Ui {
@@ -69,6 +106,7 @@ impl Ui {
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
+                        .column(egui_extras::Column::auto())
                         .sense(egui::Sense::click());
                     table
                         .header(text_height, |mut header| {
@@ -90,6 +128,9 @@ impl Ui {
                             header.col(|ui| {
                                 ui.strong("Equipped");
                             });
+                            header.col(|ui| {
+                                ui.strong("Condition");
+                            });
                         })
                         .body(|body| {
                             body.rows(text_height, sim.inventory.items.len(), |mut row| {
@@ -100,6 +141,7 @@ impl Ui {
                                 let display_slot;
                                 let display_equipped;
                                 let level;
+                                let cond;
                                 let mut types = vec![];
                                 match slot.item {
                                     Item::Corpse(mob_kind) => {
@@ -110,6 +152,7 @@ impl Ui {
                                         display_slot = "";
                                         display_equipped = "";
                                         level = mob_desc.level.to_string();
+                                        cond = ItemCondition::New;
                                     }
                                     Item::PendingCraft(..) => {
                                         name = "Crafting in progress...".into();
@@ -131,6 +174,7 @@ impl Ui {
                                             display_equipped = "";
                                         }
                                         level = item_desc.level.to_string();
+                                        cond = get_item_condition(item.item_durability);
                                     }
                                 }
 
@@ -157,6 +201,12 @@ impl Ui {
                                 });
                                 row.col(|ui| {
                                     ui.label(display_equipped);
+                                });
+                                row.col(|ui| {
+                                    ui.label(
+                                        egui::RichText::new(format!("{:?}", cond))
+                                            .color(to_egui(&condition_color(cond))),
+                                    );
                                 });
 
                                 self.toggle_row_selection(row_index, &row.response());
@@ -318,12 +368,6 @@ impl Ui {
 
         let font_scale_base = 22. * scale_factor;
         let font_scale_details = 18. * scale_factor;
-
-        let to_egui = |c: &Color| {
-            let color = macroquad::color::Color::from(*c);
-            let [r, g, b, _a] = color.into();
-            Color32::from_rgb(r, g, b)
-        };
 
         let pokedex_width = panel_width * miniquad::window::dpi_scale();
         let pokedex_height = (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale();

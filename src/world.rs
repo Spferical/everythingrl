@@ -349,6 +349,20 @@ impl Inventory {
         Self { items: vec![] }
     }
 
+    fn get_equipped_weapon(&mut self, wi: &WorldInfo) -> Option<&mut EquipmentInstance> {
+        self.items
+            .iter_mut()
+            .filter(|x| x.equipped)
+            .filter_map(|x| match x.item {
+                Item::Corpse(_) => None,
+                Item::Equipment(ref mut i) => Some(i),
+            })
+            .find(|i| {
+                let eki = wi.get_equipmentkind_info(i.kind);
+                eki.slot == EquipmentSlot::Weapon
+            })
+    }
+
     fn get_equipped_weapon_info(&self, wi: &WorldInfo) -> Option<EquipmentKindInfo> {
         self.items
             .iter()
@@ -361,6 +375,21 @@ impl Inventory {
             .find(|eki| eki.slot == EquipmentSlot::Weapon)
             .cloned()
     }
+
+    fn get_equipped_weapon_slot(&self, wi: &WorldInfo) -> Option<usize> {
+        self.items
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| x.equipped)
+            .filter_map(|(i, x)| match x.item {
+                Item::Corpse(_) => None,
+                Item::Equipment(ek) => Some((i, ek)),
+            })
+            .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
+            .find(|(i, eki)| eki.slot == EquipmentSlot::Weapon)
+            .map(|(i, eki)| i)
+    }
+
     fn get_equipped_armor_info(&self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
         self.items
             .iter()
@@ -566,11 +595,32 @@ impl World {
                     let player_weapon_info =
                         self.inventory.get_equipped_weapon_info(&self.world_info);
                     let (att_type, att_level) = player_weapon_info
+                        .clone()
                         .map(|w| (w.ty, w.level))
                         .unwrap_or((PokemonType::Normal, 0));
                     let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
+
+                    if let Some(player_weapon) =
+                        self.inventory.get_equipped_weapon(&self.world_info)
+                    {
+                        player_weapon.item_durability -= 1;
+                        if player_weapon.item_durability == 0 {
+                            let pwi = player_weapon_info.unwrap();
+                            self.log_message(vec![
+                                ("Your ".into(), Color::White),
+                                (pwi.name.into(), pwi.ty.get_color()),
+                                (" breaks!".into(), Color::Red),
+                            ]);
+                            self.inventory.remove(
+                                self.inventory
+                                    .get_equipped_weapon_slot(&self.world_info)
+                                    .unwrap(),
+                            );
+                        }
+                    }
+
                     mob.damage += damage;
                     self.log_message(vec![
                         ("You hit ".into(), Color::White),
