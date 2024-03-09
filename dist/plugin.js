@@ -27,7 +27,8 @@ register_plugin = function (importObject) {
                         resp = {'error': "" + this.status +  " " + this.response};
                     }
                     console.log(JSON.stringify(resp));
-                    wasm_exports.request_done(file_id, JSON.stringify(resp));
+                    var asdf = JSON.stringify(resp);
+                    wasm_exports.request_done(file_id, js_object(asdf));
                 } 
             };
             xhr.send(json_payload);
