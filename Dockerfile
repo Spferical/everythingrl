@@ -1,5 +1,7 @@
 FROM python:3.11-alpine
 
+RUN apk update && apk add python3-dev gcc libc-dev g++ geos-dev
+
 WORKDIR /docker-flask/server
 
 RUN ["pip3", "install", "pipenv"]
