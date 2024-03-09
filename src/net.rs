@@ -1,18 +1,19 @@
 use enum_map::Enum;
 use std::{
+    collections::HashMap,
     fmt::Display,
     sync::mpsc::{self, Receiver},
     time::Duration,
 };
 
-#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
+#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EquipmentSlot {
     Weapon,
     Armor,
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PokemonType {
     Normal,
@@ -273,7 +274,7 @@ pub struct MonsterDefinition {
     pub death: String,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ItemDefinition {
     pub name: String,
     pub level: usize,
@@ -281,6 +282,7 @@ pub struct ItemDefinition {
     pub ty: PokemonType,
     pub description: String,
     pub slot: EquipmentSlot,
+    pub craft_id: Option<CraftId>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -297,6 +299,15 @@ pub struct MonstersArgs {
     theme: String,
     setting: String,
     areas: Vec<Area>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct CraftArgs {
+    theme: String,
+    setting: String,
+    items: Vec<ItemDefinition>,
+    item1: ItemDefinition,
+    item2: ItemDefinition,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -353,76 +364,18 @@ pub fn api_url() -> String {
 
 #[derive(Debug, Clone)]
 pub enum Request {
-    Setting {
-        theme: String,
-    },
-    Areas {
-        theme: String,
-        setting: String,
-    },
-    Monsters {
-        theme: String,
-        setting: String,
-        areas: Vec<Area>,
-    },
-    Items {
-        theme: String,
-        setting: String,
-        areas: Vec<Area>,
-    },
+    Setting,
+    Areas,
+    Monsters,
+    Items,
     Craft {
-        item1: ItemDefinition,
-        item2: ItemDefinition,
+        item1: usize,
+        item2: usize,
+        craft_id: CraftId,
     },
 }
 
-impl Request {
-    fn send(self) -> PendingRequest {
-        let api_url = api_url();
-        let fut = match self {
-            Request::Setting { ref theme } => request(format!("{api_url}/setting/{theme}"), ""),
-            Request::Areas {
-                ref theme,
-                ref setting,
-            } => request(
-                format!("{api_url}/areas"),
-                AreasArgs {
-                    theme: theme.clone(),
-                    setting: setting.clone(),
-                },
-            ),
-            Request::Monsters {
-                ref theme,
-                ref setting,
-                ref areas,
-            } => request(
-                format!("{api_url}/monsters"),
-                MonstersArgs {
-                    theme: theme.clone(),
-                    setting: setting.clone(),
-                    areas: areas.clone(),
-                },
-            ),
-            Request::Items {
-                ref theme,
-                ref setting,
-                ref areas,
-            } => request(
-                format!("{api_url}/items"),
-                MonstersArgs {
-                    theme: theme.clone(),
-                    setting: setting.clone(),
-                    areas: areas.clone(),
-                },
-            ),
-            Request::Craft {
-                ref item1,
-                ref item2,
-            } => todo!(),
-        };
-        PendingRequest { req: self, fut }
-    }
-}
+impl Request {}
 
 pub struct PendingRequest {
     req: Request,
@@ -434,6 +387,7 @@ enum RequestResult {
     Areas(Vec<Area>),
     Monsters(Vec<MonsterDefinition>),
     Items(Vec<ItemDefinition>),
+    Craft(ItemDefinition),
     Pending,
     Error(String),
 }
@@ -458,14 +412,16 @@ impl PendingRequest {
                 Request::Items { .. } => serde_json::from_str(s)
                     .map(Items)
                     .unwrap_or_else(|e| Error(e.to_string())),
-                Request::Craft { .. } => todo!(),
+                Request::Craft { .. } => serde_json::from_str(s)
+                    .map(Craft)
+                    .unwrap_or_else(|e| Error(e.to_string())),
             },
         }
     }
-    fn retry(&mut self) {
-        *self = self.req.clone().send();
-    }
 }
+
+#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct CraftId(usize);
 
 /// Contains raw AI-generated content fetched from the server.
 pub struct IdeaGuy {
@@ -475,7 +431,10 @@ pub struct IdeaGuy {
     pub areas: Option<Vec<Area>>,
     pub monsters: Option<Vec<MonsterDefinition>>,
     pub items: Option<Vec<ItemDefinition>>,
+    // keys/vals are indices into items.
+    pub recipes: HashMap<(usize, usize), usize>,
     outgoing: Vec<PendingRequest>,
+    pub next_craft_id: CraftId,
 }
 
 impl IdeaGuy {
@@ -489,15 +448,70 @@ impl IdeaGuy {
             monsters: None,
             items: None,
             outgoing: vec![],
+            recipes: HashMap::new(),
+            next_craft_id: CraftId(0),
         };
-        slf.request(Request::Setting {
-            theme: slf.theme.clone(),
-        });
+        slf.request(Request::Setting);
         slf
     }
 
+    pub fn craft(&mut self, item1: usize, item2: usize) {
+        let craft_id = self.next_craft_id;
+        self.next_craft_id = CraftId(self.next_craft_id.0 + 1);
+        self.request(Request::Craft {
+            item1,
+            item2,
+            craft_id,
+        });
+    }
+
+    fn request_inner(&mut self, req: Request) -> PendingRequest {
+        let api_url = api_url();
+        let fut = match req {
+            Request::Setting => {
+                let theme = &self.theme;
+                request(format!("{api_url}/setting/{theme}"), "")
+            }
+            Request::Areas => request(
+                format!("{api_url}/areas"),
+                AreasArgs {
+                    theme: self.theme.clone(),
+                    setting: self.setting.clone().unwrap(),
+                },
+            ),
+            Request::Monsters => request(
+                format!("{api_url}/monsters"),
+                MonstersArgs {
+                    theme: self.theme.clone(),
+                    setting: self.setting.clone().unwrap(),
+                    areas: self.areas.clone().unwrap(),
+                },
+            ),
+            Request::Items => request(
+                format!("{api_url}/items"),
+                MonstersArgs {
+                    theme: self.theme.clone(),
+                    setting: self.setting.clone().unwrap(),
+                    areas: self.areas.clone().unwrap(),
+                },
+            ),
+            Request::Craft { item1, item2, .. } => request(
+                format!("{api_url}/craft"),
+                CraftArgs {
+                    theme: self.theme.clone(),
+                    setting: self.setting.clone().unwrap(),
+                    items: self.items.clone().unwrap(),
+                    item1: self.items.as_ref().unwrap()[item1].clone(),
+                    item2: self.items.as_ref().unwrap()[item2].clone(),
+                },
+            ),
+        };
+        PendingRequest { req, fut }
+    }
+
     pub fn request(&mut self, req: Request) {
-        self.outgoing.push(req.send());
+        let pending_req = self.request_inner(req);
+        self.outgoing.push(pending_req);
     }
 
     pub fn tick(&mut self) {
@@ -506,38 +520,40 @@ impl IdeaGuy {
             match req.get() {
                 RequestResult::Error(e) => {
                     macroquad::miniquad::error!("{}", e);
-                    req.retry();
-                    self.outgoing.push(req);
+                    // Retry
+                    self.request(req.req);
                 }
                 RequestResult::Pending => {
                     self.outgoing.push(req);
                 }
                 RequestResult::Setting(s) => {
                     self.setting = Some(s);
-                    self.request(Request::Areas {
-                        theme: self.theme.clone(),
-                        setting: self.setting.clone().unwrap(),
-                    });
+                    self.request(Request::Areas);
                 }
                 RequestResult::Areas(areas) => {
                     self.areas = Some(areas);
-                    self.request(Request::Monsters {
-                        theme: self.theme.clone(),
-                        setting: self.setting.clone().unwrap(),
-                        areas: self.areas.clone().unwrap(),
-                    });
+                    self.request(Request::Monsters);
                 }
                 RequestResult::Monsters(monsters) => {
                     self.monsters = Some(monsters);
-                    self.request(Request::Items {
-                        theme: self.theme.clone(),
-                        setting: self.setting.clone().unwrap(),
-                        areas: self.areas.clone().unwrap(),
-                    });
+                    self.request(Request::Items);
                 }
                 RequestResult::Items(items) => {
                     self.items = Some(items);
-                    // Done
+                    // Done with initial setup
+                }
+                RequestResult::Craft(mut item) => {
+                    if let Request::Craft {
+                        item1,
+                        item2,
+                        craft_id,
+                    } = req.req
+                    {
+                        item.craft_id = Some(craft_id);
+                        self.recipes
+                            .insert((item1, item2), self.items.as_ref().unwrap().len());
+                    }
+                    self.items.as_mut().map(|items| items.push(item));
                 }
             }
         }

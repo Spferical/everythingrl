@@ -111,6 +111,12 @@ impl Ui {
                                         display_equipped = "";
                                         level = mob_desc.level.to_string();
                                     }
+                                    Item::PendingCraft(..) => {
+                                        name = "Crafting in progress...".into();
+                                        display_slot = "";
+                                        display_equipped = "";
+                                        level = "".into();
+                                    }
                                     Item::Equipment(item) => {
                                         let item_desc = &sim.get_equipmentkind_info(item.kind);
                                         name = item_desc.name.clone();
@@ -228,6 +234,7 @@ impl Ui {
                     if let Some(item) = tile.item {
                         let (character, color) = match item {
                             Item::Corpse(_) => ('%', MAROON),
+                            Item::PendingCraft(..) => ('?', PINK),
                             Item::Equipment(ek) => {
                                 let equip_def = sim.get_equipmentkind_info(ek.kind);
                                 let char = match equip_def.slot {

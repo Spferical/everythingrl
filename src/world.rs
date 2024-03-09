@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{Color, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType, EquipmentSlot};
+use crate::net::{Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::Rng;
@@ -60,6 +60,7 @@ impl EquipmentInstance {
 pub enum Item {
     Corpse(MobKind),
     Equipment(EquipmentInstance),
+    PendingCraft(EquipmentKind, EquipmentKind),
 }
 
 pub struct CraftingInfo {
@@ -156,7 +157,8 @@ pub struct WorldInfo {
     pub monster_kinds: Vec<MobKindInfo>,
     pub monsters_per_level: Vec<Vec<MobKind>>,
     pub equipment_per_level: Vec<Vec<EquipmentKind>>,
-    pub recipes: HashMap<(Item, Item), Item>,
+    pub recipes: HashMap<(EquipmentKind, EquipmentKind), EquipmentKind>,
+    pub pending_recipes: HashSet<(EquipmentKind, EquipmentKind)>,
     pub level_blurbs: Vec<String>,
 }
 
@@ -167,6 +169,7 @@ impl WorldInfo {
             monster_kinds: Vec::new(),
             monsters_per_level: Vec::new(),
             equipment_per_level: Vec::new(),
+            pending_recipes: HashSet::new(),
             recipes: HashMap::new(),
             level_blurbs: Vec::new(),
         }
@@ -183,6 +186,7 @@ impl WorldInfo {
                 ty,
                 slot,
                 description,
+                ..
             } = item.clone();
             self.equip_kinds.push(EquipmentKindInfo {
                 name,
@@ -268,6 +272,37 @@ impl WorldInfo {
             .flatten()
             .map(|area| area.blurb.clone())
             .collect();
+
+        for (&(a, b), &c) in ig.recipes.iter() {
+            let ek_by_name = |name: &str| {
+                EquipmentKind(
+                    self.equip_kinds
+                        .iter()
+                        .position(|ek| ek.name == name)
+                        .unwrap(),
+                )
+            };
+            let ig_item_a = &ig.items.as_ref().unwrap()[a];
+            let ig_item_b = &ig.items.as_ref().unwrap()[b];
+            let ig_item_c = &ig.items.as_ref().unwrap()[c];
+            let ek_a = ek_by_name(&ig_item_a.name);
+            let ek_b = ek_by_name(&ig_item_b.name);
+            let ek_c = ek_by_name(&ig_item_c.name);
+            self.recipes.insert((ek_a, ek_b), ek_c);
+        }
+        if let Some((a, b)) = self.pending_recipes.iter().next().cloned() {
+            let ig_equip_by_name = |name: &str| {
+                ig.items
+                    .iter()
+                    .flatten()
+                    .position(|x| x.name == name)
+                    .unwrap()
+            };
+            self.pending_recipes.remove(&(a, b));
+            let ig_a = ig_equip_by_name(&self.get_equipmentkind_info(a).name);
+            let ig_b = ig_equip_by_name(&self.get_equipmentkind_info(b).name);
+            ig.craft(ig_a, ig_b);
+        }
     }
 
     pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
@@ -278,57 +313,22 @@ impl WorldInfo {
         &self.monster_kinds[kind.0]
     }
 
-    fn get_craft_info(&self, item: Item) -> CraftingInfo {
-        match item {
-            Item::Corpse(mk) => {
-                let mki = self.get_mobkind_info(mk);
-                CraftingInfo {
-                    level: mki.level,
-                    type1: mki.type1,
-                    type2: mki.type2,
-                }
-            }
-            Item::Equipment(ek) => {
-                let eki = self.get_equipmentkind_info(ek.kind);
-                CraftingInfo {
-                    level: eki.level,
-                    type1: eki.ty,
-                    type2: None,
-                }
-            }
+    fn craft_inner(&mut self, ek1: EquipmentKind, ek2: EquipmentKind) -> Option<Item> {
+        if let Some(ek3) = self.recipes.get(&(ek1, ek2)) {
+            Some(Item::Equipment(EquipmentInstance {
+                kind: *ek3,
+                item_durability: STARTING_DURABILITY,
+            }))
+        } else {
+            self.pending_recipes.insert((ek1, ek2));
+            Some(Item::PendingCraft(ek1, ek2))
         }
     }
 
     pub fn craft(&mut self, item1: Item, item2: Item, rng: &mut impl Rng) -> Option<Item> {
-        if let Some(item) = self.recipes.get(&(item1, item2)) {
-            return Some(*item);
-        }
-        let ci1 = self.get_craft_info(item1);
-        let ci2 = self.get_craft_info(item2);
-        if ci1.level != ci2.level {
-            None
-        } else {
-            let mut types = vec![];
-            types.push(ci1.type1);
-            types.push(ci2.type1);
-            types.extend(ci1.type2);
-            types.extend(ci2.type2);
-            let ty = *types.choose(rng).unwrap();
-            self.equip_kinds.push(EquipmentKindInfo {
-                name: "???".into(),
-                level: ci1.level + 1,
-                ty,
-                description: "????".into(),
-                slot: *[EquipmentSlot::Armor, EquipmentSlot::Weapon]
-                    .choose(rng)
-                    .unwrap(),
-            });
-            let new_item = Item::Equipment(EquipmentInstance::new(
-                EquipmentKind(self.equip_kinds.len() - 1),
-                STARTING_DURABILITY,
-            ));
-            self.recipes.insert((item1, item2), new_item);
-            Some(new_item)
+        match (item1, item2) {
+            (Item::Equipment(ei1), Item::Equipment(ei2)) => self.craft_inner(ei1.kind, ei2.kind),
+            _ => None,
         }
     }
 }
@@ -354,7 +354,7 @@ impl Inventory {
             .iter()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                Item::Corpse(_) => None,
+                _ => None,
                 Item::Equipment(ek) => Some(ek),
             })
             .map(|ek| wi.get_equipmentkind_info(ek.kind))
@@ -366,7 +366,7 @@ impl Inventory {
             .iter()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                Item::Corpse(_) => None,
+                _ => None,
                 Item::Equipment(ek) => Some(ek),
             })
             .map(|ek| wi.get_equipmentkind_info(ek.kind))
@@ -387,9 +387,13 @@ impl Inventory {
                 (false, EquipmentSlot::Armor) => 4,
             },
             InventoryItem {
-                item: Item::Corpse(_),
+                item: Item::PendingCraft(..),
                 ..
             } => 5,
+            InventoryItem {
+                item: Item::Corpse(_),
+                ..
+            } => 6,
         });
     }
     fn add(&mut self, item: Item) -> Option<Item> {
@@ -525,6 +529,13 @@ impl World {
 
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
         self.world_info.update(ig);
+        for item in &mut self.inventory.items {
+            if let Item::PendingCraft(a, b) = item.item {
+                if let Some(c) = self.world_info.recipes.get(&(a, b)) {
+                    item.item = Item::Equipment(EquipmentInstance::new(*c, STARTING_DURABILITY));
+                }
+            }
+        }
     }
 
     pub fn log_message(&mut self, text: Vec<(String, Color)>) {
@@ -541,6 +552,7 @@ impl World {
                 let item_desc = &self.get_equipmentkind_info(item.kind);
                 (item_desc.name.clone(), item_desc.ty.get_color())
             }
+            Item::PendingCraft(..) => ("???".to_string(), Color::Pink),
         }
     }
 
@@ -815,7 +827,8 @@ impl World {
                     if target == self.player_pos {
                         let mki = self.get_mobkind_info(mob.kind);
                         let armor = self.inventory.get_equipped_armor_info(&self.world_info);
-                        let defense1 = armor.first()
+                        let defense1 = armor
+                            .first()
                             .map(|eki| eki.ty)
                             .unwrap_or(PokemonType::Normal);
                         let defense2 = armor.get(1).map(|eki| eki.ty);

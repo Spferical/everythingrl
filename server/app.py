@@ -41,6 +41,27 @@ def get_setting(theme):
     return jsonify(setting_desc)
 
 
+@app.post("/craft")
+def craft():
+    theme = flask.request.json["theme"]
+    setting_desc = flask.request.json["setting"]
+    items = flask.request.json["items"]
+    item1 = flask.request.json["item1"]
+    item2 = flask.request.json["item2"]
+    if theme == PREGEN_THEME:
+        return {
+            "name": "PREGEN",
+            "level": item1["level"] + 1,
+            "type": item1["type"],
+            "description": "who knows",
+            "slot": item1["slot"],
+        }
+    else:
+        new_item = ai.craft(theme, setting_desc, items, item1, item2)
+        logging.info(json.dumps(new_item))
+        return new_item
+
+
 @app.post("/areas")
 def get_areas():
     theme = flask.request.json["theme"]

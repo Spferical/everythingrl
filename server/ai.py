@@ -349,7 +349,7 @@ def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: d
         },
         1,
         Item,
-    )
+    )[0]
 
 
 if USE_VERTEX_AI:
