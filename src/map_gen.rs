@@ -5,7 +5,7 @@ use rand::rngs::StdRng;
 use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
-use crate::grid::{Offset, Pos, Rect, CARDINALS};
+use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
 use crate::net::MapGen;
 use crate::world::{
     self, EquipmentInstance, EquipmentKind, Item, Mob, MobKind, TileKind, World, FOV_RANGE,
@@ -399,7 +399,6 @@ pub struct SprinkleOpts {
 pub fn gen_simple_rooms(
     world: &mut World,
     opts: &SimpleRoomOpts,
-    sprinkle: &SprinkleOpts,
     rng: &mut impl Rng,
 ) -> LevelgenResult {
     // Create rooms
@@ -443,20 +442,6 @@ pub fn gen_simple_rooms(
         }
     }
 
-    // Sprinkle enemies/items
-    for _ in 0..sprinkle.num_enemies {
-        let room = rooms[1..].choose(rng).unwrap();
-        let pos = room.choose(rng);
-        world.add_mob(pos, Mob::new(*sprinkle.valid_enemies.choose(rng).unwrap()));
-    }
-    for _ in 0..sprinkle.num_items {
-        let room = rooms[0..].choose(rng).unwrap();
-        let pos = room.choose(rng);
-        world[pos].item = Some(Item::Equipment(EquipmentInstance::new(
-            *sprinkle.valid_equipment.choose(rng).unwrap(),
-            world::STARTING_DURABILITY,
-        )));
-    }
     LevelgenResult {
         start: rooms[0].center(),
         end: rooms.iter().last().unwrap().center(),
@@ -468,12 +453,41 @@ pub struct LevelgenResult {
     pub end: Pos,
 }
 
+fn gen_dijkstra_map(world: &mut World, start: Pos) -> TileMap<i32> {
+    let mut dijkstra_map = TileMap::new(i32::MAX);
+    let mut visited = HashSet::new();
+    let mut periphery = vec![start];
+    let mut new_periphery = Vec::new();
+    visited.extend(periphery.iter());
+    for i in 0.. {
+        if i > FOV_RANGE + 1 {
+            break;
+        }
+        for pos in periphery.drain(..) {
+            let adjacent = CARDINALS
+                .iter()
+                .copied()
+                .map(|c| pos + c)
+                .filter(|p| (*p - pos).dist_squared() <= FOV_RANGE)
+                .filter(|pos| !visited.contains(pos))
+                .filter(|pos| world[*pos].kind.is_walkable())
+                .collect::<Vec<_>>();
+            for pos in adjacent {
+                dijkstra_map[pos] = i;
+                visited.insert(pos);
+                new_periphery.push(pos)
+            }
+        }
+        std::mem::swap(&mut periphery, &mut new_periphery);
+    }
+    dijkstra_map
+}
+
 fn gen_level_mapgen(
     world: &mut World,
     buf: mapgen::MapBuffer,
     rect: Rect,
-    sprinkle: SprinkleOpts,
-    rng: &mut impl Rng,
+    _rng: &mut impl Rng,
 ) -> LevelgenResult {
     assert!(buf.width as i32 == rect.width());
     assert!(buf.height as i32 == rect.height());
@@ -498,12 +512,37 @@ fn gen_level_mapgen(
         y: rect.topleft().y + start.y as i32,
     };
 
+    // Mapgen assumes diagonal movement, which we don't have.
+    // So, roll our own unreachable culling and exit detection.
+    let dijkstra_map = gen_dijkstra_map(world, start_pos);
+    let mut furthest_tile = start_pos;
+    for pos in rect {
+        if dijkstra_map[pos] == i32::MAX {
+            world[pos].kind = TileKind::Wall;
+        } else if dijkstra_map[pos] > dijkstra_map[furthest_tile] {
+            furthest_tile = pos;
+        }
+    }
+
+    LevelgenResult {
+        start: start_pos,
+        end: furthest_tile,
+    }
+}
+
+fn sprinkle_enemies_and_items(
+    world: &mut World,
+    rect: Rect,
+    lgr: &LevelgenResult,
+    sprinkle: &SprinkleOpts,
+    rng: &mut impl Rng,
+) {
     let walkable_poses = rect
         .into_iter()
         .filter(|pos| world[*pos].kind.is_walkable())
         .collect::<Vec<_>>();
 
-    let fov = crate::fov::calculate_fov(start_pos, FOV_RANGE, world);
+    let fov = crate::fov::calculate_fov(lgr.start, FOV_RANGE, world);
 
     let walkable_poses_out_of_fov = walkable_poses
         .iter()
@@ -522,16 +561,6 @@ fn gen_level_mapgen(
             *sprinkle.valid_equipment.choose(rng).unwrap(),
             world::STARTING_DURABILITY,
         )));
-    }
-    let end = buf.exit_point.unwrap();
-    let end_pos = rect.topleft()
-        + Offset {
-            x: end.x as i32,
-            y: end.y as i32,
-        };
-    LevelgenResult {
-        start: start_pos,
-        end: end_pos,
     }
 }
 
@@ -554,7 +583,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
             valid_equipment: world.world_info.equipment_per_level[i as usize].clone(),
         };
         let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
-        results.push(match algo {
+        let lgr = match algo {
             MapGen::SimpleRoomsAndCorridors => {
                 let opts = SimpleRoomOpts {
                     rect,
@@ -562,7 +591,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
                     min_room_size: 6,
                     max_room_size: 10,
                 };
-                gen_simple_rooms(world, &opts, &sprinkle, &mut rng)
+                gen_simple_rooms(world, &opts, &mut rng)
             }
             MapGen::Caves => {
                 let buf = mapgen::MapBuilder::new(80, 50)
@@ -575,7 +604,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
                     .with(mapgen::CullUnreachable::new())
                     .with(mapgen::DistantExit::new())
                     .build();
-                gen_level_mapgen(world, buf, rect, sprinkle, &mut rng)
+                gen_level_mapgen(world, buf, rect, &mut rng)
             }
             MapGen::Hive => {
                 let buf = mapgen::MapBuilder::new(80, 50)
@@ -586,10 +615,12 @@ pub fn generate_world(world: &mut World, seed: u64) {
                     ))
                     .with(mapgen::DistantExit::new())
                     .build_with_rng(&mut rng);
-                gen_level_mapgen(world, buf, rect, sprinkle, &mut rng)
+                gen_level_mapgen(world, buf, rect, &mut rng)
             }
             MapGen::DenseRooms => gen_offices(world, &mut rng, rect),
-        });
+        };
+        sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, &mut rng);
+        results.push(lgr);
     }
     world.player_pos = results[0].start;
     for i in 1..results.len() {
