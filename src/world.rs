@@ -579,9 +579,7 @@ impl World {
                         (format!("{}", damage), Color::Red),
                     ]);
                     if mob.damage >= mki.max_hp() {
-                        self.log_message(vec![
-                            (mki.death, mki.color)
-                        ]);
+                        self.log_message(vec![(mki.death, mki.color)]);
                         self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
                     } else {
                         self.mobs.insert(new_pos, mob);
