@@ -388,8 +388,8 @@ impl Inventory {
                 Item::Equipment(ek) => Some((i, ek)),
             })
             .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
-            .find(|(i, eki)| eki.slot == EquipmentSlot::Weapon)
-            .map(|(i, eki)| i)
+            .find(|(_, eki)| eki.slot == EquipmentSlot::Weapon)
+            .map(|(i, _)| i)
     }
 
     fn get_equipped_armor_info(&self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
@@ -397,8 +397,8 @@ impl Inventory {
             .iter()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                _ => None,
                 Item::Equipment(ek) => Some(ek),
+                _ => None,
             })
             .map(|ek| wi.get_equipmentkind_info(ek.kind))
             .filter(|eki| eki.slot == EquipmentSlot::Armor)
