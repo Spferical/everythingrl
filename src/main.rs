@@ -196,7 +196,7 @@ fn egui_setup() {
             (Button, egui::FontId::new(14.0 * scale_factor, Proportional)),
             (Small, egui::FontId::new(10.0 * scale_factor, Proportional)),
         ]
-        .into();
+            .into();
         egui_ctx.set_style(style);
 
         let mut visuals = egui::Visuals::default();

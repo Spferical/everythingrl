@@ -318,192 +318,200 @@ impl Ui {
             Color32::from_rgb(r, g, b)
         };
 
+        let pokedex_width = panel_width * miniquad::window::dpi_scale();
+        let pokedex_height = (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale();
         egui::Window::new("Pokédex")
             .resizable(false)
             .collapsible(false)
-            .fixed_size(egui::Vec2::new(
-                panel_width * miniquad::window::dpi_scale(),
-                (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale(),
-            ))
-            .max_size(egui::Vec2::new(
-                panel_width * miniquad::window::dpi_scale(),
-                (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale(),
-            ))
+            .fixed_size(egui::Vec2::new(pokedex_width, pokedex_height))
+            .max_size(egui::Vec2::new(pokedex_width, pokedex_height))
             .fixed_pos(egui::Pos2::new(
                 offset_x * miniquad::window::dpi_scale(),
                 offset_y * miniquad::window::dpi_scale(),
             ))
             .show(egui_ctx, |ui| {
-                ui.set_height(ui.available_height());
-                ui.set_width(ui.available_width());
-                ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                    for (i, mob) in sim.get_visible_mobs().iter().enumerate() {
-                        let damage = mob.damage;
-                        let mob_kind = mob.kind;
-                        let mob_kind_def = sim.get_mobkind_info(mob_kind);
+                egui::Frame::none()
+                    .inner_margin(egui::style::Margin::symmetric(
+                        pokedex_width * 0.02,
+                        pokedex_height * miniquad::window::dpi_scale() * 0.02,
+                    ))
+                    .show(ui, |ui| {
+                        ui.set_height(ui.available_height());
+                        ui.set_width(ui.available_width());
+                        ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                            egui::ScrollArea::vertical().show(ui, |ui| {
+                                for (i, mob) in sim.get_visible_mobs().iter().enumerate() {
+                                    let damage = mob.damage;
+                                    let mob_kind = mob.kind;
+                                    let mob_kind_def = sim.get_mobkind_info(mob_kind);
 
-                        let MobKindInfo {
-                            char,
-                            color,
-                            name,
-                            attack_type,
-                            type1,
-                            type2,
-                            description,
-                            level,
-                            ..
-                        } = mob_kind_def;
+                                    let MobKindInfo {
+                                        char,
+                                        color,
+                                        name,
+                                        attack_type,
+                                        type1,
+                                        type2,
+                                        description,
+                                        level,
+                                        ..
+                                    } = mob_kind_def;
 
-                        let mut job = egui::text::LayoutJob::default();
-                        job.append(
-                            char,
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_base * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: to_egui(color),
-                                ..Default::default()
-                            },
-                        );
-                        job.append(
-                            &format!(" - {name}\n    "),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_base * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: to_egui(color),
-                                ..Default::default()
-                            },
-                        );
-                        job.append(
-                            &format!("{} ", type1),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_details * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: to_egui(&type1.get_color()),
-                                ..Default::default()
-                            },
-                        );
-                        if let Some(type2) = type2 {
-                            job.append(
-                                &format!("{} ", type2),
-                                0.0,
-                                egui::TextFormat {
-                                    font_id: egui::FontId::new(
-                                        font_scale_details * scale_factor,
-                                        egui::FontFamily::Proportional,
-                                    ),
-                                    color: to_egui(&type2.get_color()),
-                                    ..Default::default()
-                                },
-                            );
-                        }
+                                    let mut job = egui::text::LayoutJob::default();
+                                    job.append(
+                                        char,
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_base * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: to_egui(color),
+                                            ..Default::default()
+                                        },
+                                    );
+                                    job.append(
+                                        &format!(" - {name}\n    "),
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_base * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: to_egui(color),
+                                            ..Default::default()
+                                        },
+                                    );
+                                    job.append(
+                                        &format!("{} ", type1),
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_details * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: to_egui(&type1.get_color()),
+                                            ..Default::default()
+                                        },
+                                    );
+                                    if let Some(type2) = type2 {
+                                        job.append(
+                                            &format!("{} ", type2),
+                                            0.0,
+                                            egui::TextFormat {
+                                                font_id: egui::FontId::new(
+                                                    font_scale_details * scale_factor,
+                                                    egui::FontFamily::Proportional,
+                                                ),
+                                                color: to_egui(&type2.get_color()),
+                                                ..Default::default()
+                                            },
+                                        );
+                                    }
 
-                        job.append(
-                            "| ATT ",
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_details * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: Color32::WHITE,
-                                ..Default::default()
-                            },
-                        );
+                                    job.append(
+                                        "| ATT ",
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_details * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: Color32::WHITE,
+                                            ..Default::default()
+                                        },
+                                    );
 
-                        job.append(
-                            &format!("{} ", attack_type),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_details * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: to_egui(&attack_type.get_color()),
-                                ..Default::default()
-                            },
-                        );
+                                    job.append(
+                                        &format!("{} ", attack_type),
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_details * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: to_egui(&attack_type.get_color()),
+                                            ..Default::default()
+                                        },
+                                    );
 
-                        job.append(
-                            &format!("| Level {} | HP ", level),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_details * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: Color32::WHITE,
-                                ..Default::default()
-                            },
-                        );
+                                    job.append(
+                                        &format!("| Level {} | HP ", level),
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_details * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: Color32::WHITE,
+                                            ..Default::default()
+                                        },
+                                    );
 
-                        let max_hp = mob_kind_def.max_hp();
-                        let hp = max_hp - damage;
-                        let hp_color = if hp < max_hp / 5 {
-                            Color32::RED
-                        } else if hp < max_hp / 2 {
-                            Color32::YELLOW
-                        } else {
-                            Color32::WHITE
-                        };
-                        job.append(
-                            &format!("{}", hp),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_details * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: hp_color,
-                                ..Default::default()
-                            },
-                        );
-                        job.append(
-                            &format!("/ {}", max_hp),
-                            0.0,
-                            egui::TextFormat {
-                                font_id: egui::FontId::new(
-                                    font_scale_details * scale_factor,
-                                    egui::FontFamily::Proportional,
-                                ),
-                                color: Color32::WHITE,
-                                ..Default::default()
-                            },
-                        );
+                                    let max_hp = mob_kind_def.max_hp();
+                                    let hp = max_hp - damage;
+                                    let hp_color = if hp < max_hp / 5 {
+                                        Color32::RED
+                                    } else if hp < max_hp / 2 {
+                                        Color32::YELLOW
+                                    } else {
+                                        Color32::WHITE
+                                    };
+                                    job.append(
+                                        &format!("{}", hp),
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_details * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: hp_color,
+                                            ..Default::default()
+                                        },
+                                    );
+                                    job.append(
+                                        &format!("/ {}", max_hp),
+                                        0.0,
+                                        egui::TextFormat {
+                                            font_id: egui::FontId::new(
+                                                font_scale_details * scale_factor,
+                                                egui::FontFamily::Proportional,
+                                            ),
+                                            color: Color32::WHITE,
+                                            ..Default::default()
+                                        },
+                                    );
 
-                        ui.label(job);
+                                    ui.label(job);
 
-                        ui.push_id(i, |ui| {
-                            egui::CollapsingHeader::new("Details...").show(ui, |ui| {
-                                ui.add(
-                                    egui::Label::new(egui::RichText::new(description).italics())
-                                        .wrap(true),
-                                )
+                                    ui.push_id(i, |ui| {
+                                        egui::CollapsingHeader::new("Details...").show(ui, |ui| {
+                                            ui.add(
+                                                egui::Label::new(
+                                                    egui::RichText::new(description).italics(),
+                                                )
+                                                .wrap(true),
+                                            )
+                                        });
+                                    });
+                                    ui.separator();
+                                }
                             });
                         });
-                    }
-                });
+                    });
             });
 
         let log_upper_bound = offset_y + panel_height * 0.35;
         let log_lower_bound = offset_y + panel_height * 0.85;
         let log_height = log_lower_bound - log_upper_bound;
 
+        let log_width = panel_width * miniquad::window::dpi_scale();
+        let log_height = log_height * miniquad::window::dpi_scale();
+
         egui::Window::new("Logs")
             .resizable(false)
             .collapsible(false)
-            .fixed_size(egui::Vec2::new(
-                panel_width * miniquad::window::dpi_scale(),
-                log_height * miniquad::window::dpi_scale(),
-            ))
+            .fixed_size(egui::Vec2::new(log_width, log_height))
             .fixed_pos(egui::Pos2::new(
                 offset_x * miniquad::window::dpi_scale(),
                 log_upper_bound * miniquad::window::dpi_scale(),
@@ -511,31 +519,37 @@ impl Ui {
             .show(egui_ctx, |ui| {
                 ui.set_height(ui.available_height());
                 ui.set_width(ui.available_width());
-                egui::ScrollArea::vertical()
-                    .drag_to_scroll(true)
-                    .stick_to_bottom(true)
+                egui::Frame::none()
+                    .inner_margin(egui::style::Margin::symmetric(
+                        log_width * 0.02,
+                        log_height * 0.02,
+                    ))
                     .show(ui, |ui| {
-                        ui.set_width(ui.available_width());
-                        let start_index = sim.log.len() as i64 - 100;
-                        let start_index = (start_index.max(0)) as usize;
-                        for log_entry in sim.log.iter().skip(start_index) {
-                            let mut job = egui::text::LayoutJob::default();
-                            for (log_entry_str, log_entry_color) in log_entry {
-                                job.append(
-                                    log_entry_str,
-                                    0.0,
-                                    egui::TextFormat {
-                                        font_id: egui::FontId::new(
-                                            font_scale_base * scale_factor,
-                                            egui::FontFamily::Proportional,
-                                        ),
-                                        color: to_egui(log_entry_color),
-                                        ..Default::default()
-                                    },
-                                );
-                            }
-                            ui.label(job);
-                        }
+                        egui::ScrollArea::vertical()
+                            .stick_to_bottom(true)
+                            .show(ui, |ui| {
+                                ui.set_width(ui.available_width());
+                                let start_index = sim.log.len() as i64 - 100;
+                                let start_index = (start_index.max(0)) as usize;
+                                for log_entry in sim.log.iter().skip(start_index) {
+                                    let mut job = egui::text::LayoutJob::default();
+                                    for (log_entry_str, log_entry_color) in log_entry {
+                                        job.append(
+                                            log_entry_str,
+                                            0.0,
+                                            egui::TextFormat {
+                                                font_id: egui::FontId::new(
+                                                    font_scale_base * scale_factor,
+                                                    egui::FontFamily::Proportional,
+                                                ),
+                                                color: to_egui(log_entry_color),
+                                                ..Default::default()
+                                            },
+                                        );
+                                    }
+                                    ui.label(job);
+                                }
+                            });
                     });
             });
     }
