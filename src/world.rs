@@ -706,10 +706,7 @@ impl World {
                     {
                         self.log_message(vec![
                             ("Your ".into(), Color::White),
-                            (
-                                destroyed_weapon.name.into(),
-                                destroyed_weapon.ty.get_color(),
-                            ),
+                            (destroyed_weapon.name, destroyed_weapon.ty.get_color()),
                             (" breaks!".into(), Color::Red),
                         ]);
                     }
@@ -952,7 +949,7 @@ impl World {
                 if matches!(mob.ai, MobAi::Idle) {
                     let info = self.get_mobkind_info(mob.kind);
                     let mut seen_message = info.seen.clone();
-                    if seen_message.ends_with("'") {
+                    if seen_message.ends_with('\'') {
                         seen_message = format!("{}: {seen_message}", info.name);
                     }
                     self.log_message(vec![(seen_message, info.color)]);
@@ -988,7 +985,7 @@ impl World {
                         for destroyed_armor in self.inventory.damage_armor(&self.world_info) {
                             self.log_message(vec![
                                 ("Your ".into(), Color::White),
-                                (destroyed_armor.name.into(), destroyed_armor.ty.get_color()),
+                                (destroyed_armor.name, destroyed_armor.ty.get_color()),
                                 (" breaks!".into(), Color::Red),
                             ]);
                         }

@@ -579,8 +579,8 @@ pub fn generate_world(world: &mut World, seed: u64) {
         let sprinkle = SprinkleOpts {
             num_enemies: 30,
             num_items: 30,
-            valid_enemies: world.world_info.monsters_per_level[i as usize].clone(),
-            valid_equipment: world.world_info.equipment_per_level[i as usize].clone(),
+            valid_enemies: world.world_info.monsters_per_level[i].clone(),
+            valid_equipment: world.world_info.equipment_per_level[i].clone(),
         };
         let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
         let lgr = match algo {

@@ -572,7 +572,9 @@ impl IdeaGuy {
                         self.recipes
                             .insert((item1, item2), self.items.as_ref().unwrap().len());
                     }
-                    self.items.as_mut().map(|items| items.push(item));
+                    if let Some(items) = self.items.as_mut() {
+                        items.push(item)
+                    }
                 }
             }
         }
