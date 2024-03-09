@@ -36,6 +36,7 @@ def get_test_json(fname):
 retry_strategy = Retry(
     total=4,
     status_forcelist=[429, 500],
+    backoff_factor=2,
     allowed_methods=frozenset(
         {"DELETE", "GET", "HEAD", "OPTIONS", "PUT", "TRACE", "POST"}
     ),
