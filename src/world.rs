@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
-pub const STARTING_DURABILITY: usize = 100;
+pub const STARTING_DURABILITY: usize = 10;
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",

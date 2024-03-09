@@ -46,11 +46,11 @@ fn condition_color(condition: ItemCondition) -> Color {
 
 fn get_item_condition(durability: usize) -> ItemCondition {
     match durability {
-        0..=20 => ItemCondition::Poor,
-        21..=50 => ItemCondition::Acceptable,
-        51..=70 => ItemCondition::Good,
-        71..=95 => ItemCondition::VeryGood,
-        96..=99 => ItemCondition::LikeNew,
+        0..=1 => ItemCondition::Poor,
+        2..=3 => ItemCondition::Acceptable,
+        4..=5 => ItemCondition::Good,
+        6..=7 => ItemCondition::VeryGood,
+        8..=9 => ItemCondition::LikeNew,
         _ => ItemCondition::New,
     }
 }
