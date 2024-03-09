@@ -336,14 +336,7 @@ where
 }
 
 pub fn api_url() -> String {
-    std::env::var("SERVER_URL").unwrap_or("https://7drl24.pfe.io".into())
-}
-
-pub enum RequestType {
-    Setting,
-    Areas,
-    Monsters,
-    Craft,
+    std::env::var("SERVER_URL").unwrap_or("http://localhost:5000".into())
 }
 
 #[derive(Debug, Clone)]
