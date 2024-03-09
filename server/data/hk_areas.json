@@ -23,10 +23,12 @@
     ],
     "melee_weapons": [
       "Nail",
-      "Mantis Claw",
-      "Bone Nail",
       "Thorns of Agony",
-      "Sharp Shadow"
+      "Mantis Claw"
+    ],
+    "ranged_weapons": [
+      "Vengeful Spirit",
+      "Howling Wraiths"
     ]
   },
   {
@@ -52,11 +54,13 @@
       "Spell Twister"
     ],
     "melee_weapons": [
-      "Crystal Sword",
       "Nailmaster's Glory",
       "Coiled Nail",
-      "Hiveblood",
       "Mark of Pride"
+    ],
+    "ranged_weapons": [
+      "Abyss Shriek",
+      "Shade Soul"
     ]
   },
   {
@@ -79,14 +83,16 @@
       "Radiance Cloak",
       "Shadow Boots",
       "Void Heart",
-      "Sharp Shadow"
+      "Unbreakable Strength"
     ],
     "melee_weapons": [
-      "Abyss Shrieker",
       "Pure Nail",
-      "Shade Cloak",
-      "Unbreakable Strength",
+      "Fury of the Fallen",
       "Quick Slash"
+    ],
+    "ranged_weapons": [
+      "Descending Dark",
+      "Desolate Dive"
     ]
   }
 ]

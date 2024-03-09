@@ -7,10 +7,18 @@ use std::{
 };
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum EquipmentSlot {
-    Weapon,
+    MeleeWeapon,
+    RangedWeapon,
     Armor,
+}
+
+pub fn is_weapon_slot(slot: EquipmentSlot) -> bool {
+    match slot {
+        EquipmentSlot::MeleeWeapon | EquipmentSlot::RangedWeapon => true,
+        _ => false
+    }
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -292,6 +300,7 @@ pub struct Area {
     pub enemies: Vec<String>,
     pub equipment: Vec<String>,
     pub melee_weapons: Vec<String>,
+    pub ranged_weapons: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

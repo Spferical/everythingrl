@@ -166,7 +166,8 @@ impl Ui {
                                         name = item_desc.name.clone();
                                         types.push(item_desc.ty);
                                         display_slot = match item_desc.slot {
-                                            EquipmentSlot::Weapon => "Weapon",
+                                            EquipmentSlot::MeleeWeapon => "Melee",
+                                            EquipmentSlot::RangedWeapon => "Ranged",
                                             EquipmentSlot::Armor => "Equipment",
                                         };
                                         if slot.equipped {
@@ -289,7 +290,8 @@ impl Ui {
                             Item::Equipment(ek) => {
                                 let equip_def = sim.get_equipmentkind_info(ek.kind);
                                 let char = match equip_def.slot {
-                                    EquipmentSlot::Weapon => '/',
+                                    EquipmentSlot::MeleeWeapon => ')',
+                                    EquipmentSlot::RangedWeapon => '/',
                                     EquipmentSlot::Armor => '[',
                                 };
                                 let color = equip_def.ty.get_color().into();

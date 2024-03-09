@@ -31,22 +31,36 @@
     "name": "Nailmaster's Glory",
     "level": 3,
     "type": "fighting",
-    "slot": "weapon",
+    "slot": "melee_weapon",
     "description": "A gleaming nail that has been forged and sharpened by a master nailmaster."
   },
   {
     "name": "Coiled Nail",
     "level": 2,
     "type": "electric",
-    "slot": "weapon",
+    "slot": "melee_weapon",
     "description": "A nail wrapped with a powerful electric current, enhancing the user's striking power."
   },
   {
     "name": "Thorns of Agony",
     "level": 1,
     "type": "poison",
-    "slot": "weapon",
+    "slot": "melee_weapon",
     "description": "A cruel and deadly nail studded with thorns that leaves a painful poison in its wake."
+  },
+  {
+    "name": "Vengeful Spirit",
+    "level": 1,
+    "type": "ghost",
+    "slot": "ranged_weapon",
+    "description": "An angry spirit that flies forward and burns foes in its path."
+  },
+  {
+    "name": "Howling Wraiths",
+    "level": 1,
+    "type": "psychic",
+    "slot": "ranged_weapon",
+    "description": "A furious torrent of ethereal spectres is unleashed at the conjurer's foe."
   },
   {
     "name": "Unbreakable Strength",
@@ -63,24 +77,17 @@
     "description": "A mysterious and powerful charm that grants protection from the void, allowing the user to traverse the darkest depths."
   },
   {
-    "name": "Shade Cloak",
+    "name": "Fury of the Fallen",
     "level": 3,
-    "type": "ghost",
-    "slot": "armor",
-    "description": "A flowing cloak made of shade, enabling the user to vanish temporarily."
-  },
-  {
-    "name": "Bone Nail",
-    "level": 1,
-    "type": "ground",
-    "slot": "weapon",
-    "description": "A nail forged from a massive bone, providing a heavy and unforgiving strike."
+    "type": "fighting",
+    "slot": "melee_weapon",
+    "description": "A charm which embodies the fury and heroism that comes upon those who are about to die."
   },
   {
     "name": "Mantis Claw",
     "level": 2,
     "type": "grass",
-    "slot": "weapon",
+    "slot": "melee_weapon",
     "description": "A sharp claw, imbued with the power of the mantis, giving the user an increased range and speed."
   },
   {
@@ -108,7 +115,7 @@
     "name": "Nail",
     "level": 1,
     "type": "normal",
-    "slot": "weapon",
+    "slot": "melee_weapon",
     "description": "A basic nail, commonly used by warriors, providing a steady and reliable attack."
   },
   {
@@ -140,18 +147,18 @@
     "description": "A charm that enhances the user's magic abilities, making their spells more powerful and versatile."
   },
   {
-    "name": "Crystal Sword",
+    "name": "Abyss Shriek",
     "level": 2,
-    "type": "rock",
-    "slot": "weapon",
-    "description": "A sword forged from razor-sharp crystals, crystalline shards."
+    "type": "dark",
+    "slot": "ranged_weapon",
+    "description": "A vicious and deadly weapon that draws power from the depths of the abyss, causing its victim to become ensnared in darkness."
   },
   {
-    "name": "Abyss Shrieker",
-    "level": 3,
+    "name": "Shade Soul",
+    "level": 2,
     "type": "dark",
-    "slot": "weapon",
-    "description": "A vicious and deadly weapon that draws power from the depths of the abyss, causing its victim to become ensnared in darkness."
+    "slot": "ranged_weapon",
+    "description": "An dark spirit that flies forward and burns foes in its path."
   },
   {
     "name": "Crystal Shell",
@@ -171,28 +178,35 @@
     "name": "Quick Slash",
     "level": 3,
     "type": "fighting",
-    "slot": "armor",
+    "slot": "melee_weapon",
     "description": "A charm that enhances the user's attack speed, enabling them to strike multiple times in quick succession."
   },
   {
     "name": "Mark of Pride",
     "level": 2,
     "type": "normal",
-    "slot": "armor",
+    "slot": "melee_weapon",
     "description": "A charm that increases the user's nail's reach, allowing them to attack from a safer distance."
-  },
-  {
-    "name": "Sharp Shadow",
-    "level": 2,
-    "type": "dark",
-    "slot": "armor",
-    "description": "A charm that extends the range of the user's dash, enabling them to close in on enemies and land a quick strike."
   },
   {
     "name": "Pure Nail",
     "level": 3,
     "type": "steel",
-    "slot": "weapon",
+    "slot": "melee_weapon",
     "description": "A forged nail of pure steel, imbued with an ethereal light, increasing its strength and sharpness."
+  },
+  {
+    "name": "Descending Dark",
+    "level": 3,
+    "type": "normal",
+    "slot": "ranged_weapon",
+    "description": "Strikes the ground with a concentrated force of soul, which can destroy foes in its path."
+  },
+  {
+    "name": "Desolate Dive",
+    "level": 2,
+    "type": "normal",
+    "slot": "ranged_weapon",
+    "description": "Attack below the knight with a soul attack, destroying foes in its path."
   }
 ]

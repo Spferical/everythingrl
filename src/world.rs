@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
+use crate::net::{
+    is_weapon_slot, Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType,
+};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, SeedableRng};
@@ -343,12 +345,12 @@ impl Inventory {
         Self { items: vec![] }
     }
 
-    fn damage_weapon(&mut self, wi: &WorldInfo) -> Option<EquipmentKindInfo> {
-        if let Some(player_weapon) = self.get_equipped_weapon(wi) {
+    fn damage_weapon(&mut self, wi: &WorldInfo, melee: bool) -> Option<EquipmentKindInfo> {
+        if let Some(player_weapon) = self.get_equipped_weapon(wi, melee) {
             player_weapon.item_durability -= 1;
             if player_weapon.item_durability == 0 {
-                let weapon_info = self.get_equipped_weapon_info(wi);
-                self.remove(self.get_equipped_weapon_slot(wi).unwrap());
+                let weapon_info = self.get_equipped_weapon_info(wi, melee);
+                self.remove(self.get_equipped_weapon_slot(wi, melee).unwrap());
                 weapon_info
             } else {
                 None
@@ -379,7 +381,11 @@ impl Inventory {
         deleted_armor
     }
 
-    fn get_equipped_weapon(&mut self, wi: &WorldInfo) -> Option<&mut EquipmentInstance> {
+    fn get_equipped_weapon(
+        &mut self,
+        wi: &WorldInfo,
+        melee: bool,
+    ) -> Option<&mut EquipmentInstance> {
         self.items
             .iter_mut()
             .filter(|x| x.equipped)
@@ -390,11 +396,15 @@ impl Inventory {
             })
             .find(|i| {
                 let eki = wi.get_equipmentkind_info(i.kind);
-                eki.slot == EquipmentSlot::Weapon
+                match eki.slot {
+                    EquipmentSlot::MeleeWeapon => melee,
+                    EquipmentSlot::RangedWeapon => !melee,
+                    _ => false,
+                }
             })
     }
 
-    fn get_equipped_weapon_info(&self, wi: &WorldInfo) -> Option<EquipmentKindInfo> {
+    fn get_equipped_weapon_info(&self, wi: &WorldInfo, melee: bool) -> Option<EquipmentKindInfo> {
         self.items
             .iter()
             .filter(|x| x.equipped)
@@ -403,11 +413,15 @@ impl Inventory {
                 _ => None,
             })
             .map(|ek| wi.get_equipmentkind_info(ek.kind))
-            .find(|eki| eki.slot == EquipmentSlot::Weapon)
+            .find(|eki| match eki.slot {
+                EquipmentSlot::MeleeWeapon => melee,
+                EquipmentSlot::RangedWeapon => !melee,
+                _ => false,
+            })
             .cloned()
     }
 
-    fn get_equipped_weapon_slot(&self, wi: &WorldInfo) -> Option<usize> {
+    fn get_equipped_weapon_slot(&self, wi: &WorldInfo, melee: bool) -> Option<usize> {
         self.items
             .iter()
             .enumerate()
@@ -418,7 +432,11 @@ impl Inventory {
                 Item::Equipment(ek) => Some((i, ek)),
             })
             .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
-            .find(|(_, eki)| eki.slot == EquipmentSlot::Weapon)
+            .find(|(_, eki)| match eki.slot {
+                EquipmentSlot::MeleeWeapon => melee,
+                EquipmentSlot::RangedWeapon => !melee,
+                _ => false,
+            })
             .map(|(i, _)| i)
     }
 
@@ -474,10 +492,12 @@ impl Inventory {
                 item: Item::Equipment(ek),
                 equipped,
             } => match (equipped, wi.get_equipmentkind_info(ek.kind).slot) {
-                (true, EquipmentSlot::Weapon) => 1,
-                (true, EquipmentSlot::Armor) => 2,
-                (false, EquipmentSlot::Weapon) => 3,
-                (false, EquipmentSlot::Armor) => 4,
+                (true, EquipmentSlot::MeleeWeapon) => 1,
+                (true, EquipmentSlot::RangedWeapon) => 2,
+                (true, EquipmentSlot::Armor) => 3,
+                (false, EquipmentSlot::MeleeWeapon) => 4,
+                (false, EquipmentSlot::RangedWeapon) => 5,
+                (false, EquipmentSlot::Armor) => 6,
             },
             InventoryItem {
                 item: Item::PendingCraft(..),
@@ -534,7 +554,8 @@ impl Inventory {
 
             // Unequip another item if that slot is full.
             let max_per_slot = |slot: EquipmentSlot| match slot {
-                EquipmentSlot::Weapon => 1,
+                EquipmentSlot::MeleeWeapon => 1,
+                EquipmentSlot::RangedWeapon => 1,
                 EquipmentSlot::Armor => 2,
             };
             let max = max_per_slot(ek_def.slot);
@@ -664,8 +685,9 @@ impl World {
                 let new_pos = self.player_pos + offset;
                 if let Some(mut mob) = self.mobs.remove(&new_pos) {
                     let mki = self.get_mobkind_info(mob.kind).clone();
-                    let player_weapon_info =
-                        self.inventory.get_equipped_weapon_info(&self.world_info);
+                    let player_weapon_info = self
+                        .inventory
+                        .get_equipped_weapon_info(&self.world_info, true);
                     let (att_type, att_level) = player_weapon_info
                         .clone()
                         .map(|w| (w.ty, w.level))
@@ -674,7 +696,9 @@ impl World {
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
 
-                    if let Some(destroyed_weapon) = self.inventory.damage_weapon(&self.world_info) {
+                    if let Some(destroyed_weapon) =
+                        self.inventory.damage_weapon(&self.world_info, true)
+                    {
                         self.log_message(vec![
                             ("Your ".into(), Color::White),
                             (

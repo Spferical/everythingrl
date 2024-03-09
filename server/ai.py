@@ -115,11 +115,13 @@ class Area(pydantic.BaseModel):
     enemies: list[str]
     equipment: list[str]
     melee_weapons: list[str]
+    ranged_weapons: list[str]
 
 
 class ItemSlot(str, Enum):
     armor = "armor"
-    weapon = "weapon"
+    melee_weapon = "melee_weapon"
+    ranged_weapon = "ranged_weapon"
 
 
 class Item(pydantic.BaseModel):
@@ -283,7 +285,7 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
 
 
 def gen_items(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT mention abilities or gameplay mechanics in the description; instead, focus on appearance or lore."
+    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'melee_weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT mention abilities or gameplay mechanics in the description; instead, focus on appearance or lore."
     examples = [
         (
             {
@@ -293,7 +295,9 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
                     set(
                         name
                         for area in get_test_json("hk_areas.json")
-                        for name in area["equipment"] + area["melee_weapons"]
+                        for name in area["equipment"]
+                        + area["melee_weapons"]
+                        + area["ranged_weapons"]
                     )
                 ),
             },
@@ -302,7 +306,11 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
     ]
     item_names = list(
         set(
-            name for area in areas for name in area["equipment"] + area["melee_weapons"]
+            name
+            for area in areas
+            for name in area["equipment"]
+            + area["melee_weapons"]
+            + area["ranged_weapons"]
         )
     )
     input = {"theme": theme, "item_names": item_names}
@@ -311,12 +319,12 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
 
 
 def gen_setting_desc(theme: str):
-    instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. The description should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
+    instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks, ranged attacks, and crafting. The description should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
     return ask_google([instructions])
 
 
 def gen_areas(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), and names of 5 melee weapons that may be found on that level."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, and names of 2 ranged weapons that may be found on that level."
     examples = [
         (
             {
@@ -336,7 +344,7 @@ def gen_areas(theme: str, setting_desc: str):
 
 
 def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: dict):
-    instructions = f"You are the game master for a difficult permadeath roguelike with a crafting system. The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. As input, you will be given a theme, a long-form description of the setting, descriptions of each item, and a list of items already in the game (do not copy any of these). Output a JSON item definition for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. DO NOT output multiple types. Output fields include name, the name of the item; level, a number indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore. The two input items must be the same level; assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc."
+    instructions = f"You are the game master for a difficult permadeath roguelike with a crafting system. The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. As input, you will be given a theme, a long-form description of the setting, descriptions of each item, and a list of items already in the game (do not copy any of these). Output a JSON item definition for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. DO NOT output multiple types. Output fields include name, the name of the item; level, a number indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'melee_weapon' or 'ranged_weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore. The two input items must be the same level; assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc."
     return ask_google_structured(
         instructions,
         [],

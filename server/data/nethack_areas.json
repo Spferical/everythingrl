@@ -22,11 +22,13 @@
       "Healing Potion"
     ],
     "melee_weapons": [
-      "Mace",
       "Warhammer",
-      "Battle Axe",
       "Broadsword",
       "Long Sword"
+    ],
+    "ranged_weapons": [
+      "Sling",
+      "Crossbow"
     ]
   },
   {
@@ -52,11 +54,13 @@
       "Dwarven Ring"
     ],
     "melee_weapons": [
-      "Warhammer",
-      "Battle Axe",
       "Broadsword",
       "Long Sword",
       "Quarterstaff"
+    ],
+    "ranged_weapons": [
+      "Orcish Bow",
+      "Spear"
     ]
   },
   {
@@ -82,11 +86,13 @@
       "Amulet of Yendor"
     ],
     "melee_weapons": [
-      "Short Sword",
-      "Long Sword",
       "Katana",
       "Rapier",
       "Scimitar"
+    ],
+    "ranged_weapons": [
+      "Cream Pie",
+      "Shuriken"
     ]
   }
 ]
