@@ -1,5 +1,6 @@
 use macroquad::prelude::*;
 use net::IdeaGuy;
+use std::collections::HashMap;
 use world::PlayerAction;
 
 mod fov;
@@ -24,7 +25,22 @@ struct PlayState {
     sim: world::World,
     memory: world::Memory,
     ui: render::Ui,
+    pressed_keys: HashMap<KeyCode, f32>,
 }
+
+const KEYS_WITH_REPEAT: &[KeyCode] = &[
+    KeyCode::L,
+    KeyCode::Right,
+    KeyCode::H,
+    KeyCode::Left,
+    KeyCode::J,
+    KeyCode::Down,
+    KeyCode::K,
+    KeyCode::Up,
+];
+
+const INIT_KEY_REPEAT: f32 = 0.5;
+const KEY_REPEAT_DELAY: f32 = 1.0 / 30.0;
 
 impl PlayState {
     pub fn new(font: Font, ig: &mut IdeaGuy) -> Self {
@@ -36,7 +52,13 @@ impl PlayState {
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
         sim.post_init();
-        let mut slf = Self { sim, ui, memory };
+        let pressed_keys = HashMap::new();
+        let mut slf = Self {
+            sim,
+            ui,
+            memory,
+            pressed_keys,
+        };
         slf.update_memory();
 
         slf
@@ -277,6 +299,29 @@ async fn main() {
                 ps.sim.update_defs(ig);
                 if let Some(key) = get_last_key_pressed() {
                     ps.handle_key(key);
+                    if KEYS_WITH_REPEAT.contains(&key) {
+                        ps.pressed_keys.insert(key, 0.0);
+                    }
+                }
+                // Key repeat, once per second
+                ps.pressed_keys.retain(|k, _v| is_key_down(*k));
+                let mut keys_to_repeat = vec![];
+                for (k, v) in ps.pressed_keys.iter_mut() {
+                    let old_v = *v;
+                    *v += get_frame_time();
+                    macroquad::miniquad::info!("{}", v);
+                    if *v >= INIT_KEY_REPEAT {
+                        if old_v < INIT_KEY_REPEAT {
+                            keys_to_repeat.push(*k);
+                        } else if ((old_v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
+                            != ((*v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
+                        {
+                            keys_to_repeat.push(*k);
+                        }
+                    }
+                }
+                for k in keys_to_repeat {
+                    ps.handle_key(k);
                 }
 
                 ps.ui.render(&ps.sim, &ps.memory);
