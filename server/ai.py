@@ -175,7 +175,10 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
         logging.info(text)
         return text
     except KeyError:
-        logging.error(response.json())
+        logging.error(responses)
+        raise
+    except IndexError:
+        logging.error(responses)
         raise
 
 
