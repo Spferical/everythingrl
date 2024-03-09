@@ -618,6 +618,7 @@ impl World {
     pub fn add_stairs(&mut self, pos: Pos, dest: Pos) {
         self.stairs.insert(pos, dest);
         self[pos].kind = TileKind::Stairs;
+        self[pos].item = None;
     }
 
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
