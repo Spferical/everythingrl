@@ -87,6 +87,11 @@ class PokemonType(str, Enum):
     fairy = "fairy"
 
 
+class ItemSlot(str, Enum):
+    armor = "armor"
+    weapon = "weapon"
+
+
 class Monster(pydantic.BaseModel):
     name: str
     char: str
@@ -107,7 +112,7 @@ class Area(pydantic.BaseModel):
 
 
 class ItemSlot(str, Enum):
-    equipment = "equipment"
+    armor = "armor"
     weapon = "weapon"
 
 
@@ -116,6 +121,7 @@ class Item(pydantic.BaseModel):
     level: int
     type: PokemonType
     description: str
+    slot: ItemSlot
 
 
 def ask_mistral(prompt_parts: list[str]) -> str:
@@ -263,7 +269,7 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
 
 
 def gen_items(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore."
+    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore."
     examples = [
         (
             {

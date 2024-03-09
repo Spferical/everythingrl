@@ -3,8 +3,8 @@ use macroquad::prelude::*;
 use macroquad::text::Font;
 use std::collections::HashSet;
 
-use crate::net::Color;
-use crate::world::{EquipmentSlot, Item, MobKindInfo};
+use crate::net::{Color, EquipmentSlot};
+use crate::world::{Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
 pub struct Ui {

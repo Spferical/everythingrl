@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{Color, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
+use crate::net::{Color, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType, EquipmentSlot};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::Rng;
@@ -36,12 +36,6 @@ impl TileKind {
     pub fn is_walkable(self) -> bool {
         TILE_INFOS[self].walkable
     }
-}
-
-#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub enum EquipmentSlot {
-    Weapon,
-    Armor,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
@@ -179,18 +173,7 @@ impl WorldInfo {
     }
 
     pub fn update(&mut self, ig: &mut IdeaGuy) {
-        let weapon_names = ig
-            .areas
-            .iter()
-            .flatten()
-            .flat_map(|area| area.melee_weapons.clone())
-            .collect::<HashSet<String>>();
         for item in ig.items.iter().flatten() {
-            let slot = if weapon_names.contains(&item.name) {
-                EquipmentSlot::Weapon
-            } else {
-                EquipmentSlot::Armor
-            };
             if self.equip_kinds.iter().any(|e| e.name == item.name) {
                 continue;
             }
@@ -198,6 +181,7 @@ impl WorldInfo {
                 name,
                 level,
                 ty,
+                slot,
                 description,
             } = item.clone();
             self.equip_kinds.push(EquipmentKindInfo {

@@ -1,8 +1,16 @@
+use enum_map::Enum;
 use std::{
     fmt::Display,
     sync::mpsc::{self, Receiver},
     time::Duration,
 };
+
+#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum EquipmentSlot {
+    Weapon,
+    Armor,
+}
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -272,6 +280,7 @@ pub struct ItemDefinition {
     #[serde(rename = "type")]
     pub ty: PokemonType,
     pub description: String,
+    pub slot: EquipmentSlot,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
