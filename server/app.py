@@ -35,7 +35,7 @@ class Base(DeclarativeBase):
 @app.post("/setting/<theme>")
 def get_setting(theme):
     if theme == PREGEN_THEME:
-        setting_desc = ai.HK_SETTING_DESC
+        setting_desc = ai.get_test_str("hk.txt")
     else:
         setting_desc = ai.gen_setting_desc(theme)
     return jsonify(setting_desc)
@@ -46,7 +46,7 @@ def get_areas():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     if theme == PREGEN_THEME:
-        areas = ai.HK_AREAS
+        areas = ai.get_test_json("hk_areas.json")
     else:
         areas = ai.gen_areas(theme, setting_desc)
     logging.info(json.dumps(areas))
@@ -59,7 +59,7 @@ def monsters():
     setting_desc = flask.request.json["setting"]
     areas = flask.request.json["areas"]
     if theme == PREGEN_THEME:
-        monsters = ai.HK_MONSTERS
+        monsters = ai.get_test_json("hk_monsters.json")
     else:
         monsters = ai.gen_monsters(theme, setting_desc, areas)
     logging.info(json.dumps(monsters))
@@ -72,7 +72,7 @@ def items():
     setting_desc = flask.request.json["setting"]
     areas = flask.request.json["areas"]
     if theme == PREGEN_THEME:
-        items = ai.HK_ITEMS
+        items = ai.get_test_json("hk_items.json")
     else:
         items = ai.gen_items(theme, setting_desc, areas)
     logging.info(json.dumps(items))
