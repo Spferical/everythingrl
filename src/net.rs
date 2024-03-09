@@ -336,8 +336,7 @@ where
 }
 
 pub fn api_url() -> String {
-    // TODO: change default url
-    std::env::var("SERVER_URL").unwrap_or("http://localhost:5000".into())
+    std::env::var("SERVER_URL").unwrap_or("https://7drl24.pfe.io".into())
 }
 
 enum IdeaGuyState {
