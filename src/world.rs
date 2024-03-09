@@ -263,7 +263,7 @@ impl WorldInfo {
             .areas
             .iter()
             .flatten()
-            .map(|area| area.blurb.clone())
+            .map(|area| format!("{}: {}", area.name, area.blurb.clone()))
             .collect();
 
         for (&(a, b), &c) in ig.recipes.iter() {
@@ -633,6 +633,13 @@ impl World {
     }
 
     pub fn log_message(&mut self, text: Vec<(String, Color)>) {
+        println!(
+            "{}",
+            text.iter()
+                .map(|(s, _)| s.to_owned())
+                .collect::<Vec::<String>>()
+                .join("")
+        );
         self.log.push_back(text);
     }
 

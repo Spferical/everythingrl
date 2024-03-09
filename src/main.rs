@@ -105,7 +105,14 @@ impl PlayState {
                             }
                             world::Item::Equipment(item) => {
                                 let item_desc = &self.sim.get_equipmentkind_info(item.kind);
-                                (item_desc.description.clone(), item_desc.ty.get_color())
+                                (
+                                    format!(
+                                        "{}: {}",
+                                        item_desc.name,
+                                        item_desc.description.clone()
+                                    ),
+                                    item_desc.ty.get_color(),
+                                )
                             }
                             world::Item::PendingCraft(_, _) => {
                                 ("Crafting in progress...".into(), net::Color::Pink)
