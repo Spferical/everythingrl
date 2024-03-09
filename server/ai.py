@@ -98,6 +98,13 @@ class ItemSlot(str, Enum):
     weapon = "weapon"
 
 
+class MapGen(str, Enum):
+    simple_rooms_and_corridors = "simple_rooms_and_corridors"
+    caves = "caves"
+    hive = "hive"
+    dense_rooms = "dense_rooms"
+
+
 class Monster(pydantic.BaseModel):
     name: str
     char: str
@@ -112,6 +119,7 @@ class Monster(pydantic.BaseModel):
 class Area(pydantic.BaseModel):
     name: str
     blurb: str
+    mapgen: MapGen
     enemies: list[str]
     equipment: list[str]
     melee_weapons: list[str]
@@ -324,7 +332,7 @@ def gen_setting_desc(theme: str):
 
 
 def gen_areas(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, and names of 2 ranged weapons that may be found on that level."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, and names of 2 ranged weapons that may be found on that level."
     examples = [
         (
             {

@@ -2,6 +2,7 @@
   {
     "name": "Lower Dungeon",
     "blurb": "Your torch sputters and casts eerie shadows on the damp stone walls as you descend into the Lower Dungeon. The air is heavy with the scent of decay and the ominous silence is broken only by the occasional dripping of water.",
+    "mapgen": "simple_rooms_and_corridors",
     "enemies": [
       "Giant Rat",
       "Kobold",
@@ -34,6 +35,7 @@
   {
     "name": "Gnomish Mines",
     "blurb": "The sound of hammers striking anvils fills the air as you enter the Gnomish Mines. The walls are lined with forges and workshops, and the gnomes and dwarves who labor here seem oblivious to your presence.",
+    "mapgen": "caves",
     "enemies": [
       "Dwarf",
       "Gnome",
@@ -66,6 +68,7 @@
   {
     "name": "Medusa's Lair",
     "blurb": "The air grows cold and damp as you enter Medusa's Lair. The walls are lined with statues of once-living creatures, their eyes turned to stone. You can hear the faint sound of movement ahead.",
+    "mapgen": "hive",
     "enemies": [
       "Snake",
       "Giant Snake",

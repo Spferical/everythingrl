@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
 use crate::net::{
-    is_weapon_slot, Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType,
+    Area, Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType,
 };
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
@@ -148,6 +148,7 @@ impl MobKindInfo {
 /// Contains post-processed content definitions parsed from AI-generated data.
 #[derive(Debug, Clone)]
 pub struct WorldInfo {
+    pub areas: Vec<Area>,
     pub equip_kinds: Vec<EquipmentKindInfo>,
     pub monster_kinds: Vec<MobKindInfo>,
     pub monsters_per_level: Vec<Vec<MobKind>>,
@@ -160,6 +161,7 @@ pub struct WorldInfo {
 impl WorldInfo {
     pub fn new() -> Self {
         Self {
+            areas: Vec::new(),
             equip_kinds: Vec::new(),
             monster_kinds: Vec::new(),
             monsters_per_level: Vec::new(),
@@ -171,6 +173,9 @@ impl WorldInfo {
     }
 
     pub fn update(&mut self, ig: &mut IdeaGuy) {
+        for i in self.areas.len()..ig.areas.as_ref().unwrap().len() {
+            self.areas.push(ig.areas.as_ref().unwrap()[i].clone());
+        }
         for item in ig.items.iter().flatten() {
             if self.equip_kinds.iter().any(|e| e.name == item.name) {
                 continue;

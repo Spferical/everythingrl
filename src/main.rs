@@ -309,7 +309,6 @@ async fn main() {
                 for (k, v) in ps.pressed_keys.iter_mut() {
                     let old_v = *v;
                     *v += get_frame_time();
-                    macroquad::miniquad::info!("{}", v);
                     if *v >= INIT_KEY_REPEAT {
                         if old_v < INIT_KEY_REPEAT {
                             keys_to_repeat.push(*k);

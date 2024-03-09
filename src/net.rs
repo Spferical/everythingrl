@@ -17,7 +17,7 @@ pub enum EquipmentSlot {
 pub fn is_weapon_slot(slot: EquipmentSlot) -> bool {
     match slot {
         EquipmentSlot::MeleeWeapon | EquipmentSlot::RangedWeapon => true,
-        _ => false
+        _ => false,
     }
 }
 
@@ -293,10 +293,20 @@ pub struct ItemDefinition {
     pub craft_id: Option<CraftId>,
 }
 
+#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MapGen {
+    SimpleRoomsAndCorridors,
+    Caves,
+    Hive,
+    DenseRooms,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Area {
     pub name: String,
     pub blurb: String,
+    pub mapgen: MapGen,
     pub enemies: Vec<String>,
     pub equipment: Vec<String>,
     pub melee_weapons: Vec<String>,

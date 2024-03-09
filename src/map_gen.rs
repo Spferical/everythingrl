@@ -1,12 +1,15 @@
 #![allow(dead_code)]
 use std::collections::{HashMap, HashSet};
 
-use rand::rngs::SmallRng;
+use rand::rngs::StdRng;
 use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, CARDINALS};
-use crate::world::{self, EquipmentInstance, EquipmentKind, Item, Mob, MobKind, TileKind, World};
+use crate::net::MapGen;
+use crate::world::{
+    self, EquipmentInstance, EquipmentKind, Item, Mob, MobKind, TileKind, World, FOV_RANGE,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -342,11 +345,7 @@ fn gen_alien_nest(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect
     }
 }
 
-fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: Rect) {
-    // offices
-    for entrance in entrances {
-        carve_floor(world, *entrance, 1, TileKind::Floor);
-    }
+fn gen_offices(world: &mut World, rng: &mut impl Rng, rect: Rect) -> LevelgenResult {
     let max_width = rng.gen_range(4..=rect.width().min(8));
     let min_width = max_width / 2 - 1;
     let max_height = rng.gen_range(4..=rect.width().min(8));
@@ -359,7 +358,6 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
         min_width,
         min_height,
     };
-    // let rect = Rect::new(rect.x1 + 1, rect.x2 - 1, rect.y1 + 1, rect.y2 - 1);
     let rooms = carve_rooms_bsp_extra_loops(world, rect, &bsp_opts, rng, 1.0);
     for room in &rooms {
         // furnish the rooms a little
@@ -377,17 +375,10 @@ fn gen_offices(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: R
             }
         }
     }
-    let size = rect.width() * rect.height();
-    // spawn some enemies
-    for _ in 0..(size / 20).max(1) {
-        let room = rooms.choose(rng).unwrap();
-        let x = rng.gen_range(room.x1..=room.x2);
-        let y = rng.gen_range(room.y1..=room.y2);
-        let _pos = Pos { x, y };
-        // world.add_mob(pos, Mob::new(world.get_random_mob_kind(rng)));
+    LevelgenResult {
+        start: rooms[0].center(),
+        end: rooms.iter().last().unwrap().center(),
     }
-
-    carve_floor(world, Pos { x: 8, y: 0 }, 1, TileKind::Floor);
 }
 
 #[derive(Debug, Clone)]
@@ -407,10 +398,10 @@ pub struct SprinkleOpts {
 
 pub fn gen_simple_rooms(
     world: &mut World,
-    opts: SimpleRoomOpts,
-    sprinkle: SprinkleOpts,
+    opts: &SimpleRoomOpts,
+    sprinkle: &SprinkleOpts,
     rng: &mut impl Rng,
-) -> Vec<Rect> {
+) -> LevelgenResult {
     // Create rooms
     let mut rooms = vec![];
     for _ in 0..opts.max_rooms {
@@ -466,33 +457,143 @@ pub fn gen_simple_rooms(
             world::STARTING_DURABILITY,
         )));
     }
-    rooms
+    LevelgenResult {
+        start: rooms[0].center(),
+        end: rooms.iter().last().unwrap().center(),
+    }
+}
+
+pub struct LevelgenResult {
+    pub start: Pos,
+    pub end: Pos,
+}
+
+fn gen_level_mapgen(
+    world: &mut World,
+    buf: mapgen::MapBuffer,
+    rect: Rect,
+    sprinkle: SprinkleOpts,
+    rng: &mut impl Rng,
+) -> LevelgenResult {
+    assert!(buf.width as i32 == rect.width());
+    assert!(buf.height as i32 == rect.height());
+    for x in 0..buf.width {
+        for y in 0..buf.height {
+            let pos = rect.topleft()
+                + Offset {
+                    x: x as i32,
+                    y: y as i32,
+                };
+            world[pos].kind = if buf.is_walkable(x, y) {
+                TileKind::Floor
+            } else {
+                TileKind::Wall
+            }
+        }
+    }
+
+    let start = buf.starting_point.unwrap();
+    let start_pos = Pos {
+        x: rect.topleft().x + start.x as i32,
+        y: rect.topleft().y + start.y as i32,
+    };
+
+    let walkable_poses = rect
+        .into_iter()
+        .filter(|pos| world[*pos].kind.is_walkable())
+        .collect::<Vec<_>>();
+
+    let fov = crate::fov::calculate_fov(start_pos, FOV_RANGE, world);
+
+    let walkable_poses_out_of_fov = walkable_poses
+        .iter()
+        .copied()
+        .filter(|pos| !fov.contains(pos))
+        .collect::<Vec<_>>();
+
+    // Sprinkle enemies/items
+    for _ in 0..sprinkle.num_enemies {
+        let pos = *walkable_poses_out_of_fov.choose(rng).unwrap();
+        world.add_mob(pos, Mob::new(*sprinkle.valid_enemies.choose(rng).unwrap()));
+    }
+    for _ in 0..sprinkle.num_items {
+        let pos = *walkable_poses.choose(rng).unwrap();
+        world[pos].item = Some(Item::Equipment(EquipmentInstance::new(
+            *sprinkle.valid_equipment.choose(rng).unwrap(),
+            world::STARTING_DURABILITY,
+        )));
+    }
+    let end = buf.exit_point.unwrap();
+    let end_pos = rect.topleft()
+        + Offset {
+            x: end.x as i32,
+            y: end.y as i32,
+        };
+    LevelgenResult {
+        start: start_pos,
+        end: end_pos,
+    }
+}
+
+enum LevelGenType {
+    SimpleRoomsAndCorridors,
+    Caves,
+    Hive,
+    DenseRooms,
 }
 
 pub fn generate_world(world: &mut World, seed: u64) {
-    let mut rng = SmallRng::seed_from_u64(seed);
-    let mut rooms = vec![];
-    for i in 0..3 {
-        let opts = SimpleRoomOpts {
-            rect: Rect::new_centered(Pos::new(i * 80, 0), 80, 50),
-            max_rooms: 30,
-            min_room_size: 6,
-            max_room_size: 10,
-        };
+    let mut rng = StdRng::seed_from_u64(seed);
+    let mut results = vec![];
+    for i in 0..world.world_info.areas.len() {
+        let algo = world.world_info.areas[i].mapgen;
         let sprinkle = SprinkleOpts {
             num_enemies: 30,
-            num_items: 300,
+            num_items: 30,
             valid_enemies: world.world_info.monsters_per_level[i as usize].clone(),
             valid_equipment: world.world_info.equipment_per_level[i as usize].clone(),
         };
-        rooms.push(gen_simple_rooms(world, opts.clone(), sprinkle, &mut rng));
+        let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
+        results.push(match algo {
+            MapGen::SimpleRoomsAndCorridors => {
+                let opts = SimpleRoomOpts {
+                    rect,
+                    max_rooms: 30,
+                    min_room_size: 6,
+                    max_room_size: 10,
+                };
+                gen_simple_rooms(world, &opts, &sprinkle, &mut rng)
+            }
+            MapGen::Caves => {
+                let buf = mapgen::MapBuilder::new(80, 50)
+                    .with(mapgen::NoiseGenerator::uniform())
+                    .with(mapgen::CellularAutomata::new())
+                    .with(mapgen::AreaStartingPosition::new(
+                        mapgen::XStart::CENTER,
+                        mapgen::YStart::CENTER,
+                    ))
+                    .with(mapgen::CullUnreachable::new())
+                    .with(mapgen::DistantExit::new())
+                    .build();
+                gen_level_mapgen(world, buf, rect, sprinkle, &mut rng)
+            }
+            MapGen::Hive => {
+                let buf = mapgen::MapBuilder::new(80, 50)
+                    .with(mapgen::VoronoiHive::new())
+                    .with(mapgen::AreaStartingPosition::new(
+                        mapgen::XStart::LEFT,
+                        mapgen::YStart::TOP,
+                    ))
+                    .with(mapgen::DistantExit::new())
+                    .build_with_rng(&mut rng);
+                gen_level_mapgen(world, buf, rect, sprinkle, &mut rng)
+            }
+            MapGen::DenseRooms => gen_offices(world, &mut rng, rect),
+        });
     }
-    world.player_pos = rooms[0][0].center();
-    for i in 0..2 {
-        world.add_stairs(
-            rooms[i][rooms[i].len() - 1].center(),
-            rooms[i + 1][0].center(),
-        );
+    world.player_pos = results[0].start;
+    for i in 1..results.len() {
+        world.add_stairs(results[i - 1].end, results[i].start)
     }
 }
 
