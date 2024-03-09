@@ -345,8 +345,37 @@ pub struct Inventory {
 }
 
 impl Inventory {
+    // All of these methods suck, refactor.
     fn new() -> Self {
         Self { items: vec![] }
+    }
+
+    fn damage_armor(&mut self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
+        let mut delete_idx = Vec::new();
+        for (i, player_armor) in self.get_equipped_armor(wi).into_iter().enumerate() {
+            player_armor.item_durability -= 1;
+            if player_armor.item_durability == 0 {
+                // let pwi = armor[i];
+                /*self.log_message(vec![
+                    ("Your ".into(), Color::White),
+                    (pwi.name.into(), pwi.ty.get_color()),
+                    (" breaks!".into(), Color::Red),
+                ]);*/
+                // self.remove(self.get_equipped_armor_slots(wi)[i]);
+                delete_idx.push(i);
+            }
+        }
+
+        // Pretty important to do it in this order!
+        let mut deleted_armor = Vec::new();
+        for idx in delete_idx.iter() {
+            deleted_armor.push(self.get_equipped_armor_info(wi)[*idx].clone());
+        }
+        for idx in delete_idx {
+            self.remove(self.get_equipped_armor_slots(wi)[idx]);
+        }
+
+        deleted_armor
     }
 
     fn get_equipped_weapon(&mut self, wi: &WorldInfo) -> Option<&mut EquipmentInstance> {
@@ -392,6 +421,22 @@ impl Inventory {
             .map(|(i, _)| i)
     }
 
+    fn get_equipped_armor(&mut self, wi: &WorldInfo) -> Vec<&mut EquipmentInstance> {
+        self.items
+            .iter_mut()
+            .filter(|x| x.equipped)
+            .filter_map(|x| match x.item {
+                Item::Corpse(_) => None,
+                Item::PendingCraft(_, _) => None,
+                Item::Equipment(ref mut i) => Some(i),
+            })
+            .filter(|i| {
+                let eki = wi.get_equipmentkind_info(i.kind);
+                eki.slot == EquipmentSlot::Armor
+            })
+            .collect()
+    }
+
     fn get_equipped_armor_info(&self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
         self.items
             .iter()
@@ -403,6 +448,22 @@ impl Inventory {
             .map(|ek| wi.get_equipmentkind_info(ek.kind))
             .filter(|eki| eki.slot == EquipmentSlot::Armor)
             .cloned()
+            .collect()
+    }
+
+    fn get_equipped_armor_slots(&self, wi: &WorldInfo) -> Vec<usize> {
+        self.items
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| x.equipped)
+            .filter_map(|(i, x)| match x.item {
+                Item::Corpse(_) => None,
+                Item::PendingCraft(_, _) => None,
+                Item::Equipment(ek) => Some((i, ek)),
+            })
+            .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
+            .filter(|(_, eki)| eki.slot == EquipmentSlot::Armor)
+            .map(|(i, _)| i)
             .collect()
     }
 
@@ -875,7 +936,7 @@ impl World {
                 MobAi::Move { dest } => {
                     let target = self.path_towards(pos, dest, false, true, None);
                     if target == self.player_pos {
-                        let mki = self.get_mobkind_info(mob.kind);
+                        let mki = self.get_mobkind_info(mob.kind).clone();
                         let armor = self.inventory.get_equipped_armor_info(&self.world_info);
                         let defense1 = armor
                             .first()
@@ -885,12 +946,23 @@ impl World {
                         let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
                         let mult = eff.get_scale();
                         let damage = mki.level * mult;
+
                         self.log_message(vec![
                             (mki.attack.clone(), mki.color),
                             (" You take ".into(), Color::White),
                             (format!("{}", damage), Color::Red),
                             (" damage!".into(), Color::White),
                         ]);
+
+                        // See if armor is destroyed.
+                        for destroyed_armor in self.inventory.damage_armor(&self.world_info) {
+                            self.log_message(vec![
+                                ("Your ".into(), Color::White),
+                                (destroyed_armor.name.into(), destroyed_armor.ty.get_color()),
+                                (" breaks!".into(), Color::Red),
+                            ]);
+                        }
+
                         self.player_damage += damage;
                         new_pos = pos;
                     } else {
