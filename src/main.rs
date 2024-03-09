@@ -105,7 +105,7 @@ impl PlayState {
                         }
                         world::Item::Equipment(item) => {
                             let item_desc = &self.sim.get_equipmentkind_info(item.kind);
-                            (item_desc.description.clone(), item_desc.color)
+                            (item_desc.description.clone(), item_desc.ty.get_color())
                         }
                     }]);
                 }

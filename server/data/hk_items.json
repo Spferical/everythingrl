@@ -2,7 +2,6 @@
   {
     "name": "Radiance Cloak",
     "level": 3,
-    "color": "white",
     "type": "normal",
     "slot": "equipment",
     "description": "A cloak imbued with the power of the Radiance, enhancing the user's speed and agility."
@@ -10,7 +9,6 @@
   {
     "name": "Reflective Cloak",
     "level": 1,
-    "color": "skyblue",
     "type": "water",
     "slot": "equipment",
     "description": "A cloak that reflects light, giving the wearer an ethereal appearance."
@@ -18,7 +16,6 @@
   {
     "name": "Geode Breastplate",
     "level": 3,
-    "color": "orange",
     "type": "rock",
     "slot": "equipment",
     "description": "A heavy but protective breastplate made from a thick piece of geode."
@@ -26,7 +23,6 @@
   {
     "name": "Broken Mask",
     "level": 2,
-    "color": "beige",
     "type": "bug",
     "slot": "equipment",
     "description": "A broken and overgrown mask that still seems to hold some kind of power."
@@ -34,7 +30,6 @@
   {
     "name": "Nailmaster's Glory",
     "level": 3,
-    "color": "violet",
     "type": "fighting",
     "slot": "weapon",
     "description": "A gleaming nail that has been forged and sharpened by a master nailmaster."
@@ -42,7 +37,6 @@
   {
     "name": "Coiled Nail",
     "level": 2,
-    "color": "yellow",
     "type": "electric",
     "slot": "weapon",
     "description": "A nail wrapped with a powerful electric current, enhancing the user's striking power."
@@ -50,7 +44,6 @@
   {
     "name": "Thorns of Agony",
     "level": 1,
-    "color": "pink",
     "type": "poison",
     "slot": "weapon",
     "description": "A cruel and deadly nail studded with thorns that leaves a painful poison in its wake."
@@ -58,7 +51,6 @@
   {
     "name": "Unbreakable Strength",
     "level": 3,
-    "color": "white",
     "type": "steel",
     "slot": "equipment",
     "description": "A charm that grants the user incredible strength, enabling them to wield their weapon with devastating force."
@@ -66,7 +58,6 @@
   {
     "name": "Void Heart",
     "level": 3,
-    "color": "black",
     "type": "ghost",
     "slot": "equipment",
     "description": "A mysterious and powerful charm that grants protection from the void, allowing the user to traverse the darkest depths."
@@ -74,7 +65,6 @@
   {
     "name": "Shade Cloak",
     "level": 3,
-    "color": "beige",
     "type": "ghost",
     "slot": "equipment",
     "description": "A flowing cloak made of shade, enabling the user to vanish temporarily."
@@ -82,7 +72,6 @@
   {
     "name": "Bone Nail",
     "level": 1,
-    "color": "white",
     "type": "ground",
     "slot": "weapon",
     "description": "A nail forged from a massive bone, providing a heavy and unforgiving strike."
@@ -90,7 +79,6 @@
   {
     "name": "Mantis Claw",
     "level": 2,
-    "color": "green",
     "type": "grass",
     "slot": "weapon",
     "description": "A sharp claw, imbued with the power of the mantis, giving the user an increased range and speed."
@@ -98,7 +86,6 @@
   {
     "name": "Void Armor",
     "level": 3,
-    "color": "black",
     "type": "ghost",
     "slot": "equipment",
     "description": "A set of armor made from pure void, enhancing the user's defense and resistance to darkness."
@@ -106,7 +93,6 @@
   {
     "name": "Miner's Boots",
     "level": 1,
-    "color": "brown",
     "type": "ground",
     "slot": "equipment",
     "description": "Boots designed for miners, providing increased grip and durability."
@@ -114,7 +100,6 @@
   {
     "name": "Hiveblood",
     "level": 2,
-    "color": "gold",
     "type": "bug",
     "slot": "equipment",
     "description": "A charm that grants the user the ability to regenerate lost health, making them more resilient."
@@ -122,7 +107,6 @@
   {
     "name": "Nail",
     "level": 1,
-    "color": "beige",
     "type": "normal",
     "slot": "weapon",
     "description": "A basic nail, commonly used by warriors, providing a steady and reliable attack."
@@ -130,7 +114,6 @@
   {
     "name": "Dreamweaver",
     "level": 3,
-    "color": "purple",
     "type": "psychic",
     "slot": "equipment",
     "description": "A charm that grants the user the ability to lucid dream, allowing them to enter a world of boundless possibilities."
@@ -138,7 +121,6 @@
   {
     "name": "Lantern",
     "level": 1,
-    "color": "yellow",
     "type": "fire",
     "slot": "equipment",
     "description": "A lantern that emits a warm light, providing comfort and safety in the darkest of places."
@@ -146,7 +128,6 @@
   {
     "name": "Spelunker's Hat",
     "level": 1,
-    "color": "lightgray",
     "type": "normal",
     "slot": "equipment",
     "description": "A simple hat worn by spelunkers, with a built-in headlamp for exploring caves."
@@ -154,7 +135,6 @@
   {
     "name": "Spell Twister",
     "level": 3,
-    "color": "blue",
     "type": "water",
     "slot": "equipment",
     "description": "A charm that enhances the user's magic abilities, making their spells more powerful and versatile."
@@ -162,7 +142,6 @@
   {
     "name": "Crystal Sword",
     "level": 2,
-    "color": "beige",
     "type": "rock",
     "slot": "weapon",
     "description": "A sword forged from razor-sharp crystals, crystalline shards."
@@ -170,7 +149,6 @@
   {
     "name": "Abyss Shrieker",
     "level": 3,
-    "color": "black",
     "type": "dark",
     "slot": "weapon",
     "description": "A vicious and deadly weapon that draws power from the depths of the abyss, causing its victim to become ensnared in darkness."
@@ -178,7 +156,6 @@
   {
     "name": "Crystal Shell",
     "level": 3,
-    "color": "beige",
     "type": "rock",
     "slot": "equipment",
     "description": "A protective shell made from strong crystals, generating a shield around the user."
@@ -186,7 +163,6 @@
   {
     "name": "Shadow Boots",
     "level": 1,
-    "color": "black",
     "type": "dark",
     "slot": "equipment",
     "description": "Boots that allow the user to move silently, making them perfect for stealth."
@@ -194,7 +170,6 @@
   {
     "name": "Quick Slash",
     "level": 3,
-    "color": "red",
     "type": "fighting",
     "slot": "equipment",
     "description": "A charm that enhances the user's attack speed, enabling them to strike multiple times in quick succession."
@@ -202,7 +177,6 @@
   {
     "name": "Mark of Pride",
     "level": 2,
-    "color": "white",
     "type": "normal",
     "slot": "equipment",
     "description": "A charm that increases the user's nail's reach, allowing them to attack from a safer distance."
@@ -210,7 +184,6 @@
   {
     "name": "Sharp Shadow",
     "level": 2,
-    "color": "black",
     "type": "dark",
     "slot": "equipment",
     "description": "A charm that extends the range of the user's dash, enabling them to close in on enemies and land a quick strike."
@@ -218,7 +191,6 @@
   {
     "name": "Pure Nail",
     "level": 3,
-    "color": "gold",
     "type": "steel",
     "slot": "weapon",
     "description": "A forged nail of pure steel, imbued with an ethereal light, increasing its strength and sharpness."

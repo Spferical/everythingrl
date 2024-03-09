@@ -72,7 +72,6 @@ pub struct CraftingInfo {
     level: usize,
     type1: PokemonType,
     type2: Option<PokemonType>,
-    color: Color,
 }
 
 pub struct TileKindInfo {
@@ -130,7 +129,6 @@ impl Mob {
 pub struct EquipmentKindInfo {
     pub name: String,
     pub level: usize,
-    pub color: Color,
     pub ty: PokemonType,
     pub description: String,
     pub slot: EquipmentSlot,
@@ -196,14 +194,12 @@ impl WorldInfo {
             let ItemDefinition {
                 name,
                 level,
-                color,
                 ty,
                 description,
             } = item.clone();
             self.equip_kinds.push(EquipmentKindInfo {
                 name,
                 level,
-                color,
                 ty,
                 description,
                 slot,
@@ -297,7 +293,6 @@ impl WorldInfo {
                     level: mki.level,
                     type1: mki.type1,
                     type2: mki.type2,
-                    color: mki.color,
                 }
             }
             Item::Equipment(ek) => {
@@ -306,7 +301,6 @@ impl WorldInfo {
                     level: eki.level,
                     type1: eki.ty,
                     type2: None,
-                    color: eki.color,
                 }
             }
         }
@@ -330,7 +324,6 @@ impl WorldInfo {
             self.equip_kinds.push(EquipmentKindInfo {
                 name: "???".into(),
                 level: ci1.level + 1,
-                color: *[ci1.color, ci2.color].choose(rng).unwrap(),
                 ty,
                 description: "????".into(),
                 slot: *[EquipmentSlot::Armor, EquipmentSlot::Weapon]
@@ -553,7 +546,7 @@ impl World {
             }
             Item::Equipment(item) => {
                 let item_desc = &self.get_equipmentkind_info(item.kind);
-                (item_desc.name.clone(), item_desc.color)
+                (item_desc.name.clone(), item_desc.ty.get_color())
             }
         }
     }

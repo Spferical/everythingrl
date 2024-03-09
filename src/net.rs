@@ -266,7 +266,6 @@ pub struct MonsterDefinition {
 pub struct ItemDefinition {
     pub name: String,
     pub level: usize,
-    pub color: Color,
     #[serde(rename = "type")]
     pub ty: PokemonType,
     pub description: String,
