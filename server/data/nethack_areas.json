@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Lower Dungeon",
+    "blurb": "Your torch sputters and casts eerie shadows on the damp stone walls as you descend into the Lower Dungeon. The air is heavy with the scent of decay and the ominous silence is broken only by the occasional dripping of water.",
+    "enemies": [
+      "Giant Rat",
+      "Kobold",
+      "Mimic",
+      "Zombie",
+      "Wumpus",
+      "Basilisk",
+      "Jackal",
+      "Killer Bee",
+      "Giant Bat",
+      "Snake"
+    ],
+    "equipment": [
+      "Rusted Sword",
+      "Leather Armor",
+      "Iron Helmet",
+      "Oil Lamp",
+      "Healing Potion"
+    ],
+    "melee_weapons": [
+      "Mace",
+      "Warhammer",
+      "Battle Axe",
+      "Broadsword",
+      "Long Sword"
+    ]
+  },
+  {
+    "name": "Gnomish Mines",
+    "blurb": "The sound of hammers striking anvils fills the air as you enter the Gnomish Mines. The walls are lined with forges and workshops, and the gnomes and dwarves who labor here seem oblivious to your presence.",
+    "enemies": [
+      "Dwarf",
+      "Gnome",
+      "Elemental",
+      "Stone Golem",
+      "Earth Elemental",
+      "Fire Elemental",
+      "Water Elemental",
+      "Air Elemental",
+      "Rust Monster",
+      "Xorn"
+    ],
+    "equipment": [
+      "Pickaxe",
+      "Shovel",
+      "Lantern",
+      "Hard Hat",
+      "Dwarven Ring"
+    ],
+    "melee_weapons": [
+      "Warhammer",
+      "Battle Axe",
+      "Broadsword",
+      "Long Sword",
+      "Quarterstaff"
+    ]
+  },
+  {
+    "name": "Medusa's Lair",
+    "blurb": "The air grows cold and damp as you enter Medusa's Lair. The walls are lined with statues of once-living creatures, their eyes turned to stone. You can hear the faint sound of movement ahead.",
+    "enemies": [
+      "Snake",
+      "Giant Snake",
+      "Basilisk",
+      "Cockatrice",
+      "Gorgon",
+      "Medusa",
+      "Yuan-ti",
+      "Naga",
+      "Lamia",
+      "Amphisbaena"
+    ],
+    "equipment": [
+      "Mirror",
+      "Sunsword",
+      "Holy Water",
+      "Garlic",
+      "Amulet of Yendor"
+    ],
+    "melee_weapons": [
+      "Short Sword",
+      "Long Sword",
+      "Katana",
+      "Rapier",
+      "Scimitar"
+    ]
+  }
+]

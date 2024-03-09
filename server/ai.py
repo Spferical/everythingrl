@@ -2,6 +2,7 @@ from enum import Enum
 import json
 import logging
 import os
+from functools import cache
 
 import pydantic
 import requests
@@ -19,14 +20,18 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 USE_VERTEX_AI = True
 
-with open(os.path.join(DIR_PATH, "data", "hk.txt")) as f:
-    HK_SETTING_DESC = f.read()
-with open(os.path.join(DIR_PATH, "data", "hk_areas.json")) as f:
-    HK_AREAS = json.load(f)
-with open(os.path.join(DIR_PATH, "data", "hk_monsters.json")) as f:
-    HK_MONSTERS = json.load(f)
-with open(os.path.join(DIR_PATH, "data", "hk_items.json")) as f:
-    HK_ITEMS = json.load(f)
+
+@cache
+def get_test_str(fname):
+    with open(os.path.join(DIR_PATH, "data", fname)) as f:
+        return f.read()
+
+
+@cache
+def get_test_json(fname):
+    with open(os.path.join(DIR_PATH, "data", fname)) as f:
+        return json.load(f)
+
 
 retry_strategy = Retry(
     total=4,
@@ -233,8 +238,9 @@ def ask_google_structured(
     prompt_parts.append("\n")
 
     prompt = "".join(prompt_parts)
+    logging.debug(f"ASKING: {prompt}")
     response_text = ask_google([prompt])
-    logging.info(response_text)
+    logging.info(f"RECEIVED: {response_text}")
     responses = response_text.split("\n")
     output = []
     for response in responses:
@@ -254,36 +260,40 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
         (
             {
                 "theme": "Hollow Knight",
-                "setting_desc": HK_SETTING_DESC,
+                "setting_desc": get_test_str("hk.txt"),
                 "enemy_names": list(
-                    set(name for area in HK_AREAS for name in area["enemies"])
+                    set(
+                        name
+                        for area in get_test_json("hk_areas.json")
+                        for name in area["enemies"]
+                    )
                 ),
             },
-            HK_MONSTERS,
+            get_test_json("hk_monsters.json"),
         )
     ]
     enemy_names = list(set(name for area in areas for name in area["enemies"]))
-    input = {"theme": theme, "enemy_names": enemy_names}
+    input = {"theme": theme, "setting_desc": setting_desc, "enemy_names": enemy_names}
     count = len(enemy_names)
     return ask_google_structured(instructions, examples, input, count, Monster)
 
 
 def gen_items(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore."
+    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT mention abilities or gameplay mechanics in the description; instead, focus on appearance or lore."
     examples = [
         (
             {
                 "theme": "Hollow Knight",
-                "setting_desc": HK_SETTING_DESC,
+                "setting_desc": get_test_str("hk.txt"),
                 "item_names": list(
                     set(
                         name
-                        for area in HK_AREAS
+                        for area in get_test_json("hk_areas.json")
                         for name in area["equipment"] + area["melee_weapons"]
                     )
                 ),
             },
-            HK_ITEMS,
+            get_test_json("hk_items.json"),
         )
     ]
     item_names = list(
@@ -293,11 +303,11 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
     )
     input = {"theme": theme, "item_names": item_names}
     count = len(item_names)
-    return ask_google_structured(instructions, [], input, count, Item)
+    return ask_google_structured(instructions, examples, input, count, Item)
 
 
 def gen_setting_desc(theme: str):
-    instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
+    instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks and crafting. The description should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
     return ask_google([instructions])
 
 
@@ -306,10 +316,10 @@ def gen_areas(theme: str, setting_desc: str):
     examples = [
         (
             {
-                "theme": "Hollow Knight",
-                "setting_desc": HK_SETTING_DESC,
+                "theme": "NetHack",
+                "setting_desc": get_test_str("nethack.txt"),
             },
-            HK_AREAS,
+            get_test_json("nethack_areas.json"),
         )
     ]
     return ask_google_structured(
