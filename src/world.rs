@@ -4,7 +4,6 @@ use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
 use crate::net::{Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
-use rand::Rng;
 use rand::{seq::SliceRandom as _, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
@@ -61,12 +60,6 @@ pub enum Item {
     Corpse(MobKind),
     Equipment(EquipmentInstance),
     PendingCraft(EquipmentKind, EquipmentKind),
-}
-
-pub struct CraftingInfo {
-    level: usize,
-    type1: PokemonType,
-    type2: Option<PokemonType>,
 }
 
 pub struct TileKindInfo {
@@ -325,7 +318,7 @@ impl WorldInfo {
         }
     }
 
-    pub fn craft(&mut self, item1: Item, item2: Item, rng: &mut impl Rng) -> Option<Item> {
+    pub fn craft(&mut self, item1: Item, item2: Item) -> Option<Item> {
         match (item1, item2) {
             (Item::Equipment(ei1), Item::Equipment(ei2)) => self.craft_inner(ei1.kind, ei2.kind),
             _ => None,
@@ -783,7 +776,7 @@ impl World {
                     false
                 } else if let Some(item1) = self.inventory.get(i) {
                     if let Some(item2) = self.inventory.get(j) {
-                        if let Some(new_item) = self.world_info.craft(item1, item2, &mut self.rng) {
+                        if let Some(new_item) = self.world_info.craft(item1, item2) {
                             self.inventory.remove_all(vec![i, j]);
                             self.inventory.add(new_item);
                             true
