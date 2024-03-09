@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
-    sync::mpsc::{self, Receiver}, time::Duration,
+    sync::mpsc::{self, Receiver},
+    time::Duration,
 };
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
@@ -339,12 +340,127 @@ pub fn api_url() -> String {
     std::env::var("SERVER_URL").unwrap_or("https://7drl24.pfe.io".into())
 }
 
-enum IdeaGuyState {
-    GetSetting(BootlegFuture<Result<String, String>>),
-    GetAreas(BootlegFuture<Result<String, String>>),
-    GetMonsters(BootlegFuture<Result<String, String>>),
-    GetItems(BootlegFuture<Result<String, String>>),
-    Done,
+pub enum RequestType {
+    Setting,
+    Areas,
+    Monsters,
+    Craft,
+}
+
+#[derive(Debug, Clone)]
+pub enum Request {
+    Setting {
+        theme: String,
+    },
+    Areas {
+        theme: String,
+        setting: String,
+    },
+    Monsters {
+        theme: String,
+        setting: String,
+        areas: Vec<Area>,
+    },
+    Items {
+        theme: String,
+        setting: String,
+        areas: Vec<Area>,
+    },
+    Craft {
+        item1: ItemDefinition,
+        item2: ItemDefinition,
+    },
+}
+
+impl Request {
+    fn send(self) -> PendingRequest {
+        let api_url = api_url();
+        let fut = match self {
+            Request::Setting { ref theme } => request(format!("{api_url}/setting/{theme}"), ""),
+            Request::Areas {
+                ref theme,
+                ref setting,
+            } => request(
+                format!("{api_url}/areas"),
+                AreasArgs {
+                    theme: theme.clone(),
+                    setting: setting.clone(),
+                },
+            ),
+            Request::Monsters {
+                ref theme,
+                ref setting,
+                ref areas,
+            } => request(
+                format!("{api_url}/monsters"),
+                MonstersArgs {
+                    theme: theme.clone(),
+                    setting: setting.clone(),
+                    areas: areas.clone(),
+                },
+            ),
+            Request::Items {
+                ref theme,
+                ref setting,
+                ref areas,
+            } => request(
+                format!("{api_url}/items"),
+                MonstersArgs {
+                    theme: theme.clone(),
+                    setting: setting.clone(),
+                    areas: areas.clone(),
+                },
+            ),
+            Request::Craft {
+                ref item1,
+                ref item2,
+            } => todo!(),
+        };
+        PendingRequest { req: self, fut }
+    }
+}
+
+pub struct PendingRequest {
+    req: Request,
+    fut: BootlegFuture<Result<String, String>>,
+}
+
+enum RequestResult {
+    Setting(String),
+    Areas(Vec<Area>),
+    Monsters(Vec<MonsterDefinition>),
+    Items(Vec<ItemDefinition>),
+    Pending,
+    Error(String),
+}
+
+impl PendingRequest {
+    fn get(&mut self) -> RequestResult {
+        use RequestResult::*;
+        let resp = self.fut.get();
+        match resp {
+            None => Pending,
+            Some(Err(s)) => Error(s.clone()),
+            Some(Ok(s)) => match self.req {
+                Request::Setting { .. } => serde_json::from_str(s)
+                    .map(Setting)
+                    .unwrap_or_else(|e| Error(e.to_string())),
+                Request::Areas { .. } => serde_json::from_str(s)
+                    .map(Areas)
+                    .unwrap_or_else(|e| Error(e.to_string())),
+                Request::Monsters { .. } => serde_json::from_str(s)
+                    .map(Monsters)
+                    .unwrap_or_else(|e| Error(e.to_string())),
+                Request::Items { .. } => serde_json::from_str(s)
+                    .map(Items)
+                    .unwrap_or_else(|e| Error(e.to_string())),
+                Request::Craft { .. } => todo!(),
+            },
+        }
+    }
+    fn retry(&mut self) {
+        *self = self.req.clone().send();
+    }
 }
 
 /// Contains raw AI-generated content fetched from the server.
@@ -355,86 +471,71 @@ pub struct IdeaGuy {
     pub areas: Option<Vec<Area>>,
     pub monsters: Option<Vec<MonsterDefinition>>,
     pub items: Option<Vec<ItemDefinition>>,
-    state: IdeaGuyState,
+    outgoing: Vec<PendingRequest>,
 }
 
 impl IdeaGuy {
     pub fn new(theme: &str) -> Self {
         let api_url = api_url();
-        let boot_fut = request(format!("{api_url}/setting/{theme}"), "");
-        Self {
+        let mut slf = Self {
             theme: theme.into(),
             api_url,
             setting: None,
             areas: None,
             monsters: None,
             items: None,
-            state: IdeaGuyState::GetSetting(boot_fut),
-        }
+            outgoing: vec![],
+        };
+        slf.request(Request::Setting {
+            theme: slf.theme.clone(),
+        });
+        slf
+    }
+
+    pub fn request(&mut self, req: Request) {
+        self.outgoing.push(req.send());
     }
 
     pub fn tick(&mut self) {
-        match self.state {
-            IdeaGuyState::GetSetting(ref mut fut) => match fut.get() {
-                Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(resp).unwrap();
-                    self.setting = Some(resp);
-                    let api_url = &self.api_url;
-                    self.state = IdeaGuyState::GetAreas(request(
-                        format!("{api_url}/areas"),
-                        AreasArgs {
-                            theme: self.theme.clone(),
-                            setting: self.setting.clone().unwrap(),
-                        },
-                    ))
+        let mut queue = self.outgoing.drain(..).rev().collect::<Vec<_>>();
+        while let Some(mut req) = queue.pop() {
+            match req.get() {
+                RequestResult::Error(e) => {
+                    macroquad::miniquad::error!("{}", e);
+                    req.retry();
+                    self.outgoing.push(req);
                 }
-                Some(Err(e)) => panic!("{}", e),
-                None => {}
-            },
-            IdeaGuyState::GetAreas(ref mut fut) => match fut.get() {
-                Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(resp).unwrap();
-                    self.areas = Some(resp);
-                    let api_url = &self.api_url;
-                    self.state = IdeaGuyState::GetMonsters(request(
-                        format!("{api_url}/monsters"),
-                        MonstersArgs {
-                            theme: self.theme.clone(),
-                            setting: self.setting.clone().unwrap().clone(),
-                            areas: self.areas.clone().unwrap().clone(),
-                        },
-                    ))
+                RequestResult::Pending => {
+                    self.outgoing.push(req);
                 }
-                Some(Err(e)) => panic!("{}", e),
-                None => {}
-            },
-            IdeaGuyState::GetMonsters(ref mut fut) => match fut.get() {
-                Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(resp).unwrap();
-                    self.monsters = Some(resp);
-                    let api_url = &self.api_url;
-                    self.state = IdeaGuyState::GetItems(request(
-                        format!("{api_url}/items"),
-                        MonstersArgs {
-                            theme: self.theme.clone(),
-                            setting: self.setting.clone().unwrap().clone(),
-                            areas: self.areas.clone().unwrap().clone(),
-                        },
-                    ))
+                RequestResult::Setting(s) => {
+                    self.setting = Some(s);
+                    self.request(Request::Areas {
+                        theme: self.theme.clone(),
+                        setting: self.setting.clone().unwrap(),
+                    });
                 }
-                Some(Err(e)) => panic!("{}", e),
-                None => {}
-            },
-            IdeaGuyState::GetItems(ref mut fut) => match fut.get() {
-                Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(resp).unwrap();
-                    self.items = Some(resp);
-                    self.state = IdeaGuyState::Done;
+                RequestResult::Areas(areas) => {
+                    self.areas = Some(areas);
+                    self.request(Request::Monsters {
+                        theme: self.theme.clone(),
+                        setting: self.setting.clone().unwrap(),
+                        areas: self.areas.clone().unwrap(),
+                    });
                 }
-                Some(Err(e)) => panic!("{}", e),
-                None => {}
-            },
-            IdeaGuyState::Done => {}
+                RequestResult::Monsters(monsters) => {
+                    self.monsters = Some(monsters);
+                    self.request(Request::Items {
+                        theme: self.theme.clone(),
+                        setting: self.setting.clone().unwrap(),
+                        areas: self.areas.clone().unwrap(),
+                    });
+                }
+                RequestResult::Items(items) => {
+                    self.items = Some(items);
+                    // Done
+                }
+            }
         }
     }
 }
