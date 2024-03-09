@@ -144,6 +144,9 @@ pub struct MobKindInfo {
     pub type2: Option<PokemonType>,
     pub description: String,
     pub level: usize,
+    pub seen: String,
+    pub attack: String,
+    pub death: String,
 }
 
 impl MobKindInfo {
@@ -218,6 +221,9 @@ impl WorldInfo {
                 type2,
                 description,
                 level,
+                seen,
+                attack,
+                death,
             } = mob.clone();
             self.monster_kinds.push(MobKindInfo {
                 name,
@@ -228,6 +234,9 @@ impl WorldInfo {
                 type2,
                 description,
                 level,
+                seen,
+                attack,
+                death,
             });
         }
 
@@ -575,8 +584,7 @@ impl World {
                     ]);
                     if mob.damage >= mki.max_hp() {
                         self.log_message(vec![
-                            (mki.name, mki.color),
-                            (" dies".into(), Color::White),
+                            (mki.death, mki.color)
                         ]);
                         self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
                     } else {
@@ -804,6 +812,14 @@ impl World {
             };
             let new_pos;
             if fov.contains(&pos) {
+                if matches!(mob.ai, MobAi::Idle) {
+                    let info = self.get_mobkind_info(mob.kind);
+                    let mut seen_message = info.seen.clone();
+                    if seen_message.ends_with("'") {
+                        seen_message = format!("{}: {seen_message}", info.name);
+                    }
+                    self.log_message(vec![(seen_message, info.color)]);
+                }
                 mob.ai = MobAi::Move {
                     dest: self.player_pos,
                 }
@@ -823,9 +839,10 @@ impl World {
                         let mult = eff.get_scale();
                         let damage = mki.level * mult;
                         self.log_message(vec![
-                            (mki.name.to_string(), mki.color),
-                            (" hits you for ".into(), Color::White),
+                            (mki.attack.clone(), mki.color),
+                            (" You take ".into(), Color::White),
                             (format!("{}", damage), Color::Red),
+                            (" damage!".into(), Color::White),
                         ]);
                         self.player_damage += damage;
                         new_pos = pos;

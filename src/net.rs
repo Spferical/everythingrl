@@ -260,6 +260,9 @@ pub struct MonsterDefinition {
     pub type2: Option<PokemonType>,
     pub description: String,
     pub level: usize,
+    pub seen: String,
+    pub attack: String,
+    pub death: String,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]

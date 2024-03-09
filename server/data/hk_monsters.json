@@ -7,7 +7,10 @@
     "type1": "ghost",
     "type2": "flying",
     "attack_type": "ghost",
-    "description": "An Acolyte infested by the Infection, having taken skeletal wings and a taste for pathogen."
+    "description": "An Acolyte infested by the Infection, having taken skeletal wings and a taste for pathogen.",
+    "seen": "'Fear me, warrior!'",
+    "attack": "The Acolyte lunges at you with their sword!",
+    "death": "'... can't... lose?'"
   },
   {
     "name": "Flukemunga",
@@ -17,7 +20,10 @@
     "type1": "poison",
     "type2": "water",
     "attack_type": "poison",
-    "description": "A monstrous Fluke, infused with a mind of its own. It lingers in dark basins, eager to pull victims down into its domain."
+    "description": "A monstrous Fluke, infused with a mind of its own. It lingers in dark basins, eager to pull victims down into its domain.",
+    "seen": "The Flukemunga sees you and charges at you!",
+    "attack": "The Flukemunga hurls itself at you!",
+    "death": "The Flukemunga dies in an explosion of orange goo!"
   },
   {
     "name": "Nosk",
@@ -27,7 +33,10 @@
     "type1": "dark",
     "type2": "ghost",
     "attack_type": "dark",
-    "description": "A haunting figure composed of nightmares, revealed to be a manifestation of the Knight's inner fears."
+    "description": "A haunting figure composed of nightmares, revealed to be a manifestation of the Knight's inner fears.",
+    "seen": "The terrifying shapeshifter turns your way. It is no friend of yours!",
+    "attack": "The Nosk sprints at you, its claws ready to tear into your carapace!",
+    "death": "The Nosk keels over, oozing orange fluid."
   },
   {
     "name": "Soul Tyrant",
@@ -37,7 +46,10 @@
     "type1": "ghost",
     "type2": "psychic",
     "attack_type": "psychic",
-    "description": "A formidable knight, its body ablaze with Soul, prepared to defend its master's wishes to the last."
+    "description": "A formidable knight, its body ablaze with Soul, prepared to defend its master's wishes to the last.",
+    "seen": "The Soul Tyrant gazes at you with an empty stare.",
+    "attack": "The Soul slams you!",
+    "death": "The Soul tyrant explodes, throwing infected orange fluid everywhere!"
   },
   {
     "name": "Great Husk Sentry",
@@ -47,7 +59,10 @@
     "type1": "rock",
     "type2": "bug",
     "attack_type": "rock",
-    "description": "A giant Husk, its body hardened by infection, serving as a guardian to the kingdom's secrets."
+    "description": "A giant Husk, its body hardened by infection, serving as a guardian to the kingdom's secrets.",
+    "seen": "'Intruder!'",
+    "attack": "The Great Husk Sentry swings his greatnail at you!",
+    "death": "'could not... protect...'"
   },
   {
     "name": "Absolute Radiance",
@@ -57,7 +72,10 @@
     "type1": "fairy",
     "type2": "psychic",
     "attack_type": "fairy",
-    "description": "The pure essence of the Radiance, its blinding light capable of scorching and disorienting."
+    "description": "The pure essence of the Radiance, its blinding light capable of scorching and disorienting.",
+    "seen": "You see a blinding light in the distance!",
+    "attack": "The Absolute Radiance impales you with a spear of light. It burns!",
+    "death": "The Absolute Radiance explodes!"
   },
   {
     "name": "Lurker",
@@ -67,7 +85,10 @@
     "type1": "dark",
     "type2": "poison",
     "attack_type": "dark",
-    "description": "A grotesque creature of infection, lurking in the shadows, ready to strike with its venomous claws."
+    "description": "A grotesque creature of infection, lurking in the shadows, ready to strike with its venomous claws.",
+    "seen": "The Lurker silently drops from the ceiling!",
+    "attack": "The Lurker slashes at you with its claws!",
+    "death": "The Lurker's shell shatters." 
   },
   {
     "name": "Primal Aspid",
@@ -76,7 +97,10 @@
     "color": "gold",
     "type1": "dark",
     "attack_type": "dark",
-    "description": "A venomous Aspid, its acidic spit capable of melting through flesh."
+    "description": "A venomous Aspid, its acidic spit capable of melting through flesh.",
+    "seen": "A giant Aspid with glowing, fiery spikes appears!",
+    "attack": "The Primal Aspid spits a stream of fire at you!",
+    "death": "The Primal Aspid explodes into a shower of fiery embers."
   },
   {
     "name": "Uoma",
@@ -85,7 +109,10 @@
     "color": "green",
     "type1": "bug",
     "attack_type": "bug",
-    "description": "Smallest Jelly form. Passive and unaware, but pulsing with a dangerous electric charge."
+    "description": "Smallest Jelly form. Passive and unaware, but pulsing with a dangerous electric charge.",
+    "seen": "A small, but powerful jellyfish floats towards you!",
+    "attack": "The Uoma fires a beam of electricity at you!",
+    "death": "The Uoma explodes into a shower of electric sparks."
   },
   {
     "name": "Husky Knight",
@@ -95,7 +122,10 @@
     "type1": "ice",
     "type2": "fighting",
     "attack_type": "fighting",
-    "description": "A robust knight encased in ice armor, its every swing leaving a trail of frostbite."
+    "description": "A robust knight encased in ice armor, its every swing leaving a trail of frostbite.",
+    "seen": "A giant, armored knight charges towards you!",
+    "attack": "The Husky Knight swings its sword at you!",
+    "death": "The Husky Knight collapses to the ground, its armor broken." 
   },
   {
     "name": "Baldur",
@@ -104,7 +134,10 @@
     "color": "brown",
     "type1": "rock",
     "attack_type": "rock",
-    "description": "A burly miner, utilizing his pickaxe with deadly precision."
+    "description": "A burly miner, utilizing his pickaxe with deadly precision.",
+    "seen": "A giant, glowing beetle appears from the depths of the cave!",
+    "attack": "Baldur charges at you with its glowing horns!",
+    "death": "Baldur explodes into a cloud of glowing dust."
   },
   {
     "name": "Nightmare King",
@@ -114,7 +147,10 @@
     "type1": "ghost",
     "type2": "dark",
     "attack_type": "ghost",
-    "description": "A spectral king, his ethereal claws capable of tearing through both flesh and soul."
+    "description": "A spectral king, his ethereal claws capable of tearing through both flesh and soul.",
+    "seen": "A shadowy figure emerges from the darkness!",
+    "attack": "The Nightmare King fires a beam of dark energy at you!",
+    "death": "The Nightmare King collapses into a pool of darkness."
   },
   {
     "name": "Radiance Knight",
@@ -124,7 +160,10 @@
     "type1": "fairy",
     "type2": "fighting",
     "attack_type": "fighting",
-    "description": "A holy knight infused with the power of the Radiance, its blade glowing with divine energy."
+    "description": "A holy knight infused with the power of the Radiance, its blade glowing with divine energy.",
+    "seen": "'Prepare to be cleansed!'",
+    "attack": "The Radiance Knight charges at you with its sword of light!",
+    "death": "The Radiance Knight explodes into a shower of blinding light."
   },
   {
     "name": "Vengefly",
@@ -134,7 +173,10 @@
     "type1": "bug",
     "type2": "flying",
     "attack_type": "bug",
-    "description": "A vengeful fly, its sharp stinger capable of injecting a potent venom."
+    "description": "A vengeful fly, its sharp stinger capable of injecting a potent venom.",
+    "seen": "A swarm of vengeful flies appears!",
+    "attack": "The Vengeflies charge towards you!",
+    "death": "The Vengeflies explode into a cloud of dust."
   },
   {
     "name": "Stone Golem",
@@ -143,7 +185,10 @@
     "color": "beige",
     "type1": "rock",
     "attack_type": "rock",
-    "description": "A massive golem made of stone, its fists capable of shattering bone."
+    "description": "A massive golem made of stone, its fists capable of shattering bone.",
+    "seen": "A stone golem rises from the ground!",
+    "attack": "The Stone Golem throws a boulder at you!",
+    "death": "The Stone Golem collapses into a pile of rubble." 
   },
   {
     "name": "Fungus",
@@ -153,7 +198,10 @@
     "type1": "grass",
     "type2": "poison",
     "attack_type": "grass",
-    "description": "A luminescent fungus, its spores capable of causing hallucinations and nausea."
+    "description": "A luminescent fungus, its spores capable of causing hallucinations and nausea.",
+    "seen": "A large, glowing fungus appears from the ground!",
+    "attack": "The Fungus fires a spore at you!",
+    "death": "The Fungus explodes into a cloud of spores."
   },
   {
     "name": "Mantis Petra",
@@ -163,7 +211,10 @@
     "type1": "bug",
     "type2": "rock",
     "attack_type": "rock",
-    "description": "A skilled mantis, its forearms hardened into deadly blades."
+    "description": "A skilled mantis, its forearms hardened into deadly blades.",
+    "seen": "A giant, praying mantis erscheint above you!",
+    "attack": "The Mantis Petra swings its scythes at you!",
+    "death": "The Mantis Petra explodes into a cloud of green goo." 
   },
   {
     "name": "Hollow Warrior",
@@ -172,7 +223,10 @@
     "color": "white",
     "type1": "ghost",
     "attack_type": "ghost",
-    "description": "A hollowed warrior, its body a mere vessel for the infection."
+    "description": "A hollowed warrior, its body a mere vessel for the infection.",
+    "seen": "A hollow knight appears before you!",
+    "attack": "The Hollow Warrior swings its sword at you!",
+    "death": "The Hollow Warrior collapses into a pile of dust." 
   },
   {
     "name": "Oblobble",
@@ -181,7 +235,10 @@
     "color": "pink",
     "type1": "normal",
     "attack_type": "normal",
-    "description": "A small, gelatinous creature, its body capable of absorbing and reflecting attacks."
+    "description": "A small, gelatinous creature, its body capable of absorbing and reflecting attacks.",
+    "seen": "A small, bouncing blob appears from the ground!",
+    "attack": "The Obobble jumps on you!",
+    "death": "The Obobble explodes into a cloud of red goo." 
   },
   {
     "name": "Diseased Husk",
@@ -191,7 +248,10 @@
     "type1": "poison",
     "type2": "bug",
     "attack_type": "poison",
-    "description": "A grotesque husk, its body ravaged by infection, spreading disease with every touch."
+    "description": "A grotesque husk, its body ravaged by infection, spreading disease with every touch.",
+    "seen": "A diseased husk appears from the depths of the cave!",
+    "attack": "The Diseased Husk charges at you!",
+    "death": "The Diseased Husk explodes into a cloud of orange fluid."
   },
   {
     "name": "Crystal Crawler",
@@ -201,7 +261,10 @@
     "type1": "ice",
     "type2": "rock",
     "attack_type": "ice",
-    "description": "A crystalline creature, its sharp claws capable of slicing through flesh with ease."
+    "description": "A crystalline creature, its sharp claws capable of slicing through flesh with ease.",
+    "seen": "A giant, crystal creature appears from the depths of the cave!",
+    "attack": "The Crystal Crawler fires a beam of crystals at you!",
+    "death": "The Crystal Crawler explodes into a shower of crystals."
   },
   {
     "name": "Pure Vessel",
@@ -211,7 +274,10 @@
     "type1": "ghost",
     "type2": "steel",
     "attack_type": "ghost",
-    "description": "A perfect vessel, its body untouched by infection, wielding a powerful blade forged from Void."
+    "description": "A perfect vessel, its body untouched by infection, wielding a powerful blade forged from Void.",
+    "seen": "A dark, shadowy figure emerges from the darkness!",
+    "attack": "The Pure Vessel fires a beam of dark energy at you!",
+    "death": "The Pure Vessel collapses into a pool of darkness."
   },
   {
     "name": "Brooding Mawlek",
@@ -220,7 +286,10 @@
     "color": "red",
     "type1": "ground",
     "attack_type": "ground",
-    "description": "A subterranean predator, its gaping maw capable of crushing bone."
+    "description": "A subterranean predator, its gaping maw capable of crushing bone.",
+    "seen": "A giant, spider-like creature appears from the depths of the cave!",
+    "attack": "The Brooding Mawlek charges at you!",
+    "death": "The Brooding Mawlek explodes into a cloud of black goo." 
   },
   {
     "name": "Mantis Warrior",
@@ -230,7 +299,10 @@
     "type1": "bug",
     "type2": "fighting",
     "attack_type": "fighting",
-    "description": "A skilled mantis warrior, utilizing a variety of deadly techniques."
+    "description": "A skilled mantis warrior, utilizing a variety of deadly techniques.",
+    "seen": "A praying mantis appears!",
+    "attack": "The Mantis Warrior swings its scythes at you!",
+    "death": "The Mantis Warrior explodes into a cloud of green goo." 
   },
   {
     "name": "The Radiance",
@@ -240,7 +312,10 @@
     "type1": "fairy",
     "type2": "psychic",
     "attack_type": "fairy",
-    "description": "The source of the infection, its blinding light capable of corrupting and enslaving."
+    "description": "The source of the infection, its blinding light capable of corrupting and enslaving.",
+    "seen": "A blinding light appears before you!",
+    "attack": "The Radiance fires a beam of light at you!",
+    "death": "The Radiance explodes into a shower of blinding light."
   },
   {
     "name": "Crystal Hunter",
@@ -250,7 +325,10 @@
     "type1": "ice",
     "type2": "psychic",
     "attack_type": "ice",
-    "description": "A cunning hunter, its crystalline eyes capable of freezing prey in their tracks."
+    "description": "A cunning hunter, its crystalline eyes capable of freezing prey in their tracks.",
+    "seen": "A crystal creature appears from the depths of the cave!",
+    "attack": "The Crystal Hunter fires a beam of crystals at you!",
+    "death": "The Crystal Hunter explodes into a shower of crystals." 
   },
   {
     "name": "Shrieker",
@@ -260,6 +338,9 @@
     "type1": "ghost",
     "type2": "flying",
     "attack_type": "ghost",
-    "description": "A screeching creature, its high-pitched wail capable of deafening and disorienting."
+    "description": "A screeching creature, its high-pitched wail capable of deafening and disorienting.",
+    "seen": "A flying creature appears from the depths of the cave!",
+    "attack": "The Shrieker fires a beam of sound at you!",
+    "death": "The Shrieker explodes into a cloud of black goo."
   }
 ]

@@ -351,6 +351,7 @@ impl Ui {
                             type2,
                             description,
                             level,
+                            ..
                         } = mob_kind_def;
 
                         let mut job = egui::text::LayoutJob::default();
