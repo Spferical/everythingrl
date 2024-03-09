@@ -378,7 +378,7 @@ impl IdeaGuy {
         match self.state {
             IdeaGuyState::GetSetting(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(&resp).unwrap();
+                    let resp = serde_json::from_str(resp).unwrap();
                     self.setting = Some(resp);
                     let api_url = &self.api_url;
                     self.state = IdeaGuyState::GetAreas(request(
@@ -394,7 +394,7 @@ impl IdeaGuy {
             },
             IdeaGuyState::GetAreas(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(&resp).unwrap();
+                    let resp = serde_json::from_str(resp).unwrap();
                     self.areas = Some(resp);
                     let api_url = &self.api_url;
                     self.state = IdeaGuyState::GetMonsters(request(
@@ -411,7 +411,7 @@ impl IdeaGuy {
             },
             IdeaGuyState::GetMonsters(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(&resp).unwrap();
+                    let resp = serde_json::from_str(resp).unwrap();
                     self.monsters = Some(resp);
                     let api_url = &self.api_url;
                     self.state = IdeaGuyState::GetItems(request(
@@ -428,7 +428,7 @@ impl IdeaGuy {
             },
             IdeaGuyState::GetItems(ref mut fut) => match fut.get() {
                 Some(Ok(resp)) => {
-                    let resp = serde_json::from_str(&resp).unwrap();
+                    let resp = serde_json::from_str(resp).unwrap();
                     self.items = Some(resp);
                     self.state = IdeaGuyState::Done;
                 }

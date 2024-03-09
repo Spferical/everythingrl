@@ -822,8 +822,7 @@ impl World {
                     if target == self.player_pos {
                         let mki = self.get_mobkind_info(mob.kind);
                         let armor = self.inventory.get_equipped_armor_info(&self.world_info);
-                        let defense1 = armor
-                            .get(0)
+                        let defense1 = armor.first()
                             .map(|eki| eki.ty)
                             .unwrap_or(PokemonType::Normal);
                         let defense2 = armor.get(1).map(|eki| eki.ty);
