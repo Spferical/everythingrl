@@ -331,5 +331,22 @@ def gen_areas(theme: str, setting_desc: str):
     )
 
 
+def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: dict):
+    instructions = f"You are the game master for a difficult permadeath roguelike with a crafting system. The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. As input, you will be given a theme, a long-form description of the setting, descriptions of each item, and a list of items already in the game (do not copy any of these). Output a JSON item definition for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. DO NOT output multiple types. Output fields include name, the name of the item; level, a number indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore. The two input items must be the same level; assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc."
+    return ask_google_structured(
+        instructions,
+        [],
+        {
+            "theme": theme,
+            "setting_desc": setting_desc,
+            "existing_items": items,
+            "item1": item1,
+            "item2": item2,
+        },
+        1,
+        Item,
+    )
+
+
 if USE_VERTEX_AI:
     init_vertex_ai()
