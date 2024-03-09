@@ -350,18 +350,26 @@ impl Inventory {
         Self { items: vec![] }
     }
 
+    fn damage_weapon(&mut self, wi: &WorldInfo) -> Option<EquipmentKindInfo> {
+        if let Some(player_weapon) = self.get_equipped_weapon(wi) {
+            player_weapon.item_durability -= 1;
+            if player_weapon.item_durability == 0 {
+                let weapon_info = self.get_equipped_weapon_info(wi);
+                self.remove(self.get_equipped_weapon_slot(wi).unwrap());
+                weapon_info
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
     fn damage_armor(&mut self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
         let mut delete_idx = Vec::new();
         for (i, player_armor) in self.get_equipped_armor(wi).into_iter().enumerate() {
             player_armor.item_durability -= 1;
             if player_armor.item_durability == 0 {
-                // let pwi = armor[i];
-                /*self.log_message(vec![
-                    ("Your ".into(), Color::White),
-                    (pwi.name.into(), pwi.ty.get_color()),
-                    (" breaks!".into(), Color::Red),
-                ]);*/
-                // self.remove(self.get_equipped_armor_slots(wi)[i]);
                 delete_idx.push(i);
             }
         }
@@ -665,23 +673,15 @@ impl World {
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
 
-                    if let Some(player_weapon) =
-                        self.inventory.get_equipped_weapon(&self.world_info)
-                    {
-                        player_weapon.item_durability -= 1;
-                        if player_weapon.item_durability == 0 {
-                            let pwi = player_weapon_info.unwrap();
-                            self.log_message(vec![
-                                ("Your ".into(), Color::White),
-                                (pwi.name.into(), pwi.ty.get_color()),
-                                (" breaks!".into(), Color::Red),
-                            ]);
-                            self.inventory.remove(
-                                self.inventory
-                                    .get_equipped_weapon_slot(&self.world_info)
-                                    .unwrap(),
-                            );
-                        }
+                    if let Some(destroyed_weapon) = self.inventory.damage_weapon(&self.world_info) {
+                        self.log_message(vec![
+                            ("Your ".into(), Color::White),
+                            (
+                                destroyed_weapon.name.into(),
+                                destroyed_weapon.ty.get_color(),
+                            ),
+                            (" breaks!".into(), Color::Red),
+                        ]);
                     }
 
                     mob.damage += damage;
