@@ -159,6 +159,7 @@ impl Ui {
                                         display_slot = "";
                                         display_equipped = "";
                                         level = "".into();
+                                        cond = ItemCondition::New;
                                     }
                                     Item::Equipment(item) => {
                                         let item_desc = &sim.get_equipmentkind_info(item.kind);

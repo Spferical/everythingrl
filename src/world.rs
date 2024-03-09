@@ -355,6 +355,7 @@ impl Inventory {
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
                 Item::Corpse(_) => None,
+                Item::PendingCraft(_, _) => None,
                 Item::Equipment(ref mut i) => Some(i),
             })
             .find(|i| {
@@ -368,8 +369,8 @@ impl Inventory {
             .iter()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                _ => None,
                 Item::Equipment(ek) => Some(ek),
+                _ => None,
             })
             .map(|ek| wi.get_equipmentkind_info(ek.kind))
             .find(|eki| eki.slot == EquipmentSlot::Weapon)
@@ -383,6 +384,7 @@ impl Inventory {
             .filter(|(_, x)| x.equipped)
             .filter_map(|(i, x)| match x.item {
                 Item::Corpse(_) => None,
+                Item::PendingCraft(_, _) => None,
                 Item::Equipment(ek) => Some((i, ek)),
             })
             .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
