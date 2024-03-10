@@ -1,9 +1,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::rc::Rc;
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{
-    Area, Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType,
-};
+use crate::net::{Area, Color, IdeaGuy, ItemDefinition, ItemKind, MonsterDefinition, PokemonType};
 use crate::render::{Animation, AnimationState, ShotAnimation};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
@@ -42,29 +41,25 @@ impl TileKind {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub struct EquipmentKind(pub usize);
-
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
-pub struct EquipmentInstance {
-    pub kind: EquipmentKind,
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct ItemInstance {
+    pub info: Rc<ItemInfo>,
     pub item_durability: usize,
 }
 
-impl EquipmentInstance {
-    pub fn new(kind: EquipmentKind, item_durability: usize) -> EquipmentInstance {
-        EquipmentInstance {
-            kind,
+impl ItemInstance {
+    pub fn new(info: Rc<ItemInfo>, item_durability: usize) -> ItemInstance {
+        ItemInstance {
+            info,
             item_durability,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Item {
-    Corpse(MobKind),
-    Equipment(EquipmentInstance),
-    PendingCraft(EquipmentKind, EquipmentKind),
+    Instance(ItemInstance),
+    PendingCraft(Rc<ItemInfo>, Rc<ItemInfo>),
 }
 
 pub struct TileKindInfo {
@@ -85,7 +80,7 @@ lazy_static! {
     };
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Tile {
     pub kind: TileKind,
     pub item: Option<Item>,
@@ -118,19 +113,20 @@ impl Mob {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct EquipmentKindInfo {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ItemInfo {
     pub name: String,
     pub level: usize,
     pub ty: PokemonType,
+    pub ty2: Option<PokemonType>,
     pub description: String,
-    pub slot: EquipmentSlot,
+    pub kind: ItemKind,
 }
 
-impl EquipmentKindInfo {
+impl ItemInfo {
     pub fn get_range(&self) -> usize {
-        match self.slot {
-            EquipmentSlot::RangedWeapon => 5 + self.level * 2,
+        match self.kind {
+            ItemKind::RangedWeapon => 5 + self.level * 2,
             _ => 0,
         }
     }
@@ -161,12 +157,12 @@ impl MobKindInfo {
 #[derive(Debug, Clone)]
 pub struct WorldInfo {
     pub areas: Vec<Area>,
-    pub equip_kinds: Vec<EquipmentKindInfo>,
+    pub item_kinds: Vec<Rc<ItemInfo>>,
     pub monster_kinds: Vec<MobKindInfo>,
     pub monsters_per_level: Vec<Vec<MobKind>>,
-    pub equipment_per_level: Vec<Vec<EquipmentKind>>,
-    pub recipes: HashMap<(EquipmentKind, EquipmentKind), EquipmentKind>,
-    pub pending_recipes: HashSet<(EquipmentKind, EquipmentKind)>,
+    pub equipment_per_level: Vec<Vec<Rc<ItemInfo>>>,
+    pub recipes: HashMap<(Rc<ItemInfo>, Rc<ItemInfo>), Rc<ItemInfo>>,
+    pub pending_recipes: HashSet<(Rc<ItemInfo>, Rc<ItemInfo>)>,
     pub level_blurbs: Vec<String>,
 }
 
@@ -174,7 +170,7 @@ impl WorldInfo {
     pub fn new() -> Self {
         Self {
             areas: Vec::new(),
-            equip_kinds: Vec::new(),
+            item_kinds: Vec::new(),
             monster_kinds: Vec::new(),
             monsters_per_level: Vec::new(),
             equipment_per_level: Vec::new(),
@@ -189,27 +185,28 @@ impl WorldInfo {
             self.areas.push(ig.areas.as_ref().unwrap()[i].clone());
         }
         for item in ig.items.iter().flatten() {
-            if self.equip_kinds.iter().any(|e| e.name == item.name) {
+            if self.item_kinds.iter().any(|e| e.name == item.name) {
                 continue;
             }
             let ItemDefinition {
                 name,
                 level,
                 ty,
-                slot,
+                kind,
                 description,
                 ..
             } = item.clone();
-            self.equip_kinds.push(EquipmentKindInfo {
+            self.item_kinds.push(Rc::new(ItemInfo {
                 name,
                 level,
                 ty,
+                ty2: None,
                 description,
-                slot,
-            });
+                kind,
+            }));
         }
         for mob in ig.monsters.iter().flatten() {
-            if self.equip_kinds.iter().any(|m| m.name == mob.name) {
+            if self.item_kinds.iter().any(|m| m.name == mob.name) {
                 continue;
             }
             let MonsterDefinition {
@@ -259,12 +256,8 @@ impl WorldInfo {
             })
             .collect();
 
-        let get_equipment_by_name = |name: &String| {
-            self.equip_kinds
-                .iter()
-                .position(|k| &k.name == name)
-                .map(EquipmentKind)
-        };
+        let get_equipment_by_name =
+            |name: &String| self.item_kinds.iter().filter(|k| &k.name == name).next();
 
         self.equipment_per_level = ig
             .areas
@@ -275,7 +268,10 @@ impl WorldInfo {
                     .iter()
                     .chain(area.melee_weapons.iter())
                     .chain(area.ranged_weapons.iter())
+                    .chain(area.food.iter())
+                    // NOTE: we may be missing some
                     .filter_map(get_equipment_by_name)
+                    .cloned()
                     .collect()
             })
             .collect();
@@ -288,12 +284,12 @@ impl WorldInfo {
 
         for (&(a, b), &c) in ig.recipes.iter() {
             let ek_by_name = |name: &str| {
-                EquipmentKind(
-                    self.equip_kinds
-                        .iter()
-                        .position(|ek| ek.name == name)
-                        .unwrap(),
-                )
+                self.item_kinds
+                    .iter()
+                    .filter(|ek| ek.name == name)
+                    .next()
+                    .cloned()
+                    .unwrap()
             };
             let ig_item_a = &ig.items.as_ref().unwrap()[a];
             let ig_item_b = &ig.items.as_ref().unwrap()[b];
@@ -311,36 +307,32 @@ impl WorldInfo {
                     .position(|x| x.name == name)
                     .unwrap()
             };
-            self.pending_recipes.remove(&(a, b));
-            let ig_a = ig_equip_by_name(&self.get_equipmentkind_info(a).name);
-            let ig_b = ig_equip_by_name(&self.get_equipmentkind_info(b).name);
+            self.pending_recipes.remove(&(a.clone(), b.clone()));
+            let ig_a = ig_equip_by_name(&a.name);
+            let ig_b = ig_equip_by_name(&b.name);
             ig.craft(ig_a, ig_b);
         }
-    }
-
-    pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
-        &self.equip_kinds[kind.0]
     }
 
     pub fn get_mobkind_info(&self, kind: MobKind) -> &MobKindInfo {
         &self.monster_kinds[kind.0]
     }
 
-    fn craft_inner(&mut self, ek1: EquipmentKind, ek2: EquipmentKind) -> Option<Item> {
-        if let Some(ek3) = self.recipes.get(&(ek1, ek2)) {
-            Some(Item::Equipment(EquipmentInstance {
-                kind: *ek3,
+    fn craft_inner(&mut self, ii1: Rc<ItemInfo>, ii2: Rc<ItemInfo>) -> Option<Item> {
+        if let Some(ek3) = self.recipes.get(&(ii1.clone(), ii2.clone())) {
+            Some(Item::Instance(ItemInstance {
+                info: ek3.clone(),
                 item_durability: STARTING_DURABILITY,
             }))
         } else {
-            self.pending_recipes.insert((ek1, ek2));
-            Some(Item::PendingCraft(ek1, ek2))
+            self.pending_recipes.insert((ii1.clone(), ii2.clone()));
+            Some(Item::PendingCraft(ii1, ii2))
         }
     }
 
     pub fn craft(&mut self, item1: Item, item2: Item) -> Option<Item> {
         match (item1, item2) {
-            (Item::Equipment(ei1), Item::Equipment(ei2)) => self.craft_inner(ei1.kind, ei2.kind),
+            (Item::Instance(ei1), Item::Instance(ei2)) => self.craft_inner(ei1.info, ei2.info),
             _ => None,
         }
     }
@@ -363,12 +355,12 @@ impl Inventory {
         Self { items: vec![] }
     }
 
-    fn damage_weapon(&mut self, wi: &WorldInfo, melee: bool) -> Option<EquipmentKindInfo> {
-        if let Some(player_weapon) = self.get_equipped_weapon(wi, melee) {
+    fn damage_weapon(&mut self, melee: bool) -> Option<Rc<ItemInfo>> {
+        if let Some(player_weapon) = self.get_equipped_weapon(melee) {
             player_weapon.item_durability -= 1;
             if player_weapon.item_durability == 0 {
-                let weapon_info = self.get_equipped_weapon_info(wi, melee);
-                self.remove(self.get_equipped_weapon_slot(wi, melee).unwrap());
+                let weapon_info = self.get_equipped_weapon_info(melee);
+                self.remove(self.get_equipped_weapon_slot(melee).unwrap());
                 weapon_info
             } else {
                 None
@@ -378,9 +370,9 @@ impl Inventory {
         }
     }
 
-    fn damage_armor(&mut self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
+    fn damage_armor(&mut self) -> Vec<Rc<ItemInfo>> {
         let mut delete_idx = Vec::new();
-        for (i, player_armor) in self.get_equipped_armor(wi).into_iter().enumerate() {
+        for (i, player_armor) in self.get_equipped_armor().into_iter().enumerate() {
             player_armor.item_durability -= 1;
             if player_armor.item_durability == 0 {
                 delete_idx.push(i);
@@ -390,141 +382,121 @@ impl Inventory {
         // Pretty important to do it in this order!
         let mut deleted_armor = Vec::new();
         for idx in delete_idx.iter() {
-            deleted_armor.push(self.get_equipped_armor_info(wi)[*idx].clone());
+            deleted_armor.push(self.get_equipped_armor_info()[*idx].clone());
         }
         for idx in delete_idx {
-            self.remove(self.get_equipped_armor_slots(wi)[idx]);
+            self.remove(self.get_equipped_armor_slots()[idx]);
         }
 
         deleted_armor
     }
 
-    fn get_equipped_weapon(
-        &mut self,
-        wi: &WorldInfo,
-        melee: bool,
-    ) -> Option<&mut EquipmentInstance> {
+    fn get_equipped_weapon(&mut self, melee: bool) -> Option<&mut ItemInstance> {
         self.items
             .iter_mut()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                Item::Corpse(_) => None,
                 Item::PendingCraft(_, _) => None,
-                Item::Equipment(ref mut i) => Some(i),
+                Item::Instance(ref mut i) => Some(i),
             })
-            .find(|i| {
-                let eki = wi.get_equipmentkind_info(i.kind);
-                match eki.slot {
-                    EquipmentSlot::MeleeWeapon => melee,
-                    EquipmentSlot::RangedWeapon => !melee,
-                    _ => false,
-                }
+            .find(|i| match i.info.kind {
+                ItemKind::MeleeWeapon => melee,
+                ItemKind::RangedWeapon => !melee,
+                _ => false,
             })
     }
 
-    fn get_equipped_weapon_info(&self, wi: &WorldInfo, melee: bool) -> Option<EquipmentKindInfo> {
+    fn get_equipped_weapon_info(&self, melee: bool) -> Option<Rc<ItemInfo>> {
         self.items
             .iter()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                Item::Equipment(ek) => Some(ek),
+                Item::Instance(ref ek) => Some(ek),
                 _ => None,
             })
-            .map(|ek| wi.get_equipmentkind_info(ek.kind))
-            .find(|eki| match eki.slot {
-                EquipmentSlot::MeleeWeapon => melee,
-                EquipmentSlot::RangedWeapon => !melee,
+            .map(|x| &x.info)
+            .find(|info| match info.kind {
+                ItemKind::MeleeWeapon => melee,
+                ItemKind::RangedWeapon => !melee,
                 _ => false,
             })
             .cloned()
     }
 
-    fn get_equipped_weapon_slot(&self, wi: &WorldInfo, melee: bool) -> Option<usize> {
+    fn get_equipped_weapon_slot(&self, melee: bool) -> Option<usize> {
         self.items
             .iter()
             .enumerate()
             .filter(|(_, x)| x.equipped)
             .filter_map(|(i, x)| match x.item {
-                Item::Corpse(_) => None,
                 Item::PendingCraft(_, _) => None,
-                Item::Equipment(ek) => Some((i, ek)),
+                Item::Instance(ref ek) => Some((i, ek)),
             })
-            .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
-            .find(|(_, eki)| match eki.slot {
-                EquipmentSlot::MeleeWeapon => melee,
-                EquipmentSlot::RangedWeapon => !melee,
+            .find(|(_, eki)| match eki.info.kind {
+                ItemKind::MeleeWeapon => melee,
+                ItemKind::RangedWeapon => !melee,
                 _ => false,
             })
             .map(|(i, _)| i)
     }
 
-    fn get_equipped_armor(&mut self, wi: &WorldInfo) -> Vec<&mut EquipmentInstance> {
+    fn get_equipped_armor(&mut self) -> Vec<&mut ItemInstance> {
         self.items
             .iter_mut()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                Item::Corpse(_) => None,
                 Item::PendingCraft(_, _) => None,
-                Item::Equipment(ref mut i) => Some(i),
+                Item::Instance(ref mut i) => Some(i),
             })
-            .filter(|i| {
-                let eki = wi.get_equipmentkind_info(i.kind);
-                eki.slot == EquipmentSlot::Armor
-            })
+            .filter(|i| i.info.kind == ItemKind::Armor)
             .collect()
     }
 
-    fn get_equipped_armor_info(&self, wi: &WorldInfo) -> Vec<EquipmentKindInfo> {
+    fn get_equipped_armor_info(&self) -> Vec<Rc<ItemInfo>> {
         self.items
             .iter()
             .filter(|x| x.equipped)
             .filter_map(|x| match x.item {
-                Item::Equipment(ek) => Some(ek),
+                Item::Instance(ref ek) => Some(ek),
                 _ => None,
             })
-            .map(|ek| wi.get_equipmentkind_info(ek.kind))
-            .filter(|eki| eki.slot == EquipmentSlot::Armor)
-            .cloned()
+            .filter(|eki| eki.info.kind == ItemKind::Armor)
+            .map(|item| item.info.clone())
             .collect()
     }
 
-    fn get_equipped_armor_slots(&self, wi: &WorldInfo) -> Vec<usize> {
+    fn get_equipped_armor_slots(&self) -> Vec<usize> {
         self.items
             .iter()
             .enumerate()
             .filter(|(_, x)| x.equipped)
             .filter_map(|(i, x)| match x.item {
-                Item::Corpse(_) => None,
                 Item::PendingCraft(_, _) => None,
-                Item::Equipment(ek) => Some((i, ek)),
+                Item::Instance(ref ek) => Some((i, ek)),
             })
-            .map(|(i, ek)| (i, wi.get_equipmentkind_info(ek.kind)))
-            .filter(|(_, eki)| eki.slot == EquipmentSlot::Armor)
+            .filter(|(_, eki)| eki.info.kind == ItemKind::Armor)
             .map(|(i, _)| i)
             .collect()
     }
 
-    fn sort(&mut self, wi: &WorldInfo) {
+    fn sort(&mut self) {
         self.items.sort_by_key(|x| match x {
             InventoryItem {
-                item: Item::Equipment(ek),
+                item: Item::Instance(ek),
                 equipped,
-            } => match (equipped, wi.get_equipmentkind_info(ek.kind).slot) {
-                (true, EquipmentSlot::MeleeWeapon) => 1,
-                (true, EquipmentSlot::RangedWeapon) => 2,
-                (true, EquipmentSlot::Armor) => 3,
-                (false, EquipmentSlot::MeleeWeapon) => 4,
-                (false, EquipmentSlot::RangedWeapon) => 5,
-                (false, EquipmentSlot::Armor) => 6,
+            } => match (equipped, ek.info.kind) {
+                (true, ItemKind::MeleeWeapon) => 1,
+                (true, ItemKind::RangedWeapon) => 2,
+                (true, ItemKind::Armor) => 3,
+                (false, ItemKind::MeleeWeapon) => 4,
+                (false, ItemKind::RangedWeapon) => 5,
+                (false, ItemKind::Armor) => 6,
+                (_, ItemKind::Food) => 7,
             },
             InventoryItem {
                 item: Item::PendingCraft(..),
                 ..
             } => 5,
-            InventoryItem {
-                item: Item::Corpse(_),
-                ..
-            } => 6,
         });
     }
     fn add(&mut self, item: Item) -> Option<Item> {
@@ -543,7 +515,7 @@ impl Inventory {
     }
 
     fn get(&self, i: usize) -> Option<Item> {
-        self.items.get(i).map(|x| x.item)
+        self.items.get(i).map(|x| x.item.clone())
     }
 
     fn remove_all(&mut self, mut indices: Vec<usize>) {
@@ -560,36 +532,38 @@ impl Inventory {
             None
         }
     }
-    fn toggle_equip(&mut self, i: usize, wi: &WorldInfo) -> bool {
+    fn toggle_equip(&mut self, i: usize) -> bool {
         if i >= self.items.len() {
             eprintln!("Bad equip idx: {i}");
             false
         } else if self.items[i].equipped {
             self.items[i].equipped = false;
             true
-        } else if let Item::Equipment(ek) = self.items[i].item {
-            let ek_def = wi.get_equipmentkind_info(ek.kind);
-
+        } else if let Item::Instance(ref ii) = self.items[i].item {
             // Unequip another item if that slot is full.
-            let max_per_slot = |slot: EquipmentSlot| match slot {
-                EquipmentSlot::MeleeWeapon => 1,
-                EquipmentSlot::RangedWeapon => 1,
-                EquipmentSlot::Armor => 2,
+            let max_per_slot = |slot: ItemKind| match slot {
+                ItemKind::MeleeWeapon => 1,
+                ItemKind::RangedWeapon => 1,
+                ItemKind::Armor => 2,
+                ItemKind::Food => 0,
             };
-            let max = max_per_slot(ek_def.slot);
+            let max = max_per_slot(ii.info.kind);
+            if max == 0 {
+                return false;
+            }
             let other_equipped_in_slot = self
                 .items
                 .iter()
                 .enumerate()
                 .filter(|(_i, x)| x.equipped)
                 .filter_map(|(i, x)| {
-                    if let Item::Equipment(ek) = x.item {
-                        Some((i, wi.get_equipmentkind_info(ek.kind)))
+                    if let Item::Instance(ref ii) = x.item {
+                        Some((i, ii))
                     } else {
                         None
                     }
                 })
-                .filter(|(_i, other_ek_def)| other_ek_def.slot == ek_def.slot)
+                .filter(|(_i, other_ii)| other_ii.info.kind == ii.info.kind)
                 .map(|(i, _)| i)
                 .collect::<Vec<_>>();
             if other_equipped_in_slot.len() >= max {
@@ -666,9 +640,9 @@ impl World {
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
         self.world_info.update(ig);
         for item in &mut self.inventory.items {
-            if let Item::PendingCraft(a, b) = item.item {
+            if let Item::PendingCraft(a, b) = item.item.clone() {
                 if let Some(c) = self.world_info.recipes.get(&(a, b)) {
-                    item.item = Item::Equipment(EquipmentInstance::new(*c, STARTING_DURABILITY));
+                    item.item = Item::Instance(ItemInstance::new(c.clone(), STARTING_DURABILITY));
                 }
             }
         }
@@ -687,14 +661,7 @@ impl World {
 
     pub fn get_item_log_message(&self, item: &Item) -> (String, Color) {
         match item {
-            Item::Corpse(mob_kind) => {
-                let mob_desc = &self.get_mobkind_info(*mob_kind);
-                (format!("{} Corpse", mob_desc.name), Color::Maroon)
-            }
-            Item::Equipment(item) => {
-                let item_desc = &self.get_equipmentkind_info(item.kind);
-                (item_desc.name.clone(), item_desc.ty.get_color())
-            }
+            Item::Instance(item) => (item.info.name.clone(), item.info.ty.get_color()),
             Item::PendingCraft(..) => ("???".to_string(), Color::Pink),
         }
     }
@@ -710,7 +677,6 @@ impl World {
         ]);
         if mob.damage >= mki.max_hp() {
             self.log_message(vec![(mki.death, mki.color)]);
-            self.tile_map[mob_pos].item = Some(Item::Corpse(mob.kind));
         } else {
             self.mobs.insert(mob_pos, mob);
         }
@@ -724,11 +690,9 @@ impl World {
             PlayerAction::Move(offset) => {
                 assert!(offset.mhn_dist() == 1);
                 let new_pos = self.player_pos + offset;
-                if let Some(mut mob) = self.mobs.remove(&new_pos) {
+                if let Some(mob) = self.mobs.remove(&new_pos) {
                     let mki = self.get_mobkind_info(mob.kind).clone();
-                    let player_weapon_info = self
-                        .inventory
-                        .get_equipped_weapon_info(&self.world_info, true);
+                    let player_weapon_info = self.inventory.get_equipped_weapon_info(true);
                     let (att_type, att_level) = player_weapon_info
                         .clone()
                         .map(|w| (w.ty, w.level))
@@ -739,12 +703,13 @@ impl World {
 
                     self.damage_mob(mob, new_pos, damage);
 
-                    if let Some(destroyed_weapon) =
-                        self.inventory.damage_weapon(&self.world_info, true)
-                    {
+                    if let Some(destroyed_weapon) = self.inventory.damage_weapon(true) {
                         self.log_message(vec![
                             ("Your ".into(), Color::White),
-                            (destroyed_weapon.name, destroyed_weapon.ty.get_color()),
+                            (
+                                destroyed_weapon.name.clone(),
+                                destroyed_weapon.ty.get_color(),
+                            ),
                             (" breaks!".into(), Color::Red),
                         ]);
                     }
@@ -752,7 +717,7 @@ impl World {
                     true
                 } else if self.tile_map[new_pos].kind.is_walkable() {
                     // Check if player walks over an item.
-                    if let Some(item) = self.tile_map[new_pos].item {
+                    if let Some(ref item) = self.tile_map[new_pos].item {
                         let msg = vec![
                             (
                                 PICK_UP_MESSAGES
@@ -785,10 +750,7 @@ impl World {
             }
             PlayerAction::Fire(direction) => {
                 assert!(direction.mhn_dist() == 1);
-                if let Some(pwi) = self
-                    .inventory
-                    .get_equipped_weapon_info(&self.world_info, false)
-                {
+                if let Some(pwi) = self.inventory.get_equipped_weapon_info(false) {
                     let range = pwi.get_range() as i32;
                     let start_pos = self.player_pos;
                     let end_pos = self.player_pos + direction * range;
@@ -807,7 +769,6 @@ impl World {
                             let mult = eff.get_scale() / 2;
                             let damage = (att_level + 1) * mult;
                             self.damage_mob(mob, zapped_pos, damage);
-
                         }
                         zapped_tiles.push(zapped_pos);
                     }
@@ -821,13 +782,14 @@ impl World {
                     ));
 
                     // Add some damage to the weapon.
-                    if let Some(destroyed_weapon) =
-                        self.inventory.damage_weapon(&self.world_info, false)
-                    {
+                    if let Some(destroyed_weapon) = self.inventory.damage_weapon(false) {
                         let breaks = BREAK_VERBS.choose(&mut self.rng).unwrap().to_owned();
                         self.log_message(vec![
                             ("Your ".into(), Color::White),
-                            (destroyed_weapon.name, destroyed_weapon.ty.get_color()),
+                            (
+                                destroyed_weapon.name.clone(),
+                                destroyed_weapon.ty.get_color(),
+                            ),
                             (
                                 format!(" runs out of ammo and {breaks}!").into(),
                                 Color::Red,
@@ -845,7 +807,7 @@ impl World {
             }
             PlayerAction::PickUp => {
                 if let Some(item) = self.tile_map[self.player_pos].item.take() {
-                    if let Some(popped) = self.inventory.add(item) {
+                    if let Some(popped) = self.inventory.add(item.clone()) {
                         self.log_message(vec![
                             ("Inventory full, so swapped out ".to_owned(), Color::White),
                             self.get_item_log_message(&popped),
@@ -864,10 +826,10 @@ impl World {
                     false
                 }
             }
-            PlayerAction::ToggleEquip(i) => self.inventory.toggle_equip(i, &self.world_info),
+            PlayerAction::ToggleEquip(i) => self.inventory.toggle_equip(i),
             PlayerAction::Drop(i) => {
                 if let Some(item) = self.inventory.remove(i) {
-                    if let Some(item_on_ground) = self.tile_map[self.player_pos].item {
+                    if let Some(item_on_ground) = self.tile_map[self.player_pos].item.clone() {
                         self.log_message(vec![
                             ("Swapped out ".to_owned(), Color::White),
                             self.get_item_log_message(&item),
@@ -909,7 +871,7 @@ impl World {
                 }
             }
         };
-        self.inventory.sort(&self.world_info);
+        self.inventory.sort();
         if tick {
             self.tick();
         }
@@ -1048,7 +1010,7 @@ impl World {
                     let target = self.path_towards(pos, dest, false, true, None);
                     if target == self.player_pos {
                         let mki = self.get_mobkind_info(mob.kind).clone();
-                        let armor = self.inventory.get_equipped_armor_info(&self.world_info);
+                        let armor = self.inventory.get_equipped_armor_info();
                         let defense1 = armor
                             .first()
                             .map(|eki| eki.ty)
@@ -1066,10 +1028,10 @@ impl World {
                         ]);
 
                         // See if armor is destroyed.
-                        for destroyed_armor in self.inventory.damage_armor(&self.world_info) {
+                        for destroyed_armor in self.inventory.damage_armor() {
                             self.log_message(vec![
                                 ("Your ".into(), Color::White),
-                                (destroyed_armor.name, destroyed_armor.ty.get_color()),
+                                (destroyed_armor.name.clone(), destroyed_armor.ty.get_color()),
                                 (" breaks!".into(), Color::Red),
                             ]);
                         }
@@ -1097,7 +1059,7 @@ impl World {
     }
 
     pub fn get_tile(&self, pos: grid::Pos) -> Tile {
-        self.tile_map[pos]
+        self.tile_map[pos].clone()
     }
 
     pub fn get_mob(&self, pos: grid::Pos) -> Option<Mob> {
@@ -1110,10 +1072,6 @@ impl World {
 
     pub fn get_mobkind_info(&self, kind: MobKind) -> &MobKindInfo {
         self.world_info.get_mobkind_info(kind)
-    }
-
-    pub fn get_equipmentkind_info(&self, kind: EquipmentKind) -> &EquipmentKindInfo {
-        self.world_info.get_equipmentkind_info(kind)
     }
 }
 

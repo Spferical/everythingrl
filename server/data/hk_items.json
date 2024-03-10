@@ -3,210 +3,266 @@
     "name": "Radiance Cloak",
     "level": 3,
     "type": "normal",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A cloak imbued with the power of the Radiance, enhancing the user's speed and agility."
   },
   {
     "name": "Reflective Cloak",
     "level": 1,
     "type": "water",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A cloak that reflects light, giving the wearer an ethereal appearance."
   },
   {
     "name": "Geode Breastplate",
     "level": 3,
     "type": "rock",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A heavy but protective breastplate made from a thick piece of geode."
   },
   {
     "name": "Broken Mask",
     "level": 2,
     "type": "bug",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A broken and overgrown mask that still seems to hold some kind of power."
   },
   {
     "name": "Nailmaster's Glory",
     "level": 3,
     "type": "fighting",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A gleaming nail that has been forged and sharpened by a master nailmaster."
   },
   {
     "name": "Coiled Nail",
     "level": 2,
     "type": "electric",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A nail wrapped with a powerful electric current, enhancing the user's striking power."
   },
   {
     "name": "Thorns of Agony",
     "level": 1,
     "type": "poison",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A cruel and deadly nail studded with thorns that leaves a painful poison in its wake."
   },
   {
     "name": "Vengeful Spirit",
     "level": 1,
     "type": "ghost",
-    "slot": "ranged_weapon",
+    "kind": "ranged_weapon",
     "description": "An angry spirit that flies forward and burns foes in its path."
   },
   {
     "name": "Howling Wraiths",
     "level": 1,
     "type": "psychic",
-    "slot": "ranged_weapon",
+    "kind": "ranged_weapon",
     "description": "A furious torrent of ethereal spectres is unleashed at the conjurer's foe."
   },
   {
     "name": "Unbreakable Strength",
     "level": 3,
     "type": "steel",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A charm that grants the user incredible strength, enabling them to wield their weapon with devastating force."
   },
   {
     "name": "Void Heart",
     "level": 3,
     "type": "ghost",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A mysterious and powerful charm that grants protection from the void, allowing the user to traverse the darkest depths."
   },
   {
     "name": "Fury of the Fallen",
     "level": 3,
     "type": "fighting",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A charm which embodies the fury and heroism that comes upon those who are about to die."
   },
   {
     "name": "Mantis Claw",
     "level": 2,
     "type": "grass",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A sharp claw, imbued with the power of the mantis, giving the user an increased range and speed."
   },
   {
     "name": "Void Armor",
     "level": 3,
     "type": "ghost",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A set of armor made from pure void, enhancing the user's defense and resistance to darkness."
   },
   {
     "name": "Miner's Boots",
     "level": 1,
     "type": "ground",
-    "slot": "armor",
+    "kind": "armor",
     "description": "Boots designed for miners, providing increased grip and durability."
   },
   {
     "name": "Hiveblood",
     "level": 2,
     "type": "bug",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A charm that grants the user the ability to regenerate lost health, making them more resilient."
   },
   {
     "name": "Nail",
     "level": 1,
     "type": "normal",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A basic nail, commonly used by warriors, providing a steady and reliable attack."
   },
   {
     "name": "Dreamweaver",
     "level": 3,
     "type": "psychic",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A charm that grants the user the ability to lucid dream, allowing them to enter a world of boundless possibilities."
   },
   {
     "name": "Lantern",
     "level": 1,
     "type": "fire",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A lantern that emits a warm light, providing comfort and safety in the darkest of places."
   },
   {
     "name": "Spelunker's Hat",
     "level": 1,
     "type": "normal",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A simple hat worn by spelunkers, with a built-in headlamp for exploring caves."
   },
   {
     "name": "Spell Twister",
     "level": 3,
     "type": "water",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A charm that enhances the user's magic abilities, making their spells more powerful and versatile."
   },
   {
     "name": "Abyss Shriek",
     "level": 2,
     "type": "dark",
-    "slot": "ranged_weapon",
+    "kind": "ranged_weapon",
     "description": "A vicious and deadly weapon that draws power from the depths of the abyss, causing its victim to become ensnared in darkness."
   },
   {
     "name": "Shade Soul",
     "level": 2,
     "type": "dark",
-    "slot": "ranged_weapon",
+    "kind": "ranged_weapon",
     "description": "An dark spirit that flies forward and burns foes in its path."
   },
   {
     "name": "Crystal Shell",
     "level": 3,
     "type": "rock",
-    "slot": "armor",
+    "kind": "armor",
     "description": "A protective shell made from strong crystals, generating a shield around the user."
   },
   {
     "name": "Shadow Boots",
     "level": 1,
     "type": "dark",
-    "slot": "armor",
+    "kind": "armor",
     "description": "Boots that allow the user to move silently, making them perfect for stealth."
   },
   {
     "name": "Quick Slash",
     "level": 3,
     "type": "fighting",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A charm that enhances the user's attack speed, enabling them to strike multiple times in quick succession."
   },
   {
     "name": "Mark of Pride",
     "level": 2,
     "type": "normal",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A charm that increases the user's nail's reach, allowing them to attack from a safer distance."
   },
   {
     "name": "Pure Nail",
     "level": 3,
     "type": "steel",
-    "slot": "melee_weapon",
+    "kind": "melee_weapon",
     "description": "A forged nail of pure steel, imbued with an ethereal light, increasing its strength and sharpness."
   },
   {
     "name": "Descending Dark",
     "level": 3,
     "type": "normal",
-    "slot": "ranged_weapon",
+    "kind": "ranged_weapon",
     "description": "Strikes the ground with a concentrated force of soul, which can destroy foes in its path."
   },
   {
     "name": "Desolate Dive",
     "level": 2,
     "type": "normal",
-    "slot": "ranged_weapon",
+    "kind": "ranged_weapon",
     "description": "Attack below the knight with a soul attack, destroying foes in its path."
+  },
+  {
+    "name": "Lifeblood",
+    "level": 2,
+    "type": "normal",
+    "kind": "food",
+    "description": "A vial filled with a pulsating, red liquid that heals the user when consumed."
+  },
+  {
+    "name": "Glowing Mushroom",
+    "level": 1,
+    "type": "grass",
+    "kind": "food",
+    "description": "A large, glowing mushroom that emits a soft light and heals the user when eaten."
+  },
+  {
+    "name": "Stale Bread",
+    "level": 1,
+    "type": "normal",
+    "kind": "food",
+    "description": "A crusty and stale piece of bread that provides a small amount of sustenance."
+  },
+  {
+    "name": "Fruit",
+    "level": 1,
+    "type": "grass",
+    "kind": "food",
+    "description": "A fresh and juicy fruit that heals the user when consumed."
+  },
+  {
+    "name": "Mushroom",
+    "level": 1,
+    "type": "grass",
+    "kind": "food",
+    "description": "A small and unassuming mushroom that heals the user when eaten."
+  },
+  {
+    "name": "Salted Fungus",
+    "level": 2,
+    "type": "poison",
+    "kind": "food",
+    "description": "A large and fleshy fungus that has been preserved with salt, providing a substantial amount of sustenance."
+  },
+  {
+    "name": "Radiant Root",
+    "level": 2,
+    "type": "fire",
+    "kind": "food",
+    "description": "A rare and glowing root that provides a powerful healing effect when consumed."
+  },
+  {
+    "name": "Dream Fruit",
+    "level": 2,
+    "type": "psychic",
+    "kind": "food",
+    "description": "A mysterious and otherworldly fruit that grants the user a brief glimpse into the future."
   }
 ]

@@ -1,15 +1,14 @@
 #![allow(dead_code)]
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
-use crate::net::{EquipmentSlot, MapGen};
-use crate::world::{
-    self, EquipmentInstance, EquipmentKind, Item, Mob, MobKind, TileKind, World, FOV_RANGE,
-};
+use crate::net::MapGen;
+use crate::world::{self, Item, ItemInfo, ItemInstance, Mob, MobKind, TileKind, World, FOV_RANGE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -393,7 +392,7 @@ pub struct SprinkleOpts {
     pub num_enemies: usize,
     pub num_items: usize,
     pub valid_enemies: Vec<MobKind>,
-    pub valid_equipment: Vec<EquipmentKind>,
+    pub valid_equipment: Vec<Rc<ItemInfo>>,
 }
 
 pub fn gen_simple_rooms(
@@ -564,8 +563,9 @@ fn sprinkle_enemies_and_items(
             Some(pos) => *pos,
             None => return Err("Failed to find walkable pos".into()),
         };
-        world[pos].item = Some(Item::Equipment(EquipmentInstance::new(
-            *sprinkle.valid_equipment.choose(rng).unwrap(),
+        // TODO: balance different equipment types
+        world[pos].item = Some(Item::Instance(ItemInstance::new(
+            sprinkle.valid_equipment.choose(rng).cloned().unwrap(),
             world::STARTING_DURABILITY,
         )));
     }
@@ -592,7 +592,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
     let algo = world.world_info.areas[i].mapgen;
     let sprinkle = SprinkleOpts {
         num_enemies: 30,
-        num_items: 30,
+        num_items: 300,
         valid_enemies: world.world_info.monsters_per_level[i].clone(),
         valid_equipment: world.world_info.equipment_per_level[i].clone(),
     };

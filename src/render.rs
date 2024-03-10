@@ -3,7 +3,7 @@ use macroquad::prelude::*;
 use macroquad::text::Font;
 use std::collections::HashSet;
 
-use crate::net::{Color, EquipmentSlot};
+use crate::net::{Color, ItemKind};
 use crate::world::{Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
@@ -169,7 +169,7 @@ impl Ui {
                                 ui.strong("Level");
                             });
                             header.col(|ui| {
-                                ui.strong("Slot");
+                                ui.strong("Kind");
                             });
                             header.col(|ui| {
                                 ui.strong("Equipped");
@@ -189,17 +189,7 @@ impl Ui {
                                 let level;
                                 let cond;
                                 let mut types = vec![];
-                                match slot.item {
-                                    Item::Corpse(mob_kind) => {
-                                        let mob_desc = &sim.get_mobkind_info(mob_kind);
-                                        name = format!("{} Corpse", mob_desc.name);
-                                        types.push(mob_desc.type1);
-                                        types.extend(mob_desc.type2);
-                                        display_slot = "";
-                                        display_equipped = "";
-                                        level = mob_desc.level.to_string();
-                                        cond = ItemCondition::New;
-                                    }
+                                match &slot.item {
                                     Item::PendingCraft(..) => {
                                         name = "Crafting in progress...".into();
                                         display_slot = "";
@@ -207,21 +197,21 @@ impl Ui {
                                         level = "".into();
                                         cond = ItemCondition::New;
                                     }
-                                    Item::Equipment(item) => {
-                                        let item_desc = &sim.get_equipmentkind_info(item.kind);
-                                        name = item_desc.name.clone();
-                                        types.push(item_desc.ty);
-                                        display_slot = match item_desc.slot {
-                                            EquipmentSlot::MeleeWeapon => "Melee",
-                                            EquipmentSlot::RangedWeapon => "Ranged",
-                                            EquipmentSlot::Armor => "Equipment",
+                                    Item::Instance(item) => {
+                                        name = item.info.name.clone();
+                                        types.push(item.info.ty);
+                                        display_slot = match item.info.kind {
+                                            ItemKind::MeleeWeapon => "Melee",
+                                            ItemKind::RangedWeapon => "Ranged",
+                                            ItemKind::Armor => "Equipment",
+                                            ItemKind::Food => "Food",
                                         };
                                         if slot.equipped {
                                             display_equipped = "YES";
                                         } else {
                                             display_equipped = "";
                                         }
-                                        level = item_desc.level.to_string();
+                                        level = item.info.level.to_string();
                                         cond = get_item_condition(item.item_durability);
                                     }
                                 }
@@ -312,7 +302,7 @@ impl Ui {
                 layer: 2,
             }];
             for pos in grid_rect {
-                let tile = memory.tile_map[pos];
+                let tile = &memory.tile_map[pos];
                 if let Some(tile) = tile {
                     let (character, color) = match tile.kind {
                         TileKind::Floor => ('.', LIGHTGRAY),
@@ -328,18 +318,17 @@ impl Ui {
                         location: (pos.x as usize, pos.y as usize),
                         layer: 0,
                     });
-                    if let Some(item) = tile.item {
+                    if let Some(ref item) = tile.item {
                         let (character, color) = match item {
-                            Item::Corpse(_) => ('%', MAROON),
                             Item::PendingCraft(..) => ('?', PINK),
-                            Item::Equipment(ek) => {
-                                let equip_def = sim.get_equipmentkind_info(ek.kind);
-                                let char = match equip_def.slot {
-                                    EquipmentSlot::MeleeWeapon => ')',
-                                    EquipmentSlot::RangedWeapon => '/',
-                                    EquipmentSlot::Armor => '[',
+                            Item::Instance(ii) => {
+                                let char = match ii.info.kind {
+                                    ItemKind::MeleeWeapon => ')',
+                                    ItemKind::RangedWeapon => '/',
+                                    ItemKind::Armor => '[',
+                                    ItemKind::Food => '*',
                                 };
-                                let color = equip_def.ty.get_color().into();
+                                let color = ii.info.ty.get_color().into();
                                 (char, color)
                             }
                         };

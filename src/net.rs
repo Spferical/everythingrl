@@ -8,15 +8,16 @@ use std::{
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum EquipmentSlot {
+pub enum ItemKind {
     MeleeWeapon,
     RangedWeapon,
     Armor,
+    Food,
 }
 
-pub fn is_weapon_slot(slot: EquipmentSlot) -> bool {
+pub fn is_weapon_slot(slot: ItemKind) -> bool {
     match slot {
-        EquipmentSlot::MeleeWeapon | EquipmentSlot::RangedWeapon => true,
+        ItemKind::MeleeWeapon | ItemKind::RangedWeapon => true,
         _ => false,
     }
 }
@@ -289,7 +290,7 @@ pub struct ItemDefinition {
     #[serde(rename = "type")]
     pub ty: PokemonType,
     pub description: String,
-    pub slot: EquipmentSlot,
+    pub kind: ItemKind,
     pub craft_id: Option<CraftId>,
 }
 
@@ -311,6 +312,7 @@ pub struct Area {
     pub equipment: Vec<String>,
     pub melee_weapons: Vec<String>,
     pub ranged_weapons: Vec<String>,
+    pub food: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

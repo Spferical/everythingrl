@@ -135,23 +135,12 @@ impl PlayState {
             }
             KeyCode::Slash | KeyCode::Semicolon => {
                 for item in self.ui.inventory_selected.iter() {
-                    if let Some(item) = self.sim.inventory.items.get(*item).map(|x| x.item) {
+                    if let Some(item) = self.sim.inventory.items.get(*item).map(|x| &x.item) {
                         self.sim.log_message(vec![match item {
-                            world::Item::Corpse(item) => {
-                                let mob_desc = &self.sim.get_mobkind_info(item);
-                                (format!("{} Corpse", mob_desc.name), net::Color::Maroon)
-                            }
-                            world::Item::Equipment(item) => {
-                                let item_desc = &self.sim.get_equipmentkind_info(item.kind);
-                                (
-                                    format!(
-                                        "{}: {}",
-                                        item_desc.name,
-                                        item_desc.description.clone()
-                                    ),
-                                    item_desc.ty.get_color(),
-                                )
-                            }
+                            world::Item::Instance(ii) => (
+                                format!("{}: {}", ii.info.name, ii.info.description.clone()),
+                                ii.info.ty.get_color(),
+                            ),
                             world::Item::PendingCraft(_, _) => {
                                 ("Crafting in progress...".into(), net::Color::Pink)
                             }

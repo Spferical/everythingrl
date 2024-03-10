@@ -30,6 +30,11 @@
     "ranged_weapons": [
       "Vengeful Spirit",
       "Howling Wraiths"
+    ],
+    "food": [
+      "Stale Bread",
+      "Fruit",
+      "Mushroom"
     ]
   },
   {
@@ -63,6 +68,11 @@
     "ranged_weapons": [
       "Abyss Shriek",
       "Shade Soul"
+    ],
+    "food": [
+      "Stale Bread",
+      "Salted Fungus",
+      "Glowing Mushroom"
     ]
   },
   {
@@ -96,6 +106,11 @@
     "ranged_weapons": [
       "Descending Dark",
       "Desolate Dive"
+    ],
+    "food": [
+      "Dream Fruit",
+      "Radiant Root",
+      "Lifeblood"
     ]
   }
 ]

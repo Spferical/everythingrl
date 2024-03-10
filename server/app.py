@@ -54,7 +54,7 @@ def craft():
             "level": item1["level"] + 1,
             "type": item1["type"],
             "description": "who knows",
-            "slot": item1["slot"],
+            "kind": item1["kind"],
         }
     else:
         new_item = ai.craft(theme, setting_desc, items, item1, item2)
