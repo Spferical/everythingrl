@@ -257,7 +257,7 @@ impl WorldInfo {
             .collect();
 
         let get_equipment_by_name =
-            |name: &String| self.item_kinds.iter().filter(|k| &k.name == name).next();
+            |name: &String| self.item_kinds.iter().find(|k| &k.name == name);
 
         self.equipment_per_level = ig
             .areas
@@ -286,8 +286,7 @@ impl WorldInfo {
             let ek_by_name = |name: &str| {
                 self.item_kinds
                     .iter()
-                    .filter(|ek| ek.name == name)
-                    .next()
+                    .find(|ek| ek.name == name)
                     .cloned()
                     .unwrap()
             };
@@ -727,7 +726,7 @@ impl World {
                                     .to_owned(),
                                 Color::White,
                             ),
-                            self.get_item_log_message(&item),
+                            self.get_item_log_message(item),
                         ];
                         self.log_message(msg);
                     }
@@ -790,10 +789,7 @@ impl World {
                                 destroyed_weapon.name.clone(),
                                 destroyed_weapon.ty.get_color(),
                             ),
-                            (
-                                format!(" runs out of ammo and {breaks}!").into(),
-                                Color::Red,
-                            ),
+                            (format!(" runs out of ammo and {breaks}!"), Color::Red),
                         ]);
                     }
                     true
