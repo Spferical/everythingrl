@@ -237,6 +237,9 @@ def ask_google_structured(
 ) -> dict:
     # Build prompt
     prompt_parts = [instructions, "--"]
+    prompt_parts.append("Expected JSON schema of each output line: ")
+    prompt_parts.append(json.dumps(model.model_json_schema()))
+    prompt_parts.append("--")
     for ex_input, ex_outputs in examples:
         ex_input = dict(ex_input)
         ex_input["num_outputs"] = len(ex_outputs)
