@@ -248,7 +248,7 @@ impl Ui {
                         });
                 });
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
-                    if ui.button("Equip/Unequip (e)").clicked() {
+                    if ui.button("Equip/Unequip/Eat (e)").clicked() {
                         println!("Equipped {:?}", self.inventory_selected);
                     }
                     if ui.button("Drop (d)").clicked() {

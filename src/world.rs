@@ -595,7 +595,7 @@ pub enum PlayerAction {
     Move(Offset),
     Fire(Offset),
     PickUp,
-    ToggleEquip(usize),
+    Use(usize),
     Drop(usize),
     Craft(usize, usize),
     Wait,
@@ -820,7 +820,22 @@ impl World {
                     false
                 }
             }
-            PlayerAction::ToggleEquip(i) => self.inventory.toggle_equip(i),
+            PlayerAction::Use(i) => {
+                if let Some(Item::Instance(ii)) = self.inventory.get(i) {
+                    use ItemKind::*;
+                    match ii.info.kind {
+                        Armor | MeleeWeapon | RangedWeapon => self.inventory.toggle_equip(i),
+                        Food => {
+                            self.inventory.remove(i).unwrap();
+                            self.player_damage =
+                                self.player_damage.saturating_sub(ii.info.level.pow(2));
+                            true
+                        }
+                    }
+                } else {
+                    false
+                }
+            }
             PlayerAction::Drop(i) => {
                 if let Some(item) = self.inventory.remove(i) {
                     if let Some(item_on_ground) = self.tile_map[self.player_pos].item.clone() {

@@ -15,13 +15,6 @@ pub enum ItemKind {
     Food,
 }
 
-pub fn is_weapon_slot(slot: ItemKind) -> bool {
-    match slot {
-        ItemKind::MeleeWeapon | ItemKind::RangedWeapon => true,
-        _ => false,
-    }
-}
-
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PokemonType {
