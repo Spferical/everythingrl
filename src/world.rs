@@ -154,6 +154,32 @@ impl ItemInfo {
             _ => 0,
         }
     }
+    /// If ingested, how much does this heal?
+    pub fn get_heal_amount(&self, armor_types: &[PokemonType]) -> i32 {
+        let _heal_amount = 5 * self.level.pow(2);
+
+        // Okay, I just think this is funny.
+        let harm = if matches!(self.ty, PokemonType::Poison) {
+            // Check if the player armor negates poison in any way.
+            // If not, then negate the healing!
+            println!("got here {:?}", self.ty);
+            !armor_types
+                .iter()
+                .any(|ty| match ty.get_effectiveness(PokemonType::Poison) {
+                    AttackEffectiveness::Two | AttackEffectiveness::Four => true,
+                    _ => false,
+                })
+        } else {
+            false
+        };
+
+        let amt = 5 * 2i32.pow(self.level as u32);
+        if harm {
+            -amt
+        } else {
+            amt
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -870,46 +896,28 @@ impl World {
                         Armor | MeleeWeapon | RangedWeapon => self.inventory.toggle_equip(i),
                         Food => {
                             self.inventory.remove(i).unwrap();
-                            let heal_amount = 5 * ii.info.level.pow(2);
-
-                            // Okay, I just think this is funny.
-                            let harm = if matches!(ii.info.ty, PokemonType::Poison) {
-                                // Check if the player armor negates poison in any way.
-                                // If not, then negate the healing!
-                                println!("got here {:?}", ii.info.ty);
-                                !self
-                                    .inventory
-                                    .get_equipped_armor_info()
-                                    .iter()
-                                    .any(|armor| {
-                                        match armor.ty.get_effectiveness(PokemonType::Poison) {
-                                            AttackEffectiveness::Two
-                                            | AttackEffectiveness::Four => true,
-                                            _ => false,
-                                        }
-                                    })
-                            } else {
-                                false
-                            };
-
-                            if harm {
-                                self.player_damage += heal_amount;
+                            let armor_types = self
+                                .inventory
+                                .get_equipped_armor_info()
+                                .iter()
+                                .map(|a| a.ty)
+                                .collect::<Vec<_>>();
+                            let heal_amt = ii.info.get_heal_amount(&armor_types);
+                            if heal_amt < 0 {
+                                self.player_damage =
+                                    self.player_damage.saturating_sub(-heal_amt as usize);
                                 self.log_message(vec![(
                                     format!(
-                                        "You eat a poisonous {} and lose {heal_amount} HP! Ouch!",
+                                        "You eat a poisonous {} and lose {heal_amt} HP! Ouch!",
                                         ii.info.name
-                                    )
-                                    .into(),
+                                    ),
                                     Color::Green,
                                 )]);
                             } else {
-                                self.player_damage = self.player_damage.saturating_sub(heal_amount);
+                                self.player_damage =
+                                    self.player_damage.saturating_sub(heal_amt as usize);
                                 self.log_message(vec![(
-                                    format!(
-                                        "You eat a {} and gain {heal_amount} HP!",
-                                        ii.info.name
-                                    )
-                                    .into(),
+                                    format!("You eat a {} and gain {heal_amt} HP!", ii.info.name),
                                     Color::Green,
                                 )]);
                             }
@@ -1114,7 +1122,7 @@ impl World {
                     let mult = eff.get_scale();
                     let mut damage = mki.level * mult;
                     if mki.ranged {
-                        damage = damage / 2;
+                        damage /= 2;
                     }
                     let range = (5 + mki.level * 2) as i32;
                     let in_range = (pos - self.player_pos).dist_squared() <= range * range;

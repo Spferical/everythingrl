@@ -198,7 +198,14 @@ impl Ui {
                                         cond = ItemCondition::New;
                                     }
                                     Item::Instance(item) => {
-                                        name = item.info.name.clone();
+                                        name = match item.info.kind {
+                                            ItemKind::Food => format!(
+                                                "{} ({}hp)",
+                                                &item.info.name,
+                                                item.info.get_heal_amount(&[]).abs()
+                                            ),
+                                            _ => item.info.name.clone(),
+                                        };
                                         types.push(item.info.ty);
                                         display_slot = match item.info.kind {
                                             ItemKind::MeleeWeapon => "Melee",
