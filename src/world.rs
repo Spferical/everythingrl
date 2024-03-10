@@ -904,8 +904,7 @@ impl World {
                                 .collect::<Vec<_>>();
                             let heal_amt = ii.info.get_heal_amount(&armor_types);
                             if heal_amt < 0 {
-                                self.player_damage =
-                                    self.player_damage.saturating_sub(-heal_amt as usize);
+                                self.player_damage += heal_amt.abs() as usize;
                                 self.log_message(vec![(
                                     format!(
                                         "You eat a poisonous {} and lose {heal_amt} HP! Ouch!",
