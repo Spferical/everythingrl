@@ -10,7 +10,7 @@ pub const SETTINGS: [&str; 7] = [
     "Ridley Scott's 1979 Alien movie",
     "Microcenter",
     "Star Wars but everyone is a cat",
-    "Lord of the Rings but everyone is a cat"
+    "Lord of the Rings but everyone is a cat",
 ];
 
 pub const TIPS: [&str; 3] = [

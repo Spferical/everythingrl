@@ -534,6 +534,7 @@ fn gen_level_mapgen(
 fn sprinkle_enemies_and_items(
     world: &mut World,
     rect: Rect,
+    level_idx: usize,
     lgr: &LevelgenResult,
     sprinkle: &SprinkleOpts,
     rng: &mut impl Rng,
@@ -598,6 +599,20 @@ fn sprinkle_enemies_and_items(
             sprinkle.valid_equipment.choose(rng).cloned().unwrap(),
             world::STARTING_DURABILITY,
         )));
+    }
+    // sprinkle some starting items around the player if this is level 1
+    if level_idx == 0 {
+        let mut free_poses_near_player: Vec<Pos> = fov.iter().cloned().collect();
+        free_poses_near_player.sort_by_key(|p| (*p - lgr.start).mhn_dist());
+        free_poses_near_player.reverse();
+        for _ in 0..5 {
+            if let Some(p) = free_poses_near_player.pop() {
+                world[p].item = Some(Item::Instance(ItemInstance::new(
+                    sprinkle.valid_equipment.choose(rng).cloned().unwrap(),
+                    world::STARTING_DURABILITY,
+                )));
+            }
+        }
     }
     // make some tiles bloody just for fun
     for p in walkable_poses {
@@ -664,7 +679,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         }
         MapGen::DenseRooms => gen_offices(world, rng, rect),
     };
-    sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, rng).map(|_| lgr)
+    sprinkle_enemies_and_items(world, rect, i, &lgr, &sprinkle, rng).map(|_| lgr)
 }
 
 pub fn generate_world(world: &mut World, seed: u64) {
