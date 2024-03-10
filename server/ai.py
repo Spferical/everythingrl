@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from functools import cache
+from typing import Annotated
 
 import pydantic
 import requests
@@ -72,6 +73,17 @@ class Color(str, Enum):
     black = "black"
 
 
+def fix_color(v, handler, info):
+    try:
+        Color(v)
+    except ValueError:
+        v = "lightgray"
+    return handler(v)
+
+
+Color = Annotated[Color, pydantic.WrapValidator(fix_color)]
+
+
 class PokemonType(str, Enum):
     normal = "normal"
     fire = "fire"
@@ -91,6 +103,17 @@ class PokemonType(str, Enum):
     dark = "dark"
     steel = "steel"
     fairy = "fairy"
+
+
+def fix_type(v, handler, info):
+    try:
+        PokemonType(v)
+    except ValueError:
+        v = "normal"
+    return handler(v)
+
+
+PokemonType = Annotated[PokemonType, pydantic.WrapValidator(fix_type)]
 
 
 class MapGen(str, Enum):
@@ -279,8 +302,7 @@ def ask_google_structured(
     for response in responses:
         try:
             response_json = json.loads(response)
-            model(**response_json)
-            output.append(response_json)
+            output.append(model(**response_json).model_dump())
             prompt_parts.append(response_text)
         except Exception as e:
             logging.error(f"Bad response: {response}: {e}")
