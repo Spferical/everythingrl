@@ -616,7 +616,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
                 ))
                 .with(mapgen::CullUnreachable::new())
                 .with(mapgen::DistantExit::new())
-                .build();
+                .build_with_rng(rng);
             gen_level_mapgen(world, buf, rect, rng)
         }
         MapGen::Hive => {
