@@ -592,7 +592,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
     let algo = world.world_info.areas[i].mapgen;
     let sprinkle = SprinkleOpts {
         num_enemies: 30,
-        num_items: 300,
+        num_items: 30,
         valid_enemies: world.world_info.monsters_per_level[i].clone(),
         valid_equipment: world.world_info.equipment_per_level[i].clone(),
     };
