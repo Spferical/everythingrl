@@ -228,14 +228,14 @@ fn calc_damage(
     att_level: usize,
     def_level: usize,
     eff: AttackEffectiveness,
-    attacker_is_player: bool,
+    _attacker_is_player: bool,
     is_ranged: bool,
 ) -> usize {
     // Base 4 mult.
     let mult = eff.get_scale();
     let mut damage = (att_level + 1) * mult;
     if damage > 0 {
-        damage /= def_level;
+        damage /= def_level + 1;
     };
     if is_ranged {
         damage /= 2;
