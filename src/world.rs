@@ -738,19 +738,6 @@ impl World {
                     let damage = (att_level + 1) * mult;
 
                     self.damage_mob(mob, new_pos, damage);
-                    /*mob.damage += damage;
-                    self.log_message(vec![
-                        ("You hit ".into(), Color::White),
-                        (mki.name.clone(), mki.color),
-                        (" for ".into(), Color::White),
-                        (format!("{}", damage), Color::Red),
-                    ]);
-                    if mob.damage >= mki.max_hp() {
-                        self.log_message(vec![(mki.death, mki.color)]);
-                        self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
-                    } else {
-                        self.mobs.insert(new_pos, mob);
-                    }*/
 
                     if let Some(destroyed_weapon) =
                         self.inventory.damage_weapon(&self.world_info, true)
