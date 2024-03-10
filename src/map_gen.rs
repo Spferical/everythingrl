@@ -681,7 +681,11 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
                 .build_with_rng(rng);
             gen_level_mapgen(world, buf, rect, rng)
         }
-        MapGen::DenseRooms => gen_offices(world, rng, rect),
+        MapGen::DenseRooms => {
+            // too dense for big rect
+            let rect = Rect::new_centered(rect.center(), 40, 25);
+            gen_offices(world, rng, rect)
+        }
     };
     sprinkle_enemies_and_items(world, rect, i, &lgr, &sprinkle, rng).map(|_| lgr)
 }
