@@ -828,7 +828,7 @@ impl World {
                         Food => {
                             self.inventory.remove(i).unwrap();
                             self.player_damage =
-                                self.player_damage.saturating_sub(ii.info.level.pow(2));
+                                self.player_damage.saturating_sub(5 * ii.info.level.pow(2));
                             true
                         }
                     }
