@@ -156,19 +156,19 @@ impl ItemInfo {
     }
     /// If ingested, how much does this heal?
     pub fn get_heal_amount(&self, armor_types: &[PokemonType]) -> i32 {
+        use AttackEffectiveness::*;
+        use PokemonType::Poison;
         let _heal_amount = 5 * self.level.pow(2);
 
         // Okay, I just think this is funny.
-        let harm = if matches!(self.ty, PokemonType::Poison) {
+        let harm = if matches!(self.ty, Poison) {
             // Check if the player armor negates poison in any way.
             // If not, then negate the healing!
             println!("got here {:?}", self.ty);
-            !armor_types
-                .iter()
-                .any(|ty| match ty.get_effectiveness(PokemonType::Poison) {
-                    AttackEffectiveness::Two | AttackEffectiveness::Four => true,
-                    _ => false,
-                })
+            !armor_types.iter().any(|ty| {
+                matches!(ty.get_effectiveness(Poison), Two | Four)
+                    || matches!(Poison.get_effectiveness(*ty), Half | Quarter | Zero)
+            })
         } else {
             false
         };
