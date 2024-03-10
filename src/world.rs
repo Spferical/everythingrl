@@ -855,8 +855,13 @@ impl World {
                         Armor | MeleeWeapon | RangedWeapon => self.inventory.toggle_equip(i),
                         Food => {
                             self.inventory.remove(i).unwrap();
-                            self.player_damage =
-                                self.player_damage.saturating_sub(5 * ii.info.level.pow(2));
+                            let heal_amount = 5 * ii.info.level.pow(2);
+                            self.log_message(vec![(
+                                format!("You eat a {} and gain {heal_amount} HP!", ii.info.name)
+                                    .into(),
+                                Color::Green,
+                            )]);
+                            self.player_damage = self.player_damage.saturating_sub(heal_amount);
                             true
                         }
                     }
