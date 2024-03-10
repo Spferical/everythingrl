@@ -684,12 +684,13 @@ pub struct World {
     pub world_info: WorldInfo,
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Inventory,
-    pub log: VecDeque<Vec<(String, Color)>>,
+    pub log: VecDeque<(Vec<(String, Color)>, usize)>,
     pub untriggered_animations: Vec<AnimationState>,
     pub victory: bool,
     stairs: HashMap<Pos, Pos>,
     level_id: usize,
     rng: rand::rngs::SmallRng,
+    step: usize,
 }
 
 pub enum PlayerAction {
@@ -720,6 +721,7 @@ impl World {
             untriggered_animations: Vec::new(),
             stairs: HashMap::new(),
             level_id: 0,
+            step: 1,
         }
     }
 
@@ -755,7 +757,7 @@ impl World {
                 .collect::<Vec::<String>>()
                 .join("")
         );
-        self.log.push_back(text);
+        self.log.push_back((text, self.step));
     }
 
     pub fn get_item_log_message(&self, item: &Item) -> (String, Color) {
@@ -1245,6 +1247,7 @@ impl World {
         if self.player_is_dead() {
             self.log_message(vec![("YOU DIED".into(), Color::Red)]);
         }
+        self.step += 1;
     }
 
     pub fn player_is_dead(&self) -> bool {

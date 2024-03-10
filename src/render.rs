@@ -633,15 +633,24 @@ impl Ui {
                                 ui.set_width(ui.available_width());
                                 let start_index = sim.log.len() as i64 - 100;
                                 let start_index = (start_index.max(0)) as usize;
-                                for log_entry in sim.log.iter().skip(start_index) {
+                                let last_step = sim.log.iter().map(|(_, step)| step).max();
+                                for (log_entry, step) in sim.log.iter().skip(start_index) {
+                                    let is_new = match last_step {
+                                        None => true,
+                                        Some(last_step) => *step >= *last_step,
+                                    };
                                     let mut job = egui::text::LayoutJob::default();
                                     for (log_entry_str, log_entry_color) in log_entry {
+                                        let mut color = to_egui(log_entry_color);
+                                        if !is_new {
+                                            color = color.gamma_multiply(0.5);
+                                        }
                                         job.append(
                                             log_entry_str,
                                             0.0,
                                             egui::TextFormat {
                                                 font_id: self.get_base_font(),
-                                                color: to_egui(log_entry_color),
+                                                color,
                                                 ..Default::default()
                                             },
                                         );
