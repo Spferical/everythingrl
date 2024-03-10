@@ -30,6 +30,11 @@
     "ranged_weapons": [
       "Sling",
       "Crossbow"
+    ],
+    "food": [
+      "Bread",
+      "Cheese",
+      "Mushroom"
     ]
   },
   {
@@ -63,6 +68,11 @@
     "ranged_weapons": [
       "Orcish Bow",
       "Spear"
+    ],
+    "Food": [
+      "Hardtack",
+      "Jerky",
+      "Orange"
     ]
   },
   {
@@ -96,6 +106,11 @@
     "ranged_weapons": [
       "Cream Pie",
       "Shuriken"
+    ],
+    "food": [
+      "Pemmican",
+      "Nuts",
+      "Honey"
     ]
   }
 ]

@@ -124,12 +124,14 @@ class Area(pydantic.BaseModel):
     equipment: list[str]
     melee_weapons: list[str]
     ranged_weapons: list[str]
+    food: list[str]
 
 
 class ItemSlot(str, Enum):
     armor = "armor"
     melee_weapon = "melee_weapon"
     ranged_weapon = "ranged_weapon"
+    food = "food"
 
 
 class Item(pydantic.BaseModel):
@@ -296,7 +298,7 @@ def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
 
 
 def gen_items(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, the equipment slot the item takes up, either 'melee_weapon' or 'armor'; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT mention abilities or gameplay mechanics in the description; instead, focus on appearance or lore."
+    instructions = "You are the game master for a difficult permadeath roguelike. Output JSON item definitions for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Output fields include name, the name of the item; level, a number between 1 and 3 indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; slot, indicating the type of item, one of: melee_weapon armor food; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT mention abilities or gameplay mechanics in the description; instead, focus on appearance or lore."
     examples = [
         (
             {
@@ -309,6 +311,7 @@ def gen_items(theme: str, setting_desc: str, areas: list[dict]):
                         for name in area["equipment"]
                         + area["melee_weapons"]
                         + area["ranged_weapons"]
+                        + area["food"]
                     )
                 ),
             },
@@ -335,7 +338,7 @@ def gen_setting_desc(theme: str):
 
 
 def gen_areas(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, and names of 2 ranged weapons that may be found on that level."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, names of 2 ranged weapons, and names of 3 food items that may be found on that level."
     examples = [
         (
             {
