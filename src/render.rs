@@ -766,16 +766,16 @@ impl Ui {
                         }
 
                         // Little hack to show blood.
-                        let color = if z_buffer[cell.x as usize][cell.y as usize] == 2 {
-                            Color::Red
+                        let (color, size) = if z_buffer[cell.x as usize][cell.y as usize] == 2 {
+                            (Color::Red, 2.0 * intensity * sq_size)
                         } else {
-                            shot_animation.color
+                            (shot_animation.color, intensity * sq_size)
                         };
 
                         draw_circle(
                             translate_coords(cell.x, cell.y, false).0,
                             translate_coords(cell.x, cell.y, false).1,
-                            intensity * sq_size,
+                            size,
                             color.into(),
                         );
                     }
