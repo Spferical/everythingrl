@@ -762,12 +762,24 @@ impl World {
 
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
         self.world_info.update(ig);
+        let mut msgs = vec![];
         for item in &mut self.inventory.items {
             if let Item::PendingCraft(a, b) = item.item.clone() {
-                if let Some(c) = self.world_info.recipes.get(&(a, b)) {
+                if let Some(c) = self.world_info.recipes.get(&(a.clone(), b.clone())) {
                     item.item = Item::Instance(ItemInstance::new(c.clone(), STARTING_DURABILITY));
+                    msgs.push(vec![
+                        ("You crafted a ".into(), Color::White),
+                        (c.name.clone(), c.ty.get_color()),
+                        (" out of your ".into(), Color::White),
+                        (a.name.clone(), a.ty.get_color()),
+                        (" and ".into(), Color::White),
+                        (a.name.clone(), a.ty.get_color()),
+                    ]);
                 }
             }
+        }
+        for msg in msgs {
+            self.log_message(msg);
         }
     }
 
