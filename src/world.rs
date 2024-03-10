@@ -1131,13 +1131,7 @@ impl World {
                     }
 
                     // If ranged and in range and reload cooldown done
-                    let can_fire = mki.ranged && in_range && mob.reload == 0;
-                    if mki.ranged {
-                        println!(
-                            "(1) {} can_fire -- {can_fire} -- pos {pos:?} -- player {:?}",
-                            mki.name, self.player_pos
-                        );
-                    }
+                    let mut can_fire = mki.ranged && in_range && mob.reload == 0;
                     let fire_line: Vec<_> = line_drawing::Bresenham::new(
                         (target.x, target.y),
                         (self.player_pos.x, self.player_pos.y),
@@ -1145,20 +1139,11 @@ impl World {
                     .map(|(x, y)| Pos::new(x, y))
                     .collect();
 
-                    // If there's anything in the way, don't fire.
-                    let can_fire = can_fire
-                        && !fire_line.iter().any(|&pos| {
-                            !self[pos].kind.is_walkable() || self.mobs.contains_key(&pos)
-                        });
-                    if mki.ranged {
-                        println!("(2) {} can_fire -- {can_fire} {fire_line:?}", mki.name);
-                    }
-
+                    // If we can't see it, also avoid it. Or if there's friendly fire.
+                    can_fire &= fov.contains(&pos);
+                    can_fire &= fire_line.iter().any(|&pos| self.mobs.contains_key(&pos));
                     // If melee and adjacent, then let fire.
-                    let can_fire = can_fire || (!mki.ranged && target == self.player_pos);
-                    if mki.ranged {
-                        println!("(3) {} can_fire -- {can_fire}", mki.name);
-                    }
+                    can_fire |= !mki.ranged && target == self.player_pos;
 
                     if can_fire {
                         self.log_message(vec![
