@@ -695,6 +695,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
         results.iter().last().unwrap().end,
         fb_rect.bottom_edge().choose(&mut rng),
     );
+    world.player_pos = fb_rect.bottom_edge().center();
     let boss_kind = world.world_info.boss_info.as_ref().unwrap().mob_kind;
     world.add_mob(fb_rect.top_edge().center(), Mob::new(boss_kind));
 }

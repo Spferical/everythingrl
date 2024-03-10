@@ -9,7 +9,7 @@ use crate::net::{
 use crate::render::{Animation, AnimationState, ShotAnimation};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
-use rand::{seq::SliceRandom as _, SeedableRng};
+use rand::{seq::SliceRandom as _, Rng, SeedableRng};
 
 pub const FOV_RANGE: i32 = 16;
 pub const STARTING_DURABILITY: usize = 10;
@@ -1134,12 +1134,26 @@ impl World {
 
     pub fn tick(&mut self) {
         let poses = self.mobs.keys().copied().collect::<Vec<_>>();
+        let boss_kind = self.world_info.boss_info.as_ref().unwrap().mob_kind;
         let fov = crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self);
         for pos in poses {
             let mut mob = match self.mobs.remove(&pos) {
                 Some(mob) => mob,
                 None => continue,
             };
+            let mki = self.get_mobkind_info(mob.kind).clone();
+            if mob.kind == boss_kind && fov.contains(&pos) && self.rng.gen::<f64>() < 0.1 {
+                if let Some(msg) = self
+                    .world_info
+                    .boss_info
+                    .as_ref()
+                    .unwrap()
+                    .periodic_messages
+                    .choose(&mut self.rng)
+                {
+                    self.log_message(vec![(msg.clone(), Color::White)]);
+                }
+            }
             let mut current_pos = pos;
             while mob.actions >= SPEED_MUL {
                 if fov.contains(&current_pos) {
@@ -1161,7 +1175,6 @@ impl World {
                         // Start by determining the next position we want to move towards.
                         let target = self.path_towards(current_pos, dest, false, true, None);
 
-                        let mki = self.get_mobkind_info(mob.kind).clone();
                         let armor = self.inventory.get_equipped_armor_info();
                         let defense1 = armor
                             .first()
