@@ -19,24 +19,16 @@ pub const TIPS: [&str; 3] = [
     "narrow corridors are your friend. Try luring enemies into a narrow chokepoint to benefit from Lanchester's linear law :)"
 ];
 
-pub const PROMPTS: [&str; 20] = [
+pub const PROMPTS: [&str; 12] = [
     "Welcome, traveler. I am the Storyteller of this roguelike game.",
     "My objective is to create the world of the game which you are about to play. From the inhabitants of this virtual dungeon, to their implements and attire, to their demeanor and persuasion, to the very earth they step foot upon....",
     "... they will be invented by yours truly. With a bit of help from you of course.",
     "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.",
     "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
-    "Good. It'll take around 60 seconds to generate your prompt. In the meantime, let's discuss the controls and user interface of the game.",
-    "Either 'hjkl' or arrow keys can be used for movement through the level. Press the '.' key to wait a turn.",
-    "Press ',' to pick up an item if you are standing on top of it. Note that you are limited to 10 inventory items at a time.",
-    "Press 'i' to toggle the inventory overlay. Here you can see the weapons, armor, and consumables that you have picked up as well as their associated types, level, and condition.",
-    "The number keys 0-9 can be used to select items in your inventory. Pressing the key again will toggle that selection.",
-    "The 'e' key can be used to equip selected items, and 'd' to drop items. The currently equipped weapon(s) and armor will appear first in this list.",
-    "'e' also stands for '(e)at' -- eating consumables will increase your health.",
-    "You can have at most one melee weapon, one ranged weapon equipped at a time, and two articles of armor equipped at a time.",
-    "Press the c key to combine/craft selected items. Crafting takes a short amount of (real-world) time, and will combine both items to create a completely new item with different properties.",
-    "'c' also stands for '(c)ook. Cooking consumable items will improve their nutritional quality.",
-    "'/' or ';' can be used to describe all items that are currently selected.",
-    "The upper right panel shows some information about all monsters that you can see. Click the \"Details\" header to learn more about a given monster.",
+    "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.",
+    "The movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item.\n\'0-9\' multi-selects inventory items\n\'e\' equips.eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\'/\' or \';\' will inspect an item.",
+    "Some other notes --\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
+    "If this is a lot to remember, press \'?\' for a quick summary.",
     "If the fonts are rendering too small or large, there is a font scale slider on the bottom left.",
     "A quick tip -- {tip}",
     "Thank you for listening to me. Please wait a moment as the game world is generated.",

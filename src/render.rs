@@ -39,6 +39,7 @@ pub struct Ui {
     grid_size: usize,
     font: Font,
     pub ui_selected: bool,
+    pub help_selected: bool,
     camera_delta: Option<(f32, f32)>,
     last_upper_left: Option<Pos>,
     pub inventory_selected: HashSet<usize>,
@@ -105,6 +106,7 @@ impl Ui {
             grid_size: grid_size.unwrap_or(32),
             font,
             ui_selected: false,
+            help_selected: false,
             camera_delta: None,
             last_upper_left: None,
             inventory_selected: HashSet::new(),
@@ -122,6 +124,10 @@ impl Ui {
         self.ui_selected = !self.ui_selected;
     }
 
+    pub fn toggle_help(&mut self) {
+        self.help_selected = !self.help_selected;
+    }
+
     fn toggle_row_selection(&mut self, row_index: usize, row_response: &egui::Response) {
         if row_response.clicked() {
             if self.inventory_selected.contains(&row_index) {
@@ -130,6 +136,58 @@ impl Ui {
                 self.inventory_selected.insert(row_index);
             }
         }
+    }
+
+    fn render_help(&mut self, egui_ctx: &egui::Context) {
+        egui::Window::new("Help")
+            .resizable(false)
+            .collapsible(false)
+            .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
+            .fixed_size(
+                egui::Vec2::new((screen_width() / 2.) * miniquad::window::dpi_scale(),
+                                (screen_height() / 2.) * miniquad::window::dpi_scale()))
+            .show(egui_ctx, |ui| {
+                ui.style_mut().override_text_style = Some(egui::TextStyle::Body);
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                        let mut basic_label = |start_text: &str, end_text: &str| {
+                            let mut job = egui::text::LayoutJob::default();
+                            job.append(
+                                start_text.into(),
+                                0.0,
+                                egui::TextFormat {
+                                    font_id: self.get_base_font(),
+                                    color: to_egui(&Color::Gold),
+                                    italics: true,
+                                    ..Default::default()
+                                },
+                            );
+                            job.append(
+                                &format!("{}{}", " ".repeat(17 - start_text.len()), end_text)
+                                    .to_owned(),
+                                0.0,
+                                egui::TextFormat {
+                                    font_id: self.get_base_font(),
+                                    color: to_egui(&Color::White),
+                                    ..Default::default()
+                                },
+                            );
+                            ui.label(job);
+                        };
+                        basic_label("hjkl or arrows", "Movement");
+                        basic_label("SHIFT + move", "Fire weapon");
+                        basic_label("i", "Show inventory.");
+                        basic_label(".", "Wait a turn.");
+                        basic_label(",", "Pick up item.");
+                        basic_label("0-9", "Multi-select inventory item");
+                        basic_label("e", "Equip/eat selected item(s).");
+                        basic_label("d", "Drop selected item(s).");
+                        basic_label("c", "Combine/cook selected item(s).");
+                        basic_label("/ or ;", "Inspect selected item(s).");
+                        basic_label("?", "Request help.");
+                        ui.separator();
+                        ui.label("Click on 'details' in the upper right panel to get more info about that monster.");
+                    });
+            });
     }
 
     fn render_inventory(&mut self, egui_ctx: &egui::Context, sim: &crate::world::World) {
@@ -275,6 +333,9 @@ impl Ui {
         egui_macroquad::ui(|egui_ctx| {
             if self.ui_selected {
                 self.render_inventory(egui_ctx, sim);
+            }
+            if self.help_selected {
+                self.render_help(egui_ctx);
             }
             let bottom_bar_height = 32.0 * self.scale_factor();
             let player_pos = sim.get_player_pos();
