@@ -178,6 +178,7 @@ impl PlayState {
                 }
             }
         }
+
         if tick {
             self.tick();
         }
@@ -350,6 +351,12 @@ async fn main() {
                 for k in keys_to_repeat {
                     ps.handle_key(k);
                 }
+
+                // Handle animations
+                for untriggered_animation in ps.sim.untriggered_animations.iter() {
+                    ps.ui.add_animation(untriggered_animation.clone());
+                }
+                ps.sim.untriggered_animations.clear();
 
                 ps.ui.render(&ps.sim, &ps.memory);
                 gs

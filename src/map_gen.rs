@@ -6,7 +6,7 @@ use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
-use crate::net::MapGen;
+use crate::net::{EquipmentSlot, MapGen};
 use crate::world::{
     self, EquipmentInstance, EquipmentKind, Item, Mob, MobKind, TileKind, World, FOV_RANGE,
 };

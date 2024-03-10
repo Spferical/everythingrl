@@ -7,6 +7,34 @@ use crate::net::{Color, EquipmentSlot};
 use crate::world::{Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
+#[derive(Clone, Debug)]
+pub struct ShotAnimation {
+    pub cells: Vec<Pos>,
+    pub color: Color,
+}
+
+#[derive(Clone, Debug)]
+pub enum Animation {
+    Shot(ShotAnimation),
+}
+
+#[derive(Clone, Debug)]
+pub struct AnimationState {
+    time_elapsed: f32,
+    duration: f32,
+    animation: Animation,
+}
+
+impl AnimationState {
+    pub fn new(animation: Animation, duration: f32) -> AnimationState {
+        AnimationState {
+            time_elapsed: 0.,
+            duration,
+            animation,
+        }
+    }
+}
+
 pub struct Ui {
     grid_size: usize,
     font: Font,
@@ -16,6 +44,7 @@ pub struct Ui {
     pub inventory_selected: HashSet<usize>,
     pub user_scale_factor: f32,
     tmp_scale_factor: f32,
+    animations: Vec<AnimationState>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -63,6 +92,13 @@ fn to_egui(c: &Color) -> egui::Color32 {
     Color32::from_rgb(r, g, b)
 }
 
+fn normpdf(x: f32, mean: f32, std: f32) -> f32 {
+    let var = std * std;
+    let denom = f32::sqrt(2. * std::f32::consts::PI * var);
+    let num = f32::exp(-f32::powf(x - mean, 2.) / (2. * var));
+    num / denom
+}
+
 impl Ui {
     pub fn new(grid_size: Option<usize>, font: Font) -> Ui {
         Ui {
@@ -74,7 +110,12 @@ impl Ui {
             inventory_selected: HashSet::new(),
             user_scale_factor: 1.0,
             tmp_scale_factor: 1.0,
+            animations: Vec::new(),
         }
+    }
+
+    pub fn add_animation(&mut self, animation: AnimationState) {
+        self.animations.push(animation);
     }
 
     pub fn toggle_ui(&mut self) {
@@ -244,6 +285,7 @@ impl Ui {
                 Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
             let upper_left = grid_rect.topleft();
 
+            // Handle smooth camera movement.
             self.camera_delta = Some(match self.camera_delta {
                 None => (0., 0.),
                 Some(old_delta) => {
@@ -262,6 +304,7 @@ impl Ui {
             });
             self.last_upper_left = Some(upper_left);
 
+            // Render mobs.
             let mut glyphs = vec![Glyph {
                 character: '@',
                 color: WHITE,
@@ -318,34 +361,9 @@ impl Ui {
                     });
                 }
             }
-            self.render_glyphs(
-                &glyphs
-                    .iter()
-                    .map(|&glyph| {
-                        (
-                            (
-                                glyph.location.0 as i32 - upper_left.x,
-                                glyph.location.1 as i32 - upper_left.y,
-                            ),
-                            glyph,
-                        )
-                    })
-                    .filter(|&(pos, _)| {
-                        pos.0 >= 0
-                            && pos.0 < self.grid_size as i32
-                            && pos.1 >= 0
-                            && pos.1 < self.grid_size as i32
-                    })
-                    .map(|(pos, glyph)| Glyph {
-                        character: glyph.character,
-                        color: glyph.color,
-                        location: (pos.0 as usize, pos.1 as usize),
-                        layer: glyph.layer,
-                    })
-                    .collect::<Vec<Glyph>>(),
-                screen_width() * (1. / 4.),
-                bottom_bar_height,
-            );
+            self.render_glyphs(&glyphs, screen_width() * (1. / 4.), bottom_bar_height, upper_left);
+
+            // Draw side panel UI.
             self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
             self.render_bottom_bar(egui_ctx, sim, bottom_bar_height);
         });
@@ -621,7 +639,32 @@ impl Ui {
             });
     }
 
-    fn render_glyphs(&self, glyphs: &[Glyph], right_offset: f32, bottom_offset: f32) {
+    fn render_glyphs(&mut self, glyphs: &[Glyph], right_offset: f32, bottom_offset: f32, upper_left: Pos) {
+        let glyphs = glyphs
+            .iter()
+            .map(|&glyph| {
+                (
+                    (
+                        glyph.location.0 as i32 - upper_left.x,
+                        glyph.location.1 as i32 - upper_left.y,
+                    ),
+                    glyph,
+                )
+            })
+            .filter(|&(pos, _)| {
+                pos.0 >= 0
+                    && pos.0 < self.grid_size as i32
+                    && pos.1 >= 0
+                    && pos.1 < self.grid_size as i32
+            })
+            .map(|(pos, glyph)| Glyph {
+                character: glyph.character,
+                color: glyph.color,
+                location: (pos.0 as usize, pos.1 as usize),
+                layer: glyph.layer,
+            })
+            .collect::<Vec<_>>();
+
         let width = screen_width() - right_offset;
         let height = screen_height() - bottom_offset;
         let game_size = width.min(height);
@@ -632,20 +675,32 @@ impl Ui {
         let delta = self.camera_delta.unwrap_or((0.0, 0.0));
         let delta = (delta.0 * sq_size, delta.1 * sq_size);
 
+        let translate_coords = |x, y, font_offset| {
+            let off = if font_offset {
+                (0.25, 0.75)
+            } else {
+                (0.5, 0.6)
+            };
+            (
+                delta.0 + offset_x + sq_size * (x as f32 + off.0),
+                delta.1 + offset_y + sq_size * (y as f32 + off.1),
+            )
+        };
+
         // First, set the actual background of the grid to black
         draw_rectangle(offset_x, offset_y, game_size - 20., game_size - 20., BLACK);
 
         // Quick check to ensure that the foreground replaces the background.
         let mut z_buffer = vec![vec![0; self.grid_size]; self.grid_size];
-        for glyph in glyphs {
+        for glyph in &glyphs {
             z_buffer[glyph.location.0][glyph.location.1] =
                 z_buffer[glyph.location.0][glyph.location.1].max(glyph.layer);
         }
 
-        for glyph in glyphs {
+        for glyph in &glyphs {
             if glyph.layer >= z_buffer[glyph.location.0][glyph.location.1] {
-                let x = delta.0 + offset_x + sq_size * (glyph.location.0 as f32 + 0.25);
-                let y = delta.1 + offset_y + sq_size * (glyph.location.1 as f32 + 0.75);
+                let (x, y) =
+                    translate_coords(glyph.location.0 as i32, glyph.location.1 as i32, true);
                 if x >= offset_x
                     && x < game_size + offset_x - 20.0
                     && y >= offset_y
@@ -665,5 +720,45 @@ impl Ui {
                 }
             }
         }
+
+        // Handle animations.
+        for animation in self.animations.iter_mut() {
+            match &animation.animation {
+                Animation::Shot(shot_animation) => {
+                    let interp = animation.time_elapsed / animation.duration;
+                    for (i, cell) in shot_animation.cells.iter().skip(1).enumerate() {
+                        let progress = (i as f32 + 0.5) / shot_animation.cells.len() as f32;
+                        let intensity = normpdf(interp, progress, 0.05) * 0.1;
+                        let intensity = f32::clamp(intensity, 0., 1.);
+                        let cell = *cell - upper_left;
+
+                        // Don't render animations out of bounds!
+                        if cell.x < 0
+                            || cell.x >= self.grid_size as i32
+                            || cell.y < 0
+                            || cell.y >= self.grid_size as i32
+                        {
+                            continue;
+                        }
+
+                        // Little hack to show blood.
+                        let color = if z_buffer[cell.x as usize][cell.y as usize] == 2 {
+                            Color::Red
+                        } else {
+                            shot_animation.color
+                        };
+
+                        draw_circle(
+                            translate_coords(cell.x, cell.y, false).0,
+                            translate_coords(cell.x, cell.y, false).1,
+                            intensity * sq_size,
+                            color.into(),
+                        );
+                    }
+                }
+            };
+            animation.time_elapsed += get_frame_time();
+        }
+        self.animations.retain(|a| a.time_elapsed < a.duration);
     }
 }

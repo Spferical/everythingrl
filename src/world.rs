@@ -4,6 +4,7 @@ use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
 use crate::net::{
     Area, Color, EquipmentSlot, IdeaGuy, ItemDefinition, MonsterDefinition, PokemonType,
 };
+use crate::render::{Animation, AnimationState, ShotAnimation};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, SeedableRng};
@@ -273,6 +274,7 @@ impl WorldInfo {
                 area.equipment
                     .iter()
                     .chain(area.melee_weapons.iter())
+                    .chain(area.ranged_weapons.iter())
                     .filter_map(get_equipment_by_name)
                     .collect()
             })
@@ -612,6 +614,7 @@ pub struct World {
     pub mobs: HashMap<Pos, Mob>,
     pub inventory: Inventory,
     pub log: VecDeque<Vec<(String, Color)>>,
+    pub untriggered_animations: Vec<AnimationState>,
     stairs: HashMap<Pos, Pos>,
     level_id: usize,
     rng: rand::rngs::SmallRng,
@@ -641,6 +644,7 @@ impl World {
             rng: rand::rngs::SmallRng::seed_from_u64(72),
             inventory: Inventory::new(),
             log: VecDeque::new(),
+            untriggered_animations: Vec::new(),
             stairs: HashMap::new(),
             level_id: 0,
         }
@@ -805,7 +809,9 @@ impl World {
                     for (x, y) in line_drawing::Bresenham::new(
                         (start_pos.x, start_pos.y),
                         (end_pos.x, end_pos.y),
-                    ) {
+                    )
+                    .skip(0)
+                    {
                         let zapped_pos = Pos::new(x, y);
                         if let Some(mob) = self.mobs.remove(&zapped_pos) {
                             let mki = self.get_mobkind_info(mob.kind).clone();
@@ -814,10 +820,18 @@ impl World {
                             let mult = eff.get_scale() / 2;
                             let damage = (att_level + 1) * mult;
                             self.damage_mob(mob, zapped_pos, damage);
-                        }
 
+                        }
                         zapped_tiles.push(zapped_pos);
                     }
+
+                    self.untriggered_animations.push(AnimationState::new(
+                        Animation::Shot(ShotAnimation {
+                            cells: zapped_tiles,
+                            color: pwi.ty.get_color(),
+                        }),
+                        0.5,
+                    ));
 
                     // Add some damage to the weapon.
                     if let Some(destroyed_weapon) =
