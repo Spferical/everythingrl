@@ -595,10 +595,12 @@ fn sprinkle_enemies_and_items(
             None => return Err("Failed to find walkable pos".into()),
         };
         // TODO: balance different equipment types
-        world[pos].item = Some(Item::Instance(ItemInstance::new(
-            sprinkle.valid_equipment.choose(rng).cloned().unwrap(),
-            world::STARTING_DURABILITY,
-        )));
+        if let Some(equip) = sprinkle.valid_equipment.choose(rng).cloned() {
+            world[pos].item = Some(Item::Instance(ItemInstance::new(
+                equip,
+                world::STARTING_DURABILITY,
+            )));
+        }
     }
     // sprinkle some starting items around the player if this is level 1
     if level_idx == 0 {
@@ -607,10 +609,12 @@ fn sprinkle_enemies_and_items(
         free_poses_near_player.reverse();
         for _ in 0..5 {
             if let Some(p) = free_poses_near_player.pop() {
-                world[p].item = Some(Item::Instance(ItemInstance::new(
-                    sprinkle.valid_equipment.choose(rng).cloned().unwrap(),
-                    world::STARTING_DURABILITY,
-                )));
+                if let Some(equip) = sprinkle.valid_equipment.choose(rng).cloned() {
+                    world[p].item = Some(Item::Instance(ItemInstance::new(
+                        equip,
+                        world::STARTING_DURABILITY,
+                    )));
+                }
             }
         }
     }
