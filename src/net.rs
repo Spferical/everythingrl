@@ -433,26 +433,29 @@ impl PendingRequest {
         match resp {
             None => Pending,
             Some(Err(s)) => Error(s.clone()),
-            Some(Ok(s)) => match self.req {
-                Request::Setting { .. } => serde_json::from_str(s)
-                    .map(Setting)
-                    .unwrap_or_else(|e| Error(e.to_string())),
-                Request::Areas { .. } => serde_json::from_str(s)
-                    .map(Areas)
-                    .unwrap_or_else(|e| Error(e.to_string())),
-                Request::Monsters { .. } => serde_json::from_str(s)
-                    .map(Monsters)
-                    .unwrap_or_else(|e| Error(e.to_string())),
-                Request::Items { .. } => serde_json::from_str(s)
-                    .map(Items)
-                    .unwrap_or_else(|e| Error(e.to_string())),
-                Request::Craft { .. } => serde_json::from_str(s)
-                    .map(Craft)
-                    .unwrap_or_else(|e| Error(e.to_string())),
-                Request::Boss { .. } => serde_json::from_str(s)
-                    .map(Boss)
-                    .unwrap_or_else(|e| Error(e.to_string())),
-            },
+            Some(Ok(s)) => {
+                macroquad::miniquad::info!("{}", s);
+                match self.req {
+                    Request::Setting { .. } => serde_json::from_str(s)
+                        .map(Setting)
+                        .unwrap_or_else(|e| Error(e.to_string())),
+                    Request::Areas { .. } => serde_json::from_str(s)
+                        .map(Areas)
+                        .unwrap_or_else(|e| Error(e.to_string())),
+                    Request::Monsters { .. } => serde_json::from_str(s)
+                        .map(Monsters)
+                        .unwrap_or_else(|e| Error(e.to_string())),
+                    Request::Items { .. } => serde_json::from_str(s)
+                        .map(Items)
+                        .unwrap_or_else(|e| Error(e.to_string())),
+                    Request::Craft { .. } => serde_json::from_str(s)
+                        .map(Craft)
+                        .unwrap_or_else(|e| Error(e.to_string())),
+                    Request::Boss { .. } => serde_json::from_str(s)
+                        .map(Boss)
+                        .unwrap_or_else(|e| Error(e.to_string())),
+                }
+            }
         }
     }
 }
