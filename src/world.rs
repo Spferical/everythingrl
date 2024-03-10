@@ -2,7 +2,10 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
 use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
-use crate::net::{Area, Color, IdeaGuy, ItemDefinition, ItemKind, MonsterDefinition, PokemonType};
+use crate::net::{
+    Area, AttackEffectiveness, Color, IdeaGuy, ItemDefinition, ItemKind, MonsterDefinition,
+    PokemonType,
+};
 use crate::render::{Animation, AnimationState, ShotAnimation};
 use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
@@ -856,12 +859,48 @@ impl World {
                         Food => {
                             self.inventory.remove(i).unwrap();
                             let heal_amount = 5 * ii.info.level.pow(2);
-                            self.log_message(vec![(
-                                format!("You eat a {} and gain {heal_amount} HP!", ii.info.name)
+
+                            // Okay, I just think this is funny.
+                            let harm = if matches!(ii.info.ty, PokemonType::Poison) {
+                                // Check if the player armor negates poison in any way.
+                                // If not, then negate the healing!
+                                println!("got here {:?}", ii.info.ty);
+                                !self
+                                    .inventory
+                                    .get_equipped_armor_info()
+                                    .iter()
+                                    .any(|armor| {
+                                        match armor.ty.get_effectiveness(PokemonType::Poison) {
+                                            AttackEffectiveness::Two
+                                            | AttackEffectiveness::Four => true,
+                                            _ => false,
+                                        }
+                                    })
+                            } else {
+                                false
+                            };
+
+                            if harm {
+                                self.player_damage += heal_amount;
+                                self.log_message(vec![(
+                                    format!(
+                                        "You eat a poisonous {} and lose {heal_amount} HP! Ouch!",
+                                        ii.info.name
+                                    )
                                     .into(),
-                                Color::Green,
-                            )]);
-                            self.player_damage = self.player_damage.saturating_sub(heal_amount);
+                                    Color::Green,
+                                )]);
+                            } else {
+                                self.player_damage = self.player_damage.saturating_sub(heal_amount);
+                                self.log_message(vec![(
+                                    format!(
+                                        "You eat a {} and gain {heal_amount} HP!",
+                                        ii.info.name
+                                    )
+                                    .into(),
+                                    Color::Green,
+                                )]);
+                            }
                             true
                         }
                     }
@@ -1150,7 +1189,7 @@ impl World {
     }
 
     pub fn player_is_dead(&self) -> bool {
-        self.player_damage > PLAYER_MAX_HEALTH
+        self.player_damage >= PLAYER_MAX_HEALTH
     }
 
     pub fn get_player_pos(&self) -> Pos {
