@@ -1140,7 +1140,7 @@ impl World {
 
                     // If we can't see it, also avoid it. Or if there's friendly fire.
                     can_fire &= fov.contains(&pos);
-                    can_fire &= fire_line.iter().any(|&pos| self.mobs.contains_key(&pos));
+                    can_fire &= !fire_line.iter().any(|&pos| self.mobs.contains_key(&pos));
                     // If melee and adjacent, then let fire.
                     can_fire |= !mki.ranged && target == self.player_pos;
 
