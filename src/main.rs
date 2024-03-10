@@ -199,7 +199,7 @@ impl PlayState {
     }
 }
 
-fn egui_setup() {
+fn egui_startup() {
     egui_macroquad::ui(|egui_ctx| {
         let mut fonts = egui::FontDefinitions::default();
         fonts.font_data.insert(
@@ -218,9 +218,13 @@ fn egui_setup() {
             .push("DejaVuSansMono".to_owned());
 
         egui_ctx.set_fonts(fonts);
+    });
+}
 
+fn egui_update_scaling(user_scale: f32) {
+    egui_macroquad::ui(|egui_ctx| {
         let game_scale = screen_width().min(screen_height());
-        let scale_factor = miniquad::window::dpi_scale() * (game_scale / 1200.);
+        let scale_factor = miniquad::window::dpi_scale() * (game_scale / 1200.) * user_scale;
         use egui::FontFamily::*;
         use egui::TextStyle::*;
         let mut style = (*egui_ctx.style()).clone();
@@ -268,9 +272,10 @@ fn heading3() -> egui::TextStyle {
 #[macroquad::main("game")]
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
-    egui_setup();
+    egui_startup();
 
     let mut last_size = (screen_width(), screen_height());
+    let mut last_user_scale_factor = 1.0;
     let mut gs = GameState::Intro(intro::IntroState::new());
     let mut ig: Option<IdeaGuy> = None;
 
@@ -280,9 +285,15 @@ async fn main() {
         };
         clear_background(GRAY);
 
-        if (screen_width(), screen_height()) != last_size {
-            egui_setup();
+        let user_scale = if let GameState::Play(ref ps) = gs {
+            ps.ui.user_scale_factor
+        } else {
+            1.0
+        };
+        if (screen_width(), screen_height()) != last_size || last_user_scale_factor != user_scale {
+            egui_update_scaling(user_scale);
             last_size = (screen_width(), screen_height());
+            last_user_scale_factor = user_scale;
         }
 
         gs = match gs {

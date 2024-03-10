@@ -1,4 +1,4 @@
-use egui::Color32;
+use egui::{Color32, FontId, RichText};
 use macroquad::prelude::*;
 use macroquad::text::Font;
 use std::collections::HashSet;
@@ -14,6 +14,8 @@ pub struct Ui {
     camera_delta: Option<(f32, f32)>,
     last_upper_left: Option<Pos>,
     pub inventory_selected: HashSet<usize>,
+    pub user_scale_factor: f32,
+    tmp_scale_factor: f32,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -70,6 +72,8 @@ impl Ui {
             camera_delta: None,
             last_upper_left: None,
             inventory_selected: HashSet::new(),
+            user_scale_factor: 1.0,
+            tmp_scale_factor: 1.0,
         }
     }
 
@@ -93,6 +97,7 @@ impl Ui {
             .collapsible(false)
             .anchor(egui::Align2::LEFT_TOP, egui::Vec2::new(0.0, 0.0))
             .show(egui_ctx, |ui| {
+                ui.style_mut().override_text_style = Some(egui::TextStyle::Body);
                 let text_height = egui::TextStyle::Body
                     .resolve(ui.style())
                     .size
@@ -188,11 +193,7 @@ impl Ui {
                                 });
                                 row.col(|ui| {
                                     for ty in types {
-                                        let mq_color =
-                                            macroquad::color::Color::from(ty.get_color());
-                                        let [r, g, b, _a] = mq_color.into();
-                                        let color = Color32::from_rgb(r, g, b);
-                                        ui.colored_label(color, ty.to_string());
+                                        ui.colored_label(to_egui(&ty.get_color()), ty.to_string());
                                     }
                                 });
                                 row.col(|ui| {
@@ -237,6 +238,7 @@ impl Ui {
             if self.ui_selected {
                 self.render_inventory(egui_ctx, sim);
             }
+            let bottom_bar_height = 32.0 * self.scale_factor();
             let player_pos = sim.get_player_pos();
             let grid_rect =
                 Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
@@ -342,11 +344,58 @@ impl Ui {
                     })
                     .collect::<Vec<Glyph>>(),
                 screen_width() * (1. / 4.),
+                bottom_bar_height,
             );
             self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
+            self.render_bottom_bar(egui_ctx, sim, bottom_bar_height);
         });
 
         egui_macroquad::draw();
+    }
+
+    fn render_bottom_bar(
+        &mut self,
+        egui_ctx: &egui::Context,
+        sim: &crate::world::World,
+        height: f32,
+    ) {
+        egui::TopBottomPanel::bottom("bottom_bar")
+            .exact_height(height)
+            .show(egui_ctx, |ui| {
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::BOTTOM), |ui| {
+                    let white = to_egui(&Color::White);
+                    let font = self.get_base_font();
+                    ui.label(RichText::new("HEALTH:").color(white).font(font.clone()));
+                    let player_hp =
+                        usize::saturating_sub(crate::world::PLAYER_MAX_HEALTH, sim.player_damage);
+                    let red = to_egui(&Color::Red);
+                    ui.label(
+                        RichText::new(format!("{player_hp}"))
+                            .color(red)
+                            .font(font.clone()),
+                    );
+                    ui.separator();
+                    ui.label(RichText::new("FONT SCALE:").color(white).font(font.clone()));
+                    let response = ui.add(
+                        egui::Slider::new(&mut self.tmp_scale_factor, 0.5..=3.0).logarithmic(true),
+                    );
+                    if response.drag_released() {
+                        self.user_scale_factor = self.tmp_scale_factor;
+                    }
+                });
+            });
+    }
+
+    fn scale_factor(&self) -> f32 {
+        let game_scale = screen_width().min(screen_height());
+        miniquad::window::dpi_scale() * game_scale / 1200.0 * self.user_scale_factor
+    }
+
+    fn get_base_font(&self) -> FontId {
+        egui::FontId::new(22.0 * self.scale_factor(), egui::FontFamily::Proportional)
+    }
+    fn get_details_font(&self) -> FontId {
+        egui::FontId::new(18.0 * self.scale_factor(), egui::FontFamily::Proportional)
     }
 
     fn render_side_ui(
@@ -365,12 +414,6 @@ impl Ui {
         let panel_width = screen_width() - offset_x - 10.0;
 
         let mobs_lower_bound = offset_y + panel_height * 0.3;
-
-        let game_scale = screen_width().min(screen_height());
-        let scale_factor = miniquad::window::dpi_scale() * (game_scale / 1200.);
-
-        let font_scale_base = 22. * scale_factor;
-        let font_scale_details = 18. * scale_factor;
 
         let pokedex_width = panel_width * miniquad::window::dpi_scale();
         let pokedex_height = (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale();
@@ -416,10 +459,7 @@ impl Ui {
                                         char,
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_base * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_base_font(),
                                             color: to_egui(color),
                                             ..Default::default()
                                         },
@@ -428,10 +468,7 @@ impl Ui {
                                         &format!(" - {name}\n    "),
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_base * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_base_font(),
                                             color: to_egui(color),
                                             ..Default::default()
                                         },
@@ -440,10 +477,7 @@ impl Ui {
                                         &format!("{} ", type1),
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_details * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_base_font(),
                                             color: to_egui(&type1.get_color()),
                                             ..Default::default()
                                         },
@@ -453,10 +487,7 @@ impl Ui {
                                             &format!("{} ", type2),
                                             0.0,
                                             egui::TextFormat {
-                                                font_id: egui::FontId::new(
-                                                    font_scale_details * scale_factor,
-                                                    egui::FontFamily::Proportional,
-                                                ),
+                                                font_id: self.get_details_font(),
                                                 color: to_egui(&type2.get_color()),
                                                 ..Default::default()
                                             },
@@ -467,10 +498,7 @@ impl Ui {
                                         "| ATT ",
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_details * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_details_font(),
                                             color: Color32::WHITE,
                                             ..Default::default()
                                         },
@@ -480,10 +508,7 @@ impl Ui {
                                         &format!("{} ", attack_type),
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_details * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_details_font(),
                                             color: to_egui(&attack_type.get_color()),
                                             ..Default::default()
                                         },
@@ -493,10 +518,7 @@ impl Ui {
                                         &format!("| Level {} | HP ", level),
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_details * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_details_font(),
                                             color: Color32::WHITE,
                                             ..Default::default()
                                         },
@@ -515,10 +537,7 @@ impl Ui {
                                         &format!("{}", hp),
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_details * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_details_font(),
                                             color: hp_color,
                                             ..Default::default()
                                         },
@@ -527,10 +546,7 @@ impl Ui {
                                         &format!("/ {}", max_hp),
                                         0.0,
                                         egui::TextFormat {
-                                            font_id: egui::FontId::new(
-                                                font_scale_details * scale_factor,
-                                                egui::FontFamily::Proportional,
-                                            ),
+                                            font_id: self.get_details_font(),
                                             color: Color32::WHITE,
                                             ..Default::default()
                                         },
@@ -592,10 +608,7 @@ impl Ui {
                                             log_entry_str,
                                             0.0,
                                             egui::TextFormat {
-                                                font_id: egui::FontId::new(
-                                                    font_scale_base * scale_factor,
-                                                    egui::FontFamily::Proportional,
-                                                ),
+                                                font_id: self.get_base_font(),
                                                 color: to_egui(log_entry_color),
                                                 ..Default::default()
                                             },
@@ -608,9 +621,10 @@ impl Ui {
             });
     }
 
-    fn render_glyphs(&self, glyphs: &[Glyph], right_offset: f32) {
+    fn render_glyphs(&self, glyphs: &[Glyph], right_offset: f32, bottom_offset: f32) {
         let width = screen_width() - right_offset;
-        let game_size = width.min(screen_height());
+        let height = screen_height() - bottom_offset;
+        let game_size = width.min(height);
         let offset_x = (screen_width() - game_size - right_offset) / 2. + 10.;
         let offset_y = (screen_height() - game_size) / 2. + 10.;
         let sq_size = (screen_height() - offset_y * 2.) / self.grid_size as f32;
