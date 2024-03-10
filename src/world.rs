@@ -15,6 +15,7 @@ pub const FOV_RANGE: i32 = 16;
 pub const STARTING_DURABILITY: usize = 10;
 pub const PLAYER_MAX_HEALTH: usize = 100;
 pub const RELOAD_DELAY: usize = 2;
+pub const SPEED_MUL: i32 = 8;
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",
@@ -105,6 +106,7 @@ pub struct Mob {
     pub kind: MobKind,
     pub damage: usize,
     pub reload: usize,
+    pub actions: i32,
     pub ai: MobAi,
 }
 
@@ -114,6 +116,16 @@ pub enum Speed {
     Slow = 1,
     Normal = 2,
     Fast = 3,
+}
+
+impl Speed {
+    fn get_actions_per_turn(&self) -> i32 {
+        match &self {
+            Speed::Slow => 6,
+            Speed::Normal => 8,
+            Speed::Fast => 14,
+        }
+    }
 }
 
 impl From<u8> for Speed {
@@ -132,6 +144,7 @@ impl Mob {
             kind,
             damage: 0,
             reload: RELOAD_DELAY,
+            actions: 0,
             ai: MobAi::Idle,
         }
     }
@@ -1090,102 +1103,109 @@ impl World {
                 Some(mob) => mob,
                 None => continue,
             };
-            let new_pos;
-            if fov.contains(&pos) {
-                if matches!(mob.ai, MobAi::Idle) {
-                    let info = self.get_mobkind_info(mob.kind);
-                    let mut seen_message = info.seen.clone();
-                    if seen_message.ends_with('\'') {
-                        seen_message = format!("{}: {seen_message}", info.name);
-                    }
-                    self.log_message(vec![(seen_message, info.color)]);
-                }
-                mob.ai = MobAi::Move {
-                    dest: self.player_pos,
-                }
-            }
-            match mob.ai {
-                MobAi::Idle => new_pos = pos,
-                MobAi::Move { dest } => {
-                    // Start by determining the next position we want to move towards.
-                    let target = self.path_towards(pos, dest, false, true, None);
-
-                    let mki = self.get_mobkind_info(mob.kind).clone();
-                    let armor = self.inventory.get_equipped_armor_info();
-                    let defense1 = armor
-                        .first()
-                        .map(|eki| eki.ty)
-                        .unwrap_or(PokemonType::Normal);
-                    let defense2 = armor.get(1).map(|eki| eki.ty);
-                    let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
-                    let mult = eff.get_scale();
-                    let mut damage = mki.level * mult;
-                    if mki.ranged {
-                        damage /= 2;
-                    }
-                    let range = (5 + mki.level * 2) as i32;
-                    let in_range = (pos - self.player_pos).dist_squared() <= range * range;
-                    if mki.ranged {
-                        println!("(0) {} in range -- {in_range}", mki.name);
-                    }
-
-                    // If ranged and in range and reload cooldown done
-                    let mut can_fire = mki.ranged && in_range && mob.reload == 0;
-                    let fire_line: Vec<_> = line_drawing::Bresenham::new(
-                        (target.x, target.y),
-                        (self.player_pos.x, self.player_pos.y),
-                    )
-                    .map(|(x, y)| Pos::new(x, y))
-                    .collect();
-
-                    // If we can't see it, also avoid it. Or if there's friendly fire.
-                    can_fire &= fov.contains(&pos);
-                    can_fire &= !fire_line.iter().any(|&pos| self.mobs.contains_key(&pos));
-                    // If melee and adjacent, then let fire.
-                    can_fire |= !mki.ranged && target == self.player_pos;
-
-                    if can_fire {
-                        self.log_message(vec![
-                            (mki.attack.clone(), mki.color),
-                            (" You take ".into(), Color::White),
-                            (format!("{}", damage), Color::Red),
-                            (" damage!".into(), Color::White),
-                        ]);
-
-                        // See if armor is destroyed.
-                        for destroyed_armor in self.inventory.damage_armor() {
-                            self.log_message(vec![
-                                ("Your ".into(), Color::White),
-                                (destroyed_armor.name.clone(), destroyed_armor.ty.get_color()),
-                                (" breaks!".into(), Color::Red),
-                            ]);
+            let mut current_pos = pos;
+            while mob.actions >= SPEED_MUL {
+                if fov.contains(&current_pos) {
+                    if matches!(mob.ai, MobAi::Idle) {
+                        let info = self.get_mobkind_info(mob.kind);
+                        let mut seen_message = info.seen.clone();
+                        if seen_message.ends_with('\'') {
+                            seen_message = format!("{}: {seen_message}", info.name);
                         }
+                        self.log_message(vec![(seen_message, info.color)]);
+                    }
+                    mob.ai = MobAi::Move {
+                        dest: self.player_pos,
+                    }
+                }
+                match mob.ai {
+                    MobAi::Idle => current_pos = pos,
+                    MobAi::Move { dest } => {
+                        // Start by determining the next position we want to move towards.
+                        let target = self.path_towards(current_pos, dest, false, true, None);
 
+                        let mki = self.get_mobkind_info(mob.kind).clone();
+                        let armor = self.inventory.get_equipped_armor_info();
+                        let defense1 = armor
+                            .first()
+                            .map(|eki| eki.ty)
+                            .unwrap_or(PokemonType::Normal);
+                        let defense2 = armor.get(1).map(|eki| eki.ty);
+                        let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
+                        let mult = eff.get_scale();
+                        let mut damage = mki.level * mult;
                         if mki.ranged {
-                            self.untriggered_animations.push(AnimationState::new(
-                                Animation::Shot(ShotAnimation {
-                                    cells: fire_line,
-                                    color: mki.attack_type.get_color(),
-                                }),
-                                0.5,
-                            ));
-                            mob.reload = RELOAD_DELAY;
+                            damage /= 2;
+                        }
+                        let range = (5 + mki.level * 2) as i32;
+                        let in_range =
+                            (current_pos - self.player_pos).dist_squared() <= range * range;
+                        if mki.ranged {
+                            println!("(0) {} in range -- {in_range}", mki.name);
                         }
 
-                        self.player_damage += damage;
-                    }
+                        // If ranged and in range and reload cooldown done
+                        let mut can_fire = mki.ranged && in_range && mob.reload == 0;
+                        let fire_line: Vec<_> = line_drawing::Bresenham::new(
+                            (target.x, target.y),
+                            (self.player_pos.x, self.player_pos.y),
+                        )
+                        .map(|(x, y)| Pos::new(x, y))
+                        .collect();
 
-                    if target == self.player_pos {
-                        new_pos = pos;
-                    } else {
-                        new_pos = target;
+                        // If we can't see it, also avoid it. Or if there's friendly fire.
+                        can_fire &= fov.contains(&current_pos);
+                        can_fire &= !fire_line.iter().any(|&pos| self.mobs.contains_key(&pos));
+                        // If melee and adjacent, then let fire.
+                        can_fire |= !mki.ranged && target == self.player_pos;
+
+                        if can_fire {
+                            self.log_message(vec![
+                                (mki.attack.clone(), mki.color),
+                                (" You take ".into(), Color::White),
+                                (format!("{}", damage), Color::Red),
+                                (" damage!".into(), Color::White),
+                            ]);
+
+                            // See if armor is destroyed.
+                            for destroyed_armor in self.inventory.damage_armor() {
+                                self.log_message(vec![
+                                    ("Your ".into(), Color::White),
+                                    (destroyed_armor.name.clone(), destroyed_armor.ty.get_color()),
+                                    (" breaks!".into(), Color::Red),
+                                ]);
+                            }
+
+                            if mki.ranged {
+                                self.untriggered_animations.push(AnimationState::new(
+                                    Animation::Shot(ShotAnimation {
+                                        cells: fire_line,
+                                        color: mki.attack_type.get_color(),
+                                    }),
+                                    0.5,
+                                ));
+                                mob.reload = RELOAD_DELAY;
+                            }
+
+                            self.player_damage += damage;
+                        }
+
+                        if target != self.player_pos {
+                            current_pos = target;
+                        }
                     }
                 }
+                if mob.reload != 0 {
+                    mob.reload -= 1;
+                }
+
+                mob.actions -= SPEED_MUL;
+                if mob.actions <= 0 {
+                    mob.actions = 0;
+                }
             }
-            if mob.reload != 0 {
-                mob.reload -= 1;
-            }
-            self.mobs.insert(new_pos, mob);
+            mob.actions += self.get_mobkind_info(mob.kind).speed.get_actions_per_turn();
+            self.mobs.insert(current_pos, mob);
         }
         if self.player_is_dead() {
             self.log_message(vec![("YOU DIED".into(), Color::Red)]);
