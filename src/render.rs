@@ -261,7 +261,7 @@ impl Ui {
                     if ui.button("Drop (d)").clicked() {
                         println!("Dropped {:?}", self.inventory_selected);
                     };
-                    if ui.button("Combine (c)").clicked() {
+                    if ui.button("Combine/Cook (c)").clicked() {
                         println!("Combined {:?}", self.inventory_selected);
                     };
                     if ui.button("What is this? (;/)").clicked() {
