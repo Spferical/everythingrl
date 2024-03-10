@@ -393,6 +393,7 @@ pub struct SprinkleOpts {
     pub num_items: usize,
     pub valid_enemies: Vec<MobKind>,
     pub valid_equipment: Vec<Rc<ItemInfo>>,
+    pub difficulty: usize,
 }
 
 pub fn gen_simple_rooms(
@@ -551,13 +552,42 @@ fn sprinkle_enemies_and_items(
         .collect::<Vec<_>>();
 
     // Sprinkle enemies/items
+    let enemy_level_weight = match sprinkle.difficulty {
+        0 => &[(7, 1), (2, 2), (1, 3)],
+        1 => &[(3, 1), (5, 2), (1, 3)],
+        _ => &[(3, 1), (3, 2), (4, 3)],
+    };
+    let enemies_per_level = (1..=3)
+        .map(|i| {
+            sprinkle
+                .valid_enemies
+                .iter()
+                .copied()
+                .filter(|mk| world.get_mobkind_info(*mk).level == i)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
     for _ in 0..sprinkle.num_enemies {
         let pos = match walkable_poses_out_of_fov.choose(rng) {
             Some(pos) => *pos,
             None => return Err("Failed to find pos out of fov".into()),
         };
-        world.add_mob(pos, Mob::new(*sprinkle.valid_enemies.choose(rng).unwrap()));
+        let desired_level = enemy_level_weight
+            .choose_weighted(rng, |wl| wl.0)
+            .unwrap()
+            .1;
+        if let Some(mob_info) = enemies_per_level[desired_level - 1].choose(rng) {
+            // Try to pick enemies with a good level distribution.
+            world.add_mob(pos, Mob::new(*mob_info));
+        } else if let Some(mob_info) = sprinkle.valid_enemies.choose(rng) {
+            // Fall back to any enemy.
+            world.add_mob(pos, Mob::new(*mob_info));
+        } else {
+            macroquad::miniquad::error!("No mobs available in level");
+        }
     }
+
     for _ in 0..sprinkle.num_items {
         let pos = match walkable_poses.choose(rng) {
             Some(pos) => *pos,
@@ -595,6 +625,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         num_items: 30,
         valid_enemies: world.world_info.monsters_per_level[i].clone(),
         valid_equipment: world.world_info.equipment_per_level[i].clone(),
+        difficulty: i,
     };
     let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
     let lgr = match algo {
