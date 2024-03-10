@@ -264,7 +264,7 @@ impl Ui {
                     if ui.button("Combine (c)").clicked() {
                         println!("Combined {:?}", self.inventory_selected);
                     };
-                    if ui.button("What is this? (/)").clicked() {
+                    if ui.button("What is this? (;/)").clicked() {
                         println!("What is {:?}", self.inventory_selected);
                     }
                 });
