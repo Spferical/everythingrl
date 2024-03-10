@@ -75,6 +75,15 @@ def gen_items(theme: str, setting_desc_file, areas_file):
 
 @cli.command()
 @click.argument("theme")
+@click.argument("setting_desc_file", type=click.File("r"))
+def gen_boss(theme: str, setting_desc_file):
+    setting_desc = setting_desc_file.read()
+    boss = ai.gen_boss(theme, setting_desc)
+    print(json.dumps(boss, indent=2))
+
+
+@cli.command()
+@click.argument("theme")
 @click.option("--output-dir", default=None)
 def gen_all(theme: str, output_dir: str | None):
     setting_desc = ai.gen_setting_desc(theme)
@@ -97,6 +106,11 @@ def gen_all(theme: str, output_dir: str | None):
     if output_dir is not None:
         with open(os.path.join(output_dir, "items.json"), "w") as f:
             json.dump(items, f)
+    boss = ai.gen_boss(theme, setting_desc)
+    if output_dir is not None:
+        with open(os.path.join(output_dir, "boss.json"), "w") as f:
+            json.dump(boss, f)
+    print(json.dumps(boss, indent=2))
 
 
 def main():

@@ -109,8 +109,25 @@ class Monster(pydantic.BaseModel):
     type2: PokemonType | None = None
     attack_type: PokemonType
     description: str
+    seen: str
+    attack: str
+    death: str
     ranged: bool
     speed: int
+
+
+class Boss(pydantic.BaseModel):
+    name: str
+    char: str
+    color: Color
+    type1: PokemonType
+    type2: PokemonType | None = None
+    attack_type: PokemonType
+    description: str
+    intro_message: str
+    attack_message: str
+    periodic_messages: list[str]
+    game_victory_paragraph: str
 
 
 class Area(pydantic.BaseModel):
@@ -336,7 +353,7 @@ def gen_setting_desc(theme: str):
 
 
 def gen_areas(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, names of 2 ranged weapons, and names of 3 food items that may be found on that level."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 10 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, names of 2 ranged weapons, and names of 3 food items that may be found on that level. DO NOT generate the final boss; the final boss will be on a special fourth level."
     examples = [
         (
             {
@@ -353,6 +370,29 @@ def gen_areas(theme: str, setting_desc: str):
         3,
         Area,
     )
+
+
+def gen_boss(theme: str, setting_desc: str):
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the final boss of the game. The final boss is a slow enemy with a ranged attack that may appear with other monsters. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the boss; char, the single character to represent it as in-game; color, one of the valid colors above; type1, the pokemon type of the boss; type2, an optional second type; attack_type, the pokemon the creature attacks as; description, a two sentence description of the boss shown if clicked; intro_message, a message presented to the player when encountering the boss; attack_message, a message presented when the boss attacks the player with its ranged attack; periodic_messages, messages presented to the player randomly throughout the fight; and game_over_paragraph, a long-form message presented to the player when the boss is defeated and the game is won."
+    examples = [
+        (
+            {
+                "theme": "Hollow Knight",
+                "setting_desc": get_test_str("hk.txt"),
+            },
+            [get_test_json("hk_boss.json")],
+        )
+    ]
+    return ask_google_structured(
+        instructions,
+        examples,
+        {
+            "theme": theme,
+            "setting_desc": setting_desc,
+        },
+        1,
+        Boss,
+    )[0]
 
 
 def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: dict):
