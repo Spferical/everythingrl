@@ -361,7 +361,12 @@ impl Ui {
                     });
                 }
             }
-            self.render_glyphs(&glyphs, screen_width() * (1. / 4.), bottom_bar_height, upper_left);
+            self.render_glyphs(
+                &glyphs,
+                screen_width() * (1. / 4.),
+                bottom_bar_height,
+                upper_left,
+            );
 
             // Draw side panel UI.
             self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
@@ -380,27 +385,40 @@ impl Ui {
         egui::TopBottomPanel::bottom("bottom_bar")
             .exact_height(height)
             .show(egui_ctx, |ui| {
-                ui.with_layout(egui::Layout::left_to_right(egui::Align::BOTTOM), |ui| {
-                    let white = to_egui(&Color::White);
-                    let font = self.get_base_font();
-                    ui.label(RichText::new("HEALTH:").color(white).font(font.clone()));
-                    let player_hp =
-                        usize::saturating_sub(crate::world::PLAYER_MAX_HEALTH, sim.player_damage);
-                    let red = to_egui(&Color::Red);
-                    ui.label(
-                        RichText::new(format!("{player_hp}"))
-                            .color(red)
-                            .font(font.clone()),
-                    );
-                    ui.separator();
-                    ui.label(RichText::new("FONT SCALE:").color(white).font(font.clone()));
-                    let response = ui.add(
-                        egui::Slider::new(&mut self.tmp_scale_factor, 0.5..=3.0).logarithmic(true),
-                    );
-                    if response.drag_released() {
-                        self.user_scale_factor = self.tmp_scale_factor;
-                    }
-                });
+                egui::Frame::none()
+                    .inner_margin(egui::style::Margin::symmetric(height * 0.5, height * 0.1))
+                    .show(ui, |ui| {
+                        ui.with_layout(
+                            egui::Layout::left_to_right(egui::Align::Center)
+                                .with_cross_align(egui::Align::Center),
+                            |ui| {
+                                let white = to_egui(&Color::White);
+                                let font = self.get_base_font();
+                                ui.label(RichText::new("HEALTH:").color(white).font(font.clone()));
+                                let player_hp = usize::saturating_sub(
+                                    crate::world::PLAYER_MAX_HEALTH,
+                                    sim.player_damage,
+                                );
+                                let red = to_egui(&Color::Red);
+                                ui.label(
+                                    RichText::new(format!("{player_hp}"))
+                                        .color(red)
+                                        .font(font.clone()),
+                                );
+                                ui.separator();
+                                ui.label(
+                                    RichText::new("FONT SCALE:").color(white).font(font.clone()),
+                                );
+                                let response = ui.add(
+                                    egui::Slider::new(&mut self.tmp_scale_factor, 0.5..=3.0)
+                                        .logarithmic(true),
+                                );
+                                if response.drag_released() {
+                                    self.user_scale_factor = self.tmp_scale_factor;
+                                }
+                            },
+                        );
+                    });
             });
     }
 
@@ -639,7 +657,13 @@ impl Ui {
             });
     }
 
-    fn render_glyphs(&mut self, glyphs: &[Glyph], right_offset: f32, bottom_offset: f32, upper_left: Pos) {
+    fn render_glyphs(
+        &mut self,
+        glyphs: &[Glyph],
+        right_offset: f32,
+        bottom_offset: f32,
+        upper_left: Pos,
+    ) {
         let glyphs = glyphs
             .iter()
             .map(|&glyph| {
