@@ -536,7 +536,7 @@ fn sprinkle_enemies_and_items(
     lgr: &LevelgenResult,
     sprinkle: &SprinkleOpts,
     rng: &mut impl Rng,
-) {
+) -> Result<(), String> {
     let walkable_poses = rect
         .into_iter()
         .filter(|pos| world[*pos].kind.is_walkable())
@@ -552,16 +552,32 @@ fn sprinkle_enemies_and_items(
 
     // Sprinkle enemies/items
     for _ in 0..sprinkle.num_enemies {
-        let pos = *walkable_poses_out_of_fov.choose(rng).unwrap();
+        let pos = match walkable_poses_out_of_fov.choose(rng) {
+            Some(pos) => *pos,
+            None => return Err("Failed to find pos out of fov".into()),
+        };
         world.add_mob(pos, Mob::new(*sprinkle.valid_enemies.choose(rng).unwrap()));
     }
     for _ in 0..sprinkle.num_items {
-        let pos = *walkable_poses.choose(rng).unwrap();
+        let pos = match walkable_poses.choose(rng) {
+            Some(pos) => *pos,
+            None => return Err("Failed to find walkable pos".into()),
+        };
         world[pos].item = Some(Item::Equipment(EquipmentInstance::new(
             *sprinkle.valid_equipment.choose(rng).unwrap(),
             world::STARTING_DURABILITY,
         )));
     }
+    // make some tiles bloody just for fun
+    for p in walkable_poses {
+        let gen = rng.gen::<f32>();
+        if gen < 0.1 {
+            world[p].kind = TileKind::BloodyFloor;
+        } else if gen < 0.2 {
+            world[p].kind = TileKind::YellowFloor;
+        }
+    }
+    Ok(())
 }
 
 enum LevelGenType {
@@ -571,55 +587,67 @@ enum LevelGenType {
     DenseRooms,
 }
 
+fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<LevelgenResult, String> {
+    let algo = world.world_info.areas[i].mapgen;
+    let sprinkle = SprinkleOpts {
+        num_enemies: 30,
+        num_items: 30,
+        valid_enemies: world.world_info.monsters_per_level[i].clone(),
+        valid_equipment: world.world_info.equipment_per_level[i].clone(),
+    };
+    let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
+    let lgr = match algo {
+        MapGen::SimpleRoomsAndCorridors => {
+            let opts = SimpleRoomOpts {
+                rect,
+                max_rooms: 30,
+                min_room_size: 6,
+                max_room_size: 10,
+            };
+            gen_simple_rooms(world, &opts, rng)
+        }
+        MapGen::Caves => {
+            let buf = mapgen::MapBuilder::new(80, 50)
+                .with(mapgen::NoiseGenerator::uniform())
+                .with(mapgen::CellularAutomata::new())
+                .with(mapgen::AreaStartingPosition::new(
+                    mapgen::XStart::CENTER,
+                    mapgen::YStart::CENTER,
+                ))
+                .with(mapgen::CullUnreachable::new())
+                .with(mapgen::DistantExit::new())
+                .build();
+            gen_level_mapgen(world, buf, rect, rng)
+        }
+        MapGen::Hive => {
+            let buf = mapgen::MapBuilder::new(80, 50)
+                .with(mapgen::VoronoiHive::new())
+                .with(mapgen::AreaStartingPosition::new(
+                    mapgen::XStart::LEFT,
+                    mapgen::YStart::TOP,
+                ))
+                .with(mapgen::DistantExit::new())
+                .build_with_rng(rng);
+            gen_level_mapgen(world, buf, rect, rng)
+        }
+        MapGen::DenseRooms => gen_offices(world, rng, rect),
+    };
+    sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, rng).map(|_| lgr)
+}
+
 pub fn generate_world(world: &mut World, seed: u64) {
     let mut rng = StdRng::seed_from_u64(seed);
     let mut results = vec![];
     for i in 0..world.world_info.areas.len() {
-        let algo = world.world_info.areas[i].mapgen;
-        let sprinkle = SprinkleOpts {
-            num_enemies: 30,
-            num_items: 30,
-            valid_enemies: world.world_info.monsters_per_level[i].clone(),
-            valid_equipment: world.world_info.equipment_per_level[i].clone(),
+        let lgr = loop {
+            let algo = world.world_info.areas[i].mapgen;
+            match generate_level(world, i, &mut rng) {
+                Ok(lgr) => break lgr,
+                Err(e) => {
+                    macroquad::miniquad::error!("{}", format!("{algo:?} levelgen failed: {e}"));
+                }
+            }
         };
-        let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
-        let lgr = match algo {
-            MapGen::SimpleRoomsAndCorridors => {
-                let opts = SimpleRoomOpts {
-                    rect,
-                    max_rooms: 30,
-                    min_room_size: 6,
-                    max_room_size: 10,
-                };
-                gen_simple_rooms(world, &opts, &mut rng)
-            }
-            MapGen::Caves => {
-                let buf = mapgen::MapBuilder::new(80, 50)
-                    .with(mapgen::NoiseGenerator::uniform())
-                    .with(mapgen::CellularAutomata::new())
-                    .with(mapgen::AreaStartingPosition::new(
-                        mapgen::XStart::CENTER,
-                        mapgen::YStart::CENTER,
-                    ))
-                    .with(mapgen::CullUnreachable::new())
-                    .with(mapgen::DistantExit::new())
-                    .build();
-                gen_level_mapgen(world, buf, rect, &mut rng)
-            }
-            MapGen::Hive => {
-                let buf = mapgen::MapBuilder::new(80, 50)
-                    .with(mapgen::VoronoiHive::new())
-                    .with(mapgen::AreaStartingPosition::new(
-                        mapgen::XStart::LEFT,
-                        mapgen::YStart::TOP,
-                    ))
-                    .with(mapgen::DistantExit::new())
-                    .build_with_rng(&mut rng);
-                gen_level_mapgen(world, buf, rect, &mut rng)
-            }
-            MapGen::DenseRooms => gen_offices(world, &mut rng, rect),
-        };
-        sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, &mut rng);
         results.push(lgr);
     }
     world.player_pos = results[0].start;

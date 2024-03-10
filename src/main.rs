@@ -1,6 +1,8 @@
 use macroquad::prelude::*;
 use net::IdeaGuy;
+use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use world::PlayerAction;
 
 mod fov;
@@ -42,13 +44,19 @@ const KEYS_WITH_REPEAT: &[KeyCode] = &[
 const INIT_KEY_REPEAT: f32 = 0.5;
 const KEY_REPEAT_DELAY: f32 = 1.0 / 30.0;
 
+fn hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
 impl PlayState {
     pub fn new(font: Font, ig: &mut IdeaGuy) -> Self {
         assert!(ig.monsters.is_some());
         assert!(ig.items.is_some());
         let mut sim = world::World::new();
         sim.update_defs(ig);
-        map_gen::generate_world(&mut sim, 0x11_22_33_44_55_66_77_88);
+        map_gen::generate_world(&mut sim, hash(ig.setting.as_ref().unwrap()));
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
         sim.post_init();
@@ -273,6 +281,7 @@ async fn main() {
     let mut last_size = (screen_width(), screen_height());
     let mut gs = GameState::Intro(intro::IntroState::new());
     let mut ig: Option<IdeaGuy> = None;
+
     loop {
         if let Some(ref mut ig) = ig {
             ig.tick()
