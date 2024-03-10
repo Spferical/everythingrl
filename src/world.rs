@@ -451,7 +451,7 @@ impl WorldInfo {
         }
     }
 
-    pub fn craft(&mut self, item1: Item, item2: Item) -> Result<Item, CraftError> {
+    fn craft(&mut self, item1: Item, item2: Item) -> Result<Item, CraftError> {
         match (item1, item2) {
             (Item::Instance(ei1), Item::Instance(ei2)) => {
                 if ei1.info.level == ei2.info.level {
@@ -784,7 +784,7 @@ impl World {
                         (" out of your ".into(), Color::White),
                         (a.name.clone(), a.ty.get_color()),
                         (" and ".into(), Color::White),
-                        (a.name.clone(), a.ty.get_color()),
+                        (b.name.clone(), b.ty.get_color()),
                     ]);
                 }
             }
