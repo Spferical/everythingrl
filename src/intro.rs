@@ -1,7 +1,9 @@
+use crate::net::IdeaGuy;
 use ::rand::seq::{index, SliceRandom};
 use macroquad::prelude::*;
 
 pub const CHARS_PER_SECOND: f32 = 35.;
+pub const CHARS_PER_SECOND_LOADING: f32 = 80.;
 
 pub const SETTINGS: [&str; 7] = [
     "Richard Adams's Watership Down",
@@ -26,7 +28,7 @@ pub const PROMPTS: [&str; 12] = [
     "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.",
     "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
     "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.",
-    "The movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips.eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\'/\' or \';\' will inspect an item.",
+    "The movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\'/\' or \';\' will inspect an item.",
     "Some other notes --\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
     "If this is a lot to remember, press \'?\' for a quick summary.",
     "If the fonts are rendering too small or large, there is a font scale slider on the bottom left.",
@@ -34,9 +36,61 @@ pub const PROMPTS: [&str; 12] = [
     "Thank you for listening to me. Please wait a moment as the game world is generated.",
 ];
 
+pub struct LoadingTypewriter {
+    setting_dt: Option<f32>,
+    areas_dt: Option<f32>,
+    monsters_dt: Option<f32>,
+    items_dt: Option<f32>,
+}
+
+impl LoadingTypewriter {
+    fn new() -> LoadingTypewriter {
+        LoadingTypewriter {
+            setting_dt: None,
+            areas_dt: None,
+            monsters_dt: None,
+            items_dt: None,
+        }
+    }
+
+    fn trim<'a>(text: &'a str, dt: &mut Option<f32>) -> &'a str {
+        if dt.is_none() {
+            *dt = Some(0.0);
+        }
+
+        let length = (dt.unwrap() * CHARS_PER_SECOND_LOADING) as usize;
+        let length = text.len().min(length);
+        &text[..length]
+    }
+
+    fn get_setting_text<'a>(&mut self, text: &'a str) -> &'a str {
+        LoadingTypewriter::trim(text, &mut self.setting_dt)
+    }
+
+    fn get_areas_text<'a>(&mut self, text: &'a str) -> &'a str {
+        LoadingTypewriter::trim(text, &mut self.areas_dt)
+    }
+
+    fn get_monsters_text<'a>(&mut self, text: &'a str) -> &'a str {
+        LoadingTypewriter::trim(text, &mut self.monsters_dt)
+    }
+
+    fn get_items_text<'a>(&mut self, text: &'a str) -> &'a str {
+        LoadingTypewriter::trim(text, &mut self.items_dt)
+    }
+
+    fn advance(&mut self) {
+        self.setting_dt = self.setting_dt.map(|dt| dt + get_frame_time());
+        self.areas_dt = self.areas_dt.map(|dt| dt + get_frame_time());
+        self.monsters_dt = self.monsters_dt.map(|dt| dt + get_frame_time());
+        self.items_dt = self.items_dt.map(|dt| dt + get_frame_time());
+    }
+}
+
 pub struct IntroState {
     step: usize,
-    dt: f32,
+    prompt_dt: f32,
+    typewriter: LoadingTypewriter,
     pub exit: bool,
     pub theme: String,
     pub ready_for_generation: bool,
@@ -48,7 +102,8 @@ impl IntroState {
     pub fn new() -> IntroState {
         IntroState {
             step: 0,
-            dt: 0.,
+            prompt_dt: 0.,
+            typewriter: LoadingTypewriter::new(),
             exit: false,
             theme: String::new(),
             ready_for_generation: false,
@@ -68,7 +123,7 @@ pub fn create_info_prompt(
     yes_no: bool,
     edit_text_box: bool,
 ) {
-    let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.dt) as usize;
+    let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.prompt_dt) as usize;
     let typewritten_prompt: String = prompt.chars().take(num_typewritten_chars).collect();
     let width = screen_width() * miniquad::window::dpi_scale();
     egui::Window::new("StoryTeller")
@@ -106,7 +161,7 @@ pub fn create_info_prompt(
                             return;
                         }
                         intro_state.step += 1;
-                        intro_state.dt = 0.;
+                        intro_state.prompt_dt = 0.;
                     }
                 }
             });
@@ -122,17 +177,75 @@ pub fn create_info_prompt(
                     }
                 }
                 intro_state.step += 1;
-                intro_state.dt = 0.;
+                intro_state.prompt_dt = 0.;
             } else {
-                intro_state.dt = 1000.;
+                intro_state.prompt_dt = 1000.;
             }
         }
     }
 }
 
-pub fn intro_loop(state: &mut IntroState) -> bool {
+pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
     let mut continuing = true;
-    state.dt += get_frame_time();
+    state.prompt_dt += get_frame_time();
+
+    let font_size = screen_width() / 100.;
+    let spacing = screen_width() / 90.;
+    if let Some(ig) = ig {
+        if let Some(setting) = &ig.setting {
+            let setting = state.typewriter.get_setting_text(setting);
+            for (i, line) in textwrap::wrap(setting, (screen_width() / (font_size * 2.)) as usize)
+                .iter()
+                .enumerate()
+            {
+                draw_text(
+                    &line,
+                    screen_width() * 0.1,
+                    spacing * i as f32 + screen_height() * 0.1,
+                    font_size,
+                    BLACK,
+                );
+            }
+        } else {
+            draw_text(
+                "Loading setting...",
+                screen_width() * 0.1,
+                screen_height() * 0.1,
+                font_size,
+                BLACK,
+            );
+        }
+
+        if let Some(monsters) = &ig.monsters {
+            let monsters: Vec<_> = monsters
+                .iter()
+                .map(|m| format!("{}: {}\n", m.name, m.description))
+                .collect();
+            let monsters = monsters.join("\n");
+            let monsters = state.typewriter.get_monsters_text(&monsters);
+            for (i, line) in textwrap::wrap(monsters, (screen_width() / (font_size * 2.)) as usize)
+                .iter()
+                .enumerate()
+            {
+                draw_text(
+                    &line,
+                    screen_width() * 0.6,
+                    spacing * i as f32 + screen_height() * 0.1,
+                    font_size,
+                    BLACK,
+                );
+            }
+        } else {
+            draw_text(
+                "Loading monsters...",
+                screen_width() * 0.6,
+                screen_height() * 0.1,
+                font_size,
+                BLACK,
+            );
+        }
+    }
+    state.typewriter.advance();
 
     egui_macroquad::ui(|egui_ctx| {
         if state.step < PROMPTS.len() {

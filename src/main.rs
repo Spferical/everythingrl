@@ -299,7 +299,7 @@ async fn main() {
                 if intro.ready_for_generation && ig.is_none() {
                     ig = Some(IdeaGuy::new(&intro.theme));
                 }
-                if !intro::intro_loop(intro) {
+                if !intro::intro_loop(intro, &ig) {
                     GameState::Startup
                 } else {
                     if intro.exit {
