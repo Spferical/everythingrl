@@ -694,15 +694,27 @@ impl World {
         }
     }
 
-    fn damage_mob(&mut self, mut mob: Mob, mob_pos: Pos, damage: usize) {
+    fn damage_mob(&mut self, mut mob: Mob, mob_pos: Pos, damage: usize, eff: AttackEffectiveness) {
         let mki = self.get_mobkind_info(mob.kind).clone();
         mob.damage += damage;
-        self.log_message(vec![
+
+        let mut msg = vec![
             ("You hit ".into(), Color::White),
             (mki.name.clone(), mki.color),
             (" for ".into(), Color::White),
             (format!("{}", damage), Color::Red),
-        ]);
+        ];
+        match eff {
+            AttackEffectiveness::Zero => msg.push((" It had no effect!".into(), Color::Red)),
+            AttackEffectiveness::Quarter | AttackEffectiveness::Half => {
+                msg.push((" It's not very effective...".into(), Color::Red))
+            }
+            AttackEffectiveness::Two | AttackEffectiveness::Four => {
+                msg.push((" It's super effective!".into(), Color::Gold))
+            }
+            _ => {}
+        };
+        self.log_message(msg);
         if mob.damage >= mki.max_hp() {
             self.log_message(vec![(mki.death, mki.color)]);
         } else {
@@ -729,7 +741,7 @@ impl World {
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
 
-                    self.damage_mob(mob, new_pos, damage);
+                    self.damage_mob(mob, new_pos, damage, eff);
 
                     if let Some(destroyed_weapon) = self.inventory.damage_weapon(true) {
                         self.log_message(vec![
@@ -796,7 +808,7 @@ impl World {
                             let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
                             let mult = eff.get_scale() / 2;
                             let damage = (att_level + 1) * mult;
-                            self.damage_mob(mob, zapped_pos, damage);
+                            self.damage_mob(mob, zapped_pos, damage, eff);
                         }
                         zapped_tiles.push(zapped_pos);
                     }
