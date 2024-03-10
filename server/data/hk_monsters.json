@@ -76,21 +76,6 @@
       
   },
   {
-    "name": "Absolute Radiance",
-    "level": 3,
-    "char": "A",
-    "color": "gold",
-    "type1": "fairy",
-    "type2": "psychic",
-    "attack_type": "fairy",
-    "description": "The pure essence of the Radiance, its blinding light capable of scorching and disorienting.",
-    "seen": "You see a blinding light in the distance!",
-    "attack": "The Absolute Radiance impales you with a spear of light. It burns!",
-    "death": "The Absolute Radiance explodes!",
-    "ranged": true,
-    "speed": 1
-  },
-  {
     "name": "Lurker",
     "level": 2,
     "char": "L",
@@ -352,21 +337,6 @@
     "death": "The Mantis Warrior explodes into a cloud of green goo." ,
     "ranged": false,
     "speed": 3
-  },
-  {
-    "name": "The Radiance",
-    "level": 3,
-    "char": "R",
-    "color": "gold",
-    "type1": "fairy",
-    "type2": "psychic",
-    "attack_type": "fairy",
-    "description": "The source of the infection, its blinding light capable of corrupting and enslaving.",
-    "seen": "A blinding light appears before you!",
-    "attack": "The Radiance fires a beam of light at you!",
-    "death": "The Radiance explodes into a shower of blinding light.",
-    "ranged": true,
-    "speed": 1
   },
   {
     "name": "Crystal Hunter",
