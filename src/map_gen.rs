@@ -455,6 +455,7 @@ pub struct LevelgenResult {
 
 fn gen_dijkstra_map(world: &mut World, start: Pos) -> TileMap<i32> {
     let mut dijkstra_map = TileMap::new(i32::MAX);
+    dijkstra_map[start] = 0;
     let mut visited = HashSet::new();
     let mut periphery = vec![start];
     let mut new_periphery = Vec::new();
