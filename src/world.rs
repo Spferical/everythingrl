@@ -224,6 +224,28 @@ pub struct BossInfo {
     pub periodic_messages: Vec<String>,
 }
 
+fn calc_damage(
+    att_level: usize,
+    def_level: usize,
+    eff: AttackEffectiveness,
+    attacker_is_player: bool,
+    is_ranged: bool,
+) -> usize {
+    // Base 4 mult.
+    let mult = eff.get_scale();
+    let mut damage = (att_level + 1) * mult;
+    if damage > 0 {
+        damage /= def_level;
+    };
+    if is_ranged {
+        damage /= 2;
+    }
+    if mult != 0 {
+        damage = damage.max(1);
+    }
+    damage
+}
+
 /// Contains post-processed content definitions parsed from AI-generated data.
 #[derive(Debug, Clone)]
 pub struct WorldInfo {
@@ -815,8 +837,7 @@ impl World {
                         .map(|w| (w.ty, w.level))
                         .unwrap_or((PokemonType::Normal, 0));
                     let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
-                    let mult = eff.get_scale();
-                    let damage = (att_level + 1) * mult;
+                    let damage = calc_damage(att_level, mki.level, eff, true, false);
 
                     self.damage_mob(mob, new_pos, damage, eff);
 
@@ -882,8 +903,7 @@ impl World {
                             let mki = self.get_mobkind_info(mob.kind).clone();
                             let (att_type, att_level) = (pwi.ty, pwi.level);
                             let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
-                            let mult = eff.get_scale() / 2;
-                            let damage = (att_level + 1) * mult;
+                            let damage = calc_damage(att_level, mki.level, eff, true, true);
                             self.damage_mob(mob, zapped_pos, damage, eff);
                         }
                         zapped_tiles.push(zapped_pos);
@@ -1182,11 +1202,8 @@ impl World {
                             .unwrap_or(PokemonType::Normal);
                         let defense2 = armor.get(1).map(|eki| eki.ty);
                         let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
-                        let mult = eff.get_scale();
-                        let mut damage = mki.level * mult;
-                        if mki.ranged {
-                            damage /= 2;
-                        }
+                        let def_level = armor.iter().map(|a| a.level).sum();
+                        let damage = calc_damage(mki.level, def_level, eff, false, true);
                         let range = (5 + mki.level * 2) as i32;
                         let in_range =
                             (current_pos - self.player_pos).dist_squared() <= range * range;

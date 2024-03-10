@@ -143,6 +143,7 @@ impl PokemonType {
         multiply_effectiveness(eff1, eff2.unwrap_or(One))
     }
 }
+#[derive(Debug, Clone, Copy)]
 pub enum AttackEffectiveness {
     Zero,
     Quarter,

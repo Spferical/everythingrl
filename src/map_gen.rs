@@ -622,7 +622,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
     let algo = world.world_info.areas[i].mapgen;
     let sprinkle = SprinkleOpts {
         num_enemies: 30,
-        num_items: 30,
+        num_items: 60,
         valid_enemies: world.world_info.monsters_per_level[i].clone(),
         valid_equipment: world.world_info.equipment_per_level[i].clone(),
         difficulty: i,
@@ -695,7 +695,6 @@ pub fn generate_world(world: &mut World, seed: u64) {
         results.iter().last().unwrap().end,
         fb_rect.bottom_edge().choose(&mut rng),
     );
-    world.player_pos = fb_rect.bottom_edge().center();
     let boss_kind = world.world_info.boss_info.as_ref().unwrap().mob_kind;
     world.add_mob(fb_rect.top_edge().center(), Mob::new(boss_kind));
 }
