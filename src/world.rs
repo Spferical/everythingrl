@@ -370,24 +370,22 @@ impl Inventory {
     }
 
     fn damage_armor(&mut self) -> Vec<Rc<ItemInfo>> {
-        let mut delete_idx = Vec::new();
-        for (i, player_armor) in self.get_equipped_armor().into_iter().enumerate() {
+        let mut deleted = vec![];
+        for player_armor in self.get_equipped_armor().into_iter() {
             player_armor.item_durability -= 1;
             if player_armor.item_durability == 0 {
-                delete_idx.push(i);
+                deleted.push(player_armor.info.clone());
             }
         }
+        self.items.retain(|x| {
+            if let Item::Instance(ref ii) = x.item {
+                ii.item_durability > 0
+            } else {
+                true
+            }
+        });
 
-        // Pretty important to do it in this order!
-        let mut deleted_armor = Vec::new();
-        for idx in delete_idx.iter() {
-            deleted_armor.push(self.get_equipped_armor_info()[*idx].clone());
-        }
-        for idx in delete_idx {
-            self.remove(self.get_equipped_armor_slots()[idx]);
-        }
-
-        deleted_armor
+        deleted
     }
 
     fn get_equipped_weapon(&mut self, melee: bool) -> Option<&mut ItemInstance> {
