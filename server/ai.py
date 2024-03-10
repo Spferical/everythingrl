@@ -109,6 +109,8 @@ class Monster(pydantic.BaseModel):
     type2: PokemonType | None = None
     attack_type: PokemonType
     description: str
+    ranged: bool
+    speed: int
 
 
 class Area(pydantic.BaseModel):
@@ -269,7 +271,7 @@ def ask_google_structured(
 
 
 def gen_monsters(theme: str, setting_desc: str, areas: list[dict]):
-    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; level, a number between 1 and 3 indicating how powerful the monster is; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a two sentence description of the monster, one sentence of narration or dialogue which occurs when the enemy sees the player, one sentence of narration which occurs when the enemy attacks the player, and one sentence of dialogue or narration which occurs when the enemy dies. Output each monster JSON on its own line."
+    instructions = "You are the game master for a difficult permadeath roguelike. For each input theme and level, output JSON monster definitions. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the monster; level, a number between 1 and 3 indicating how powerful the monster is; char, the single character to represent it as; color, one of the valid colors above; type1, the pokemon type of the monster; type2, an optional second type; attack_type, the pokemon the creature attacks as; and description, a two sentence description of the monster, one sentence of narration or dialogue which occurs when the enemy sees the player, one sentence of narration which occurs when the enemy attacks the player, one sentence of dialogue or narration which occurs when the enemy dies, and whether or not the enemy performs ranged attacks, and a number from 1 to 3 indicating how fast the enemy is. Output each monster JSON on its own line."
     examples = [
         (
             {

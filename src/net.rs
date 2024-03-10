@@ -274,6 +274,8 @@ pub struct MonsterDefinition {
     pub seen: String,
     pub attack: String,
     pub death: String,
+    pub ranged: bool,
+    pub speed: u8
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

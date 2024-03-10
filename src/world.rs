@@ -11,6 +11,7 @@ use rand::{seq::SliceRandom as _, SeedableRng};
 pub const FOV_RANGE: i32 = 16;
 pub const STARTING_DURABILITY: usize = 10;
 pub const PLAYER_MAX_HEALTH: usize = 100;
+pub const RELOAD_DELAY: usize = 2;
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",
@@ -100,7 +101,26 @@ pub enum MobAi {
 pub struct Mob {
     pub kind: MobKind,
     pub damage: usize,
+    pub reload: usize,
     pub ai: MobAi,
+}
+
+#[derive(Hash, Debug, Clone)]
+#[repr(u8)]
+pub enum Speed {
+    Slow = 1,
+    Normal = 2,
+    Fast = 3,
+}
+
+impl From<u8> for Speed {
+    fn from(orig: u8) -> Self {
+        match orig {
+            1 => Speed::Slow,
+            3 => Speed::Fast,
+            _ => Speed::Normal,
+        }
+    }
 }
 
 impl Mob {
@@ -108,6 +128,7 @@ impl Mob {
         Self {
             kind,
             damage: 0,
+            reload: RELOAD_DELAY,
             ai: MobAi::Idle,
         }
     }
@@ -145,6 +166,8 @@ pub struct MobKindInfo {
     pub seen: String,
     pub attack: String,
     pub death: String,
+    pub ranged: bool,
+    pub speed: Speed,
 }
 
 impl MobKindInfo {
@@ -221,7 +244,10 @@ impl WorldInfo {
                 seen,
                 attack,
                 death,
+                ranged,
+                speed,
             } = mob.clone();
+            let speed = speed.into();
             self.monster_kinds.push(MobKindInfo {
                 name,
                 char,
@@ -234,6 +260,8 @@ impl WorldInfo {
                 seen,
                 attack,
                 death,
+                ranged,
+                speed,
             });
         }
 
@@ -1016,19 +1044,59 @@ impl World {
             match mob.ai {
                 MobAi::Idle => new_pos = pos,
                 MobAi::Move { dest } => {
+                    // Start by determining the next position we want to move towards.
                     let target = self.path_towards(pos, dest, false, true, None);
-                    if target == self.player_pos {
-                        let mki = self.get_mobkind_info(mob.kind).clone();
-                        let armor = self.inventory.get_equipped_armor_info();
-                        let defense1 = armor
-                            .first()
-                            .map(|eki| eki.ty)
-                            .unwrap_or(PokemonType::Normal);
-                        let defense2 = armor.get(1).map(|eki| eki.ty);
-                        let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
-                        let mult = eff.get_scale();
-                        let damage = mki.level * mult;
 
+                    let mki = self.get_mobkind_info(mob.kind).clone();
+                    let armor = self.inventory.get_equipped_armor_info();
+                    let defense1 = armor
+                        .first()
+                        .map(|eki| eki.ty)
+                        .unwrap_or(PokemonType::Normal);
+                    let defense2 = armor.get(1).map(|eki| eki.ty);
+                    let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
+                    let mult = eff.get_scale();
+                    let mut damage = mki.level * mult;
+                    if mki.ranged {
+                        damage = damage / 2;
+                    }
+                    let range = (5 + mki.level * 2) as i32;
+                    let in_range = (pos - self.player_pos).dist_squared() <= range * range;
+                    if mki.ranged {
+                        println!("(0) {} in range -- {in_range}", mki.name);
+                    }
+
+                    // If ranged and in range and reload cooldown done
+                    let can_fire = mki.ranged && in_range && mob.reload == 0;
+                    if mki.ranged {
+                        println!(
+                            "(1) {} can_fire -- {can_fire} -- pos {pos:?} -- player {:?}",
+                            mki.name, self.player_pos
+                        );
+                    }
+                    let fire_line: Vec<_> = line_drawing::Bresenham::new(
+                        (target.x, target.y),
+                        (self.player_pos.x, self.player_pos.y),
+                    )
+                    .map(|(x, y)| Pos::new(x, y))
+                    .collect();
+
+                    // If there's anything in the way, don't fire.
+                    let can_fire = can_fire
+                        && !fire_line.iter().any(|&pos| {
+                            !self[pos].kind.is_walkable() || self.mobs.contains_key(&pos)
+                        });
+                    if mki.ranged {
+                        println!("(2) {} can_fire -- {can_fire} {fire_line:?}", mki.name);
+                    }
+
+                    // If melee and adjacent, then let fire.
+                    let can_fire = can_fire || (!mki.ranged && target == self.player_pos);
+                    if mki.ranged {
+                        println!("(3) {} can_fire -- {can_fire}", mki.name);
+                    }
+
+                    if can_fire {
                         self.log_message(vec![
                             (mki.attack.clone(), mki.color),
                             (" You take ".into(), Color::White),
@@ -1045,12 +1113,29 @@ impl World {
                             ]);
                         }
 
+                        if mki.ranged {
+                            self.untriggered_animations.push(AnimationState::new(
+                                Animation::Shot(ShotAnimation {
+                                    cells: fire_line,
+                                    color: mki.attack_type.get_color(),
+                                }),
+                                0.5,
+                            ));
+                            mob.reload = RELOAD_DELAY;
+                        }
+
                         self.player_damage += damage;
+                    }
+
+                    if target == self.player_pos {
                         new_pos = pos;
                     } else {
                         new_pos = target;
                     }
                 }
+            }
+            if mob.reload != 0 {
+                mob.reload -= 1;
             }
             self.mobs.insert(new_pos, mob);
         }
