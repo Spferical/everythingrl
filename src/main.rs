@@ -263,6 +263,7 @@ fn heading3() -> egui::TextStyle {
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_startup();
+    egui_update_scaling(1.0);
 
     let mut last_size = (screen_width(), screen_height());
     let mut last_user_scale_factor = 1.0;
