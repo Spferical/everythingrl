@@ -206,7 +206,7 @@ pub struct MobKindInfo {
     pub description: String,
     pub level: usize,
     pub seen: String,
-    pub attack: String,
+    pub attack: Vec<String>,
     pub death: String,
     pub ranged: bool,
     pub speed: Speed,
@@ -290,7 +290,7 @@ impl WorldInfo {
                 description: boss.description.clone(),
                 level: 5,
                 seen: boss.intro_message.clone(),
-                attack: boss.attack_message.clone(),
+                attack: boss.attack_messages.clone(),
                 death: boss.game_victory_paragraph.clone(),
                 ranged: true,
                 speed: Speed::Slow,
@@ -330,7 +330,7 @@ impl WorldInfo {
                 description,
                 level,
                 seen,
-                attack,
+                attack: vec![attack],
                 death,
                 ranged,
                 speed,
@@ -1197,8 +1197,9 @@ impl World {
                         can_fire |= !mki.ranged && target == self.player_pos;
 
                         if can_fire {
+                            let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
                             self.log_message(vec![
-                                (mki.attack.clone(), mki.color),
+                                (msg, mki.color),
                                 (" You take ".into(), Color::White),
                                 (format!("{}", damage), Color::Red),
                                 (" damage!".into(), Color::White),

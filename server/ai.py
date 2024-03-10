@@ -125,7 +125,7 @@ class Boss(pydantic.BaseModel):
     attack_type: PokemonType
     description: str
     intro_message: str
-    attack_message: str
+    attack_messages: list[str]
     periodic_messages: list[str]
     game_victory_paragraph: str
 
@@ -373,7 +373,7 @@ def gen_areas(theme: str, setting_desc: str):
 
 
 def gen_boss(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the final boss of the game. The final boss is a slow enemy with a ranged attack that may appear with other monsters. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the boss; char, the single character to represent it as in-game; color, one of the valid colors above; type1, the pokemon type of the boss; type2, an optional second type; attack_type, the pokemon the creature attacks as; description, a two sentence description of the boss shown if clicked; intro_message, a message presented to the player when encountering the boss; attack_message, a message presented when the boss attacks the player with its ranged attack; periodic_messages, messages presented to the player randomly throughout the fight; and game_over_paragraph, a long-form message presented to the player when the boss is defeated and the game is won."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the final boss of the game. The final boss is a slow enemy with a ranged attack that may appear with other monsters. Valid types and attack types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. Valid colors are: lightgray yellow gold orange pink red maroon green lime skyblue blue purple violet beige brown white magenta. Output fields include name, the name of the boss; char, the single character to represent it as in-game; color, one of the valid colors above; type1, the pokemon type of the boss; type2, an optional second type; attack_type, the pokemon the creature attacks as; description, a two sentence description of the boss shown if clicked; intro_message, a message presented to the player when encountering the boss; attack_messages, a list of messages of which one will be randomly presented when the boss attacks the player with its ranged attack; periodic_messages, messages presented to the player randomly throughout the fight; and game_over_paragraph, a long-form message presented to the player when the boss is defeated and the game is won."
     examples = [
         (
             {

@@ -288,7 +288,7 @@ pub struct BossDefinition {
     pub type2: Option<PokemonType>,
     pub description: String,
     pub intro_message: String,
-    pub attack_message: String,
+    pub attack_messages: Vec<String>,
     pub periodic_messages: Vec<String>,
     pub game_victory_paragraph: String,
 }
