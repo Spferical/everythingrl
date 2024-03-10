@@ -439,24 +439,35 @@ impl WorldInfo {
         &self.monster_kinds[kind.0]
     }
 
-    fn craft_inner(&mut self, ii1: Rc<ItemInfo>, ii2: Rc<ItemInfo>) -> Option<Item> {
+    fn craft_inner(&mut self, ii1: Rc<ItemInfo>, ii2: Rc<ItemInfo>) -> Item {
         if let Some(ek3) = self.recipes.get(&(ii1.clone(), ii2.clone())) {
-            Some(Item::Instance(ItemInstance {
+            Item::Instance(ItemInstance {
                 info: ek3.clone(),
                 item_durability: STARTING_DURABILITY,
-            }))
+            })
         } else {
             self.pending_recipes.insert((ii1.clone(), ii2.clone()));
-            Some(Item::PendingCraft(ii1, ii2))
+            Item::PendingCraft(ii1, ii2)
         }
     }
 
-    pub fn craft(&mut self, item1: Item, item2: Item) -> Option<Item> {
+    pub fn craft(&mut self, item1: Item, item2: Item) -> Result<Item, CraftError> {
         match (item1, item2) {
-            (Item::Instance(ei1), Item::Instance(ei2)) => self.craft_inner(ei1.info, ei2.info),
-            _ => None,
+            (Item::Instance(ei1), Item::Instance(ei2)) => {
+                if ei1.info.level == ei2.info.level {
+                    Ok(self.craft_inner(ei1.info, ei2.info))
+                } else {
+                    Err(CraftError::BadLevel)
+                }
+            }
+            _ => Err(CraftError::ReagentPending),
         }
     }
+}
+
+enum CraftError {
+    BadLevel,
+    ReagentPending,
 }
 
 #[derive(Debug, Clone)]
@@ -1038,12 +1049,26 @@ impl World {
                     false
                 } else if let Some(item1) = self.inventory.get(i) {
                     if let Some(item2) = self.inventory.get(j) {
-                        if let Some(new_item) = self.world_info.craft(item1, item2) {
-                            self.inventory.remove_all(vec![i, j]);
-                            self.inventory.add(new_item);
-                            true
-                        } else {
-                            false
+                        match self.world_info.craft(item1, item2) {
+                            Ok(new_item) => {
+                                self.inventory.remove_all(vec![i, j]);
+                                self.inventory.add(new_item);
+                                true
+                            }
+                            Err(e) => {
+                                let msg = match e {
+                                    CraftError::BadLevel => vec![
+                                        ("Crafting ingredients must be the ".into(), Color::White),
+                                        ("same level".into(), Color::Yellow),
+                                    ],
+                                    CraftError::ReagentPending => vec![
+                                        ("Selected ingredient is ".into(), Color::White),
+                                        ("still getting crafted".to_string(), Color::Yellow),
+                                    ],
+                                };
+                                self.log_message(msg);
+                                false
+                            }
                         }
                     } else {
                         false
