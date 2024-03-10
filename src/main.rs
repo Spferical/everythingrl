@@ -68,16 +68,32 @@ impl PlayState {
         let mut tick = false;
         match key {
             KeyCode::L | KeyCode::Right => {
-                tick |= self.sim.do_player_action(PlayerAction::Move(EAST));
+                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
+                    tick |= self.sim.do_player_action(PlayerAction::Fire(EAST));
+                } else {
+                    tick |= self.sim.do_player_action(PlayerAction::Move(EAST));
+                }
             }
             KeyCode::H | KeyCode::Left => {
-                tick |= self.sim.do_player_action(PlayerAction::Move(WEST));
+                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
+                    tick |= self.sim.do_player_action(PlayerAction::Fire(WEST));
+                } else {
+                    tick |= self.sim.do_player_action(PlayerAction::Move(WEST));
+                }
             }
             KeyCode::J | KeyCode::Down => {
-                tick |= self.sim.do_player_action(PlayerAction::Move(SOUTH));
+                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
+                    tick |= self.sim.do_player_action(PlayerAction::Fire(SOUTH));
+                } else {
+                    tick |= self.sim.do_player_action(PlayerAction::Move(SOUTH));
+                }
             }
             KeyCode::K | KeyCode::Up => {
-                tick |= self.sim.do_player_action(PlayerAction::Move(NORTH));
+                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
+                    tick |= self.sim.do_player_action(PlayerAction::Fire(NORTH));
+                } else {
+                    tick |= self.sim.do_player_action(PlayerAction::Move(NORTH));
+                }
             }
             KeyCode::I => {
                 self.ui.toggle_ui();

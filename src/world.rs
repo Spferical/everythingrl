@@ -19,6 +19,7 @@ pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You find a ",
     "You discover a ",
 ];
+pub const BREAK_VERBS: [&str; 5] = ["jams", "breaks", "shatters", "stops working", "crumbles"];
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy)]
 pub enum TileKind {
@@ -123,6 +124,15 @@ pub struct EquipmentKindInfo {
     pub ty: PokemonType,
     pub description: String,
     pub slot: EquipmentSlot,
+}
+
+impl EquipmentKindInfo {
+    pub fn get_range(&self) -> usize {
+        match self.slot {
+            EquipmentSlot::RangedWeapon => 5 + self.level * 2,
+            _ => 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -609,6 +619,7 @@ pub struct World {
 
 pub enum PlayerAction {
     Move(Offset),
+    Fire(Offset),
     PickUp,
     ToggleEquip(usize),
     Drop(usize),
@@ -684,6 +695,23 @@ impl World {
         }
     }
 
+    fn damage_mob(&mut self, mut mob: Mob, mob_pos: Pos, damage: usize) {
+        let mki = self.get_mobkind_info(mob.kind).clone();
+        mob.damage += damage;
+        self.log_message(vec![
+            ("You hit ".into(), Color::White),
+            (mki.name.clone(), mki.color),
+            (" for ".into(), Color::White),
+            (format!("{}", damage), Color::Red),
+        ]);
+        if mob.damage >= mki.max_hp() {
+            self.log_message(vec![(mki.death, mki.color)]);
+            self.tile_map[mob_pos].item = Some(Item::Corpse(mob.kind));
+        } else {
+            self.mobs.insert(mob_pos, mob);
+        }
+    }
+
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
         if self.player_is_dead() {
             return false;
@@ -705,17 +733,8 @@ impl World {
                     let mult = eff.get_scale();
                     let damage = (att_level + 1) * mult;
 
-                    if let Some(destroyed_weapon) =
-                        self.inventory.damage_weapon(&self.world_info, true)
-                    {
-                        self.log_message(vec![
-                            ("Your ".into(), Color::White),
-                            (destroyed_weapon.name, destroyed_weapon.ty.get_color()),
-                            (" breaks!".into(), Color::Red),
-                        ]);
-                    }
-
-                    mob.damage += damage;
+                    self.damage_mob(mob, new_pos, damage);
+                    /*mob.damage += damage;
                     self.log_message(vec![
                         ("You hit ".into(), Color::White),
                         (mki.name.clone(), mki.color),
@@ -727,6 +746,16 @@ impl World {
                         self.tile_map[new_pos].item = Some(Item::Corpse(mob.kind));
                     } else {
                         self.mobs.insert(new_pos, mob);
+                    }*/
+
+                    if let Some(destroyed_weapon) =
+                        self.inventory.damage_weapon(&self.world_info, true)
+                    {
+                        self.log_message(vec![
+                            ("Your ".into(), Color::White),
+                            (destroyed_weapon.name, destroyed_weapon.ty.get_color()),
+                            (" breaks!".into(), Color::Red),
+                        ]);
                     }
 
                     true
@@ -760,6 +789,56 @@ impl World {
                     }
                     true
                 } else {
+                    false
+                }
+            }
+            PlayerAction::Fire(direction) => {
+                assert!(direction.mhn_dist() == 1);
+                if let Some(pwi) = self
+                    .inventory
+                    .get_equipped_weapon_info(&self.world_info, false)
+                {
+                    let range = pwi.get_range() as i32;
+                    let start_pos = self.player_pos;
+                    let end_pos = self.player_pos + direction * range;
+                    let mut zapped_tiles = Vec::new();
+                    for (x, y) in line_drawing::Bresenham::new(
+                        (start_pos.x, start_pos.y),
+                        (end_pos.x, end_pos.y),
+                    ) {
+                        let zapped_pos = Pos::new(x, y);
+                        if let Some(mob) = self.mobs.remove(&zapped_pos) {
+                            let mki = self.get_mobkind_info(mob.kind).clone();
+                            let (att_type, att_level) = (pwi.ty, pwi.level);
+                            let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
+                            let mult = eff.get_scale() / 2;
+                            let damage = (att_level + 1) * mult;
+                            self.damage_mob(mob, zapped_pos, damage);
+                        }
+
+                        zapped_tiles.push(zapped_pos);
+                    }
+
+                    // Add some damage to the weapon.
+                    if let Some(destroyed_weapon) =
+                        self.inventory.damage_weapon(&self.world_info, false)
+                    {
+                        let breaks = BREAK_VERBS.choose(&mut self.rng).unwrap().to_owned();
+                        self.log_message(vec![
+                            ("Your ".into(), Color::White),
+                            (destroyed_weapon.name, destroyed_weapon.ty.get_color()),
+                            (
+                                format!(" runs out of ammo and {breaks}!").into(),
+                                Color::Red,
+                            ),
+                        ]);
+                    }
+                    true
+                } else {
+                    self.log_message(vec![(
+                        "You cannot fire because you do not have a ranged weapon equipped!".into(),
+                        Color::White,
+                    )]);
                     false
                 }
             }
