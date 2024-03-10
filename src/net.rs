@@ -278,6 +278,21 @@ pub struct MonsterDefinition {
     pub speed: u8,
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct BossDefinition {
+    pub name: String,
+    pub char: String,
+    pub color: Color,
+    pub attack_type: PokemonType,
+    pub type1: PokemonType,
+    pub type2: Option<PokemonType>,
+    pub description: String,
+    pub intro_message: String,
+    pub attack_message: String,
+    pub periodic_messages: Vec<String>,
+    pub game_victory_paragraph: String,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ItemDefinition {
     pub name: String,
@@ -389,6 +404,7 @@ pub enum Request {
         item2: usize,
         craft_id: CraftId,
     },
+    Boss,
 }
 
 impl Request {}
@@ -404,6 +420,7 @@ enum RequestResult {
     Monsters(Vec<MonsterDefinition>),
     Items(Vec<ItemDefinition>),
     Craft(ItemDefinition),
+    Boss(BossDefinition),
     Pending,
     Error(String),
 }
@@ -431,6 +448,9 @@ impl PendingRequest {
                 Request::Craft { .. } => serde_json::from_str(s)
                     .map(Craft)
                     .unwrap_or_else(|e| Error(e.to_string())),
+                Request::Boss { .. } => serde_json::from_str(s)
+                    .map(Boss)
+                    .unwrap_or_else(|e| Error(e.to_string())),
             },
         }
     }
@@ -447,6 +467,7 @@ pub struct IdeaGuy {
     pub areas: Option<Vec<Area>>,
     pub monsters: Option<Vec<MonsterDefinition>>,
     pub items: Option<Vec<ItemDefinition>>,
+    pub boss: Option<BossDefinition>,
     // keys/vals are indices into items.
     pub recipes: HashMap<(usize, usize), usize>,
     outgoing: Vec<PendingRequest>,
@@ -463,6 +484,7 @@ impl IdeaGuy {
             areas: None,
             monsters: None,
             items: None,
+            boss: None,
             outgoing: vec![],
             recipes: HashMap::new(),
             next_craft_id: CraftId(0),
@@ -490,6 +512,13 @@ impl IdeaGuy {
             }
             Request::Areas => request(
                 format!("{api_url}/areas"),
+                AreasArgs {
+                    theme: self.theme.clone(),
+                    setting: self.setting.clone().unwrap(),
+                },
+            ),
+            Request::Boss => request(
+                format!("{api_url}/boss"),
                 AreasArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
@@ -556,7 +585,10 @@ impl IdeaGuy {
                 }
                 RequestResult::Items(items) => {
                     self.items = Some(items);
-                    // Done with initial setup
+                    self.request(Request::Boss);
+                }
+                RequestResult::Boss(boss) => {
+                    self.boss = Some(boss);
                 }
                 RequestResult::Craft(mut item) => {
                     if let Request::Craft {

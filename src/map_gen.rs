@@ -686,6 +686,17 @@ pub fn generate_world(world: &mut World, seed: u64) {
     for i in 1..results.len() {
         world.add_stairs(results[i - 1].end, results[i].start)
     }
+    // final boss room
+    let fb_rect = Rect::new_centered(Pos::new(80 * 4, 0), 12, 12);
+    for pos in fb_rect {
+        carve_floor(world, pos, 0, TileKind::YellowFloor);
+    }
+    world.add_stairs(
+        results.iter().last().unwrap().end,
+        fb_rect.bottom_edge().choose(&mut rng),
+    );
+    let boss_kind = world.world_info.boss_info.as_ref().unwrap().mob_kind;
+    world.add_mob(fb_rect.top_edge().center(), Mob::new(boss_kind));
 }
 
 pub fn carve_floor(world: &mut World, pos: Pos, brush_size: u8, tile: TileKind) {

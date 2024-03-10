@@ -218,12 +218,19 @@ impl MobKindInfo {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BossInfo {
+    pub mob_kind: MobKind,
+    pub periodic_messages: Vec<String>,
+}
+
 /// Contains post-processed content definitions parsed from AI-generated data.
 #[derive(Debug, Clone)]
 pub struct WorldInfo {
     pub areas: Vec<Area>,
     pub item_kinds: Vec<Rc<ItemInfo>>,
     pub monster_kinds: Vec<MobKindInfo>,
+    pub boss_info: Option<BossInfo>,
     pub monsters_per_level: Vec<Vec<MobKind>>,
     pub equipment_per_level: Vec<Vec<Rc<ItemInfo>>>,
     pub recipes: HashMap<(Rc<ItemInfo>, Rc<ItemInfo>), Rc<ItemInfo>>,
@@ -242,6 +249,7 @@ impl WorldInfo {
             pending_recipes: HashSet::new(),
             recipes: HashMap::new(),
             level_blurbs: Vec::new(),
+            boss_info: None,
         }
     }
 
@@ -270,8 +278,30 @@ impl WorldInfo {
                 kind,
             }));
         }
-        for mob in ig.monsters.iter().flatten() {
-            if self.item_kinds.iter().any(|m| m.name == mob.name) {
+        let boss = &ig.boss.as_ref().unwrap();
+        if self.boss_info.is_none() {
+            self.monster_kinds.push(MobKindInfo {
+                name: boss.name.clone(),
+                char: boss.char.clone(),
+                color: boss.color,
+                attack_type: boss.attack_type,
+                type1: boss.type1,
+                type2: boss.type2,
+                description: boss.description.clone(),
+                level: 5,
+                seen: boss.intro_message.clone(),
+                attack: boss.attack_message.clone(),
+                death: boss.game_victory_paragraph.clone(),
+                ranged: true,
+                speed: Speed::Slow,
+            });
+            self.boss_info = Some(BossInfo {
+                mob_kind: MobKind(self.monster_kinds.len() - 1),
+                periodic_messages: boss.periodic_messages.clone(),
+            })
+        }
+        for mob in ig.monsters.iter().flatten().chain(&[]) {
+            if self.monster_kinds.iter().any(|m| m.name == mob.name) {
                 continue;
             }
             let MonsterDefinition {
@@ -656,6 +686,7 @@ pub struct World {
     pub inventory: Inventory,
     pub log: VecDeque<Vec<(String, Color)>>,
     pub untriggered_animations: Vec<AnimationState>,
+    pub victory: bool,
     stairs: HashMap<Pos, Pos>,
     level_id: usize,
     rng: rand::rngs::SmallRng,
@@ -684,6 +715,7 @@ impl World {
             mobs: HashMap::new(),
             rng: rand::rngs::SmallRng::seed_from_u64(72),
             inventory: Inventory::new(),
+            victory: false,
             log: VecDeque::new(),
             untriggered_animations: Vec::new(),
             stairs: HashMap::new(),
@@ -756,13 +788,17 @@ impl World {
         self.log_message(msg);
         if mob.damage >= mki.max_hp() {
             self.log_message(vec![(mki.death, mki.color)]);
+            if mob.kind == self.world_info.boss_info.as_ref().unwrap().mob_kind {
+                self.victory = true;
+                self.log_message(vec![("YOU WIN!".into(), Color::Gold)]);
+            }
         } else {
             self.mobs.insert(mob_pos, mob);
         }
     }
 
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
-        if self.player_is_dead() {
+        if self.player_is_dead() || self.victory {
             return false;
         }
         let tick = match action {
@@ -815,10 +851,9 @@ impl World {
                         self.player_pos = *dest;
                         self.mobs.remove(dest);
                         self.level_id += 1;
-                        self.log_message(vec![(
-                            self.world_info.level_blurbs[self.level_id].clone(),
-                            Color::White,
-                        )]);
+                        if let Some(blurb) = self.world_info.level_blurbs.get(self.level_id) {
+                            self.log_message(vec![(blurb.clone(), Color::White)]);
+                        }
                     } else {
                         self.player_pos += offset;
                     }

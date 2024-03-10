@@ -303,12 +303,8 @@ async fn main() {
             }
             GameState::Startup => {
                 let ig = ig.as_mut().unwrap();
-                if ig.monsters.is_some() {
-                    if ig.items.is_some() {
-                        GameState::Play(PlayState::new(font.clone(), ig))
-                    } else {
-                        GameState::Startup
-                    }
+                if ig.monsters.is_some() && ig.items.is_some() && ig.boss.is_some() {
+                    GameState::Play(PlayState::new(font.clone(), ig))
                 } else {
                     GameState::Startup
                 }

@@ -74,6 +74,18 @@ def get_areas():
     return areas
 
 
+@app.post("/boss")
+def get_boss():
+    theme = flask.request.json["theme"]
+    setting_desc = flask.request.json["setting"]
+    if theme == PREGEN_THEME:
+        boss = ai.get_test_json("hk_boss.json")
+    else:
+        boss = ai.gen_boss(theme, setting_desc)
+    logging.info(json.dumps(boss))
+    return boss
+
+
 @app.post("/monsters")
 def monsters():
     theme = flask.request.json["theme"]
