@@ -172,7 +172,7 @@ impl ItemInfo {
     pub fn get_heal_amount(&self, armor_types: &[PokemonType]) -> i32 {
         use AttackEffectiveness::*;
         use PokemonType::Poison;
-        let _heal_amount = 5 * self.level.pow(2);
+        let _heal_amount = 5 * ((self.level as f32).powf(2.5) as usize);
 
         // Okay, I just think this is funny.
         let harm = if matches!(self.ty, Poison) {
