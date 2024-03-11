@@ -625,7 +625,7 @@ fn sprinkle_enemies_and_items(
     };
     let armor = items_by_kind(|k| k == ItemKind::Armor);
     let weapons = items_by_kind(|k| matches!(k, ItemKind::MeleeWeapon | ItemKind::RangedWeapon));
-    let food = items_by_kind(|k| k == ItemKind::Armor);
+    let food = items_by_kind(|k| k == ItemKind::Food);
 
     let mut item_poses = walkable_poses.clone();
     item_poses.shuffle(rng);
