@@ -35,6 +35,14 @@ impl AnimationState {
     }
 }
 
+#[derive(Clone, Copy, Hash)]
+pub enum UiButton {
+    Equip,
+    Drop,
+    Craft,
+    Inspect
+}
+
 pub struct Ui {
     grid_size: usize,
     font: Font,
@@ -46,6 +54,8 @@ pub struct Ui {
     pub user_scale_factor: f32,
     tmp_scale_factor: f32,
     animations: Vec<AnimationState>,
+
+    pub ui_button: Option<UiButton>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -113,6 +123,7 @@ impl Ui {
             user_scale_factor: 1.0,
             tmp_scale_factor: 1.0,
             animations: Vec::new(),
+            ui_button: None,
         }
     }
 
@@ -314,15 +325,19 @@ impl Ui {
                 });
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
                     if ui.button("Equip/Unequip/Eat (e)").clicked() {
+                        self.ui_button = Some(UiButton::Equip);
                         println!("Equipped {:?}", self.inventory_selected);
                     }
                     if ui.button("Drop (d)").clicked() {
+                        self.ui_button = Some(UiButton::Drop);
                         println!("Dropped {:?}", self.inventory_selected);
                     };
                     if ui.button("Combine/Cook (c)").clicked() {
+                        self.ui_button = Some(UiButton::Craft);
                         println!("Combined {:?}", self.inventory_selected);
                     };
-                    if ui.button("What is this? (;/)").clicked() {
+                    if ui.button("What is this? (; or /)").clicked() {
+                        self.ui_button = Some(UiButton::Inspect);
                         println!("What is {:?}", self.inventory_selected);
                     }
                 });

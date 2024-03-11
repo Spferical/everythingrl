@@ -63,6 +63,89 @@ impl PlayState {
         slf
     }
 
+    pub fn equip(&mut self) -> bool {
+        let mut tick = false;
+        if let Some(&min) = self.ui.inventory_selected.iter().min() {
+            tick |= self.sim.do_player_action(PlayerAction::Use(min));
+            self.ui.inventory_selected.remove(&min);
+        }
+        tick
+    }
+
+    pub fn craft(&mut self) -> bool {
+        let mut tick = false;
+        let mut selected = self
+            .ui
+            .inventory_selected
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        selected.sort();
+        if selected.len() >= 2 {
+            tick |= self
+                .sim
+                .do_player_action(PlayerAction::Craft(selected[0], selected[1]));
+            self.ui.inventory_selected.remove(&selected[0]);
+            self.ui.inventory_selected.remove(&selected[1]);
+        }
+        tick
+    }
+
+    pub fn drop(&mut self) -> bool {
+        let mut tick = false;
+        if let Some(&min) = self.ui.inventory_selected.iter().min() {
+            tick |= self.sim.do_player_action(PlayerAction::Drop(min));
+            self.ui.inventory_selected.remove(&min);
+        }
+        tick
+    }
+
+    pub fn inspect(&mut self) {
+        for item in self.ui.inventory_selected.iter() {
+            if let Some(item) = self.sim.inventory.items.get(*item).map(|x| &x.item) {
+                self.sim.log_message(vec![match item {
+                    world::Item::Instance(ii) => (
+                        format!("{}: {}", ii.info.name, ii.info.description.clone()),
+                        ii.info.ty.get_color(),
+                    ),
+                    world::Item::PendingCraft(_, _) => {
+                        ("Crafting in progress...".into(), net::Color::Pink)
+                    }
+                }]);
+            }
+        }
+    }
+
+    pub fn handle_buttons(&mut self) {
+        // Handle in-game UI button presses.
+        let tick = if let Some(ui_button) = self.ui.ui_button {
+            match ui_button {
+                render::UiButton::Equip => {
+                    self.equip();
+                    true
+                }
+                render::UiButton::Drop => {
+                    self.drop();
+                    true
+                }
+                render::UiButton::Craft => {
+                    self.craft();
+                    true
+                }
+                render::UiButton::Inspect => {
+                    self.inspect();
+                    false
+                }
+            }
+        } else {
+            false
+        };
+        self.ui.ui_button = None;
+        if tick {
+            self.tick();
+        }
+    }
+
     pub fn handle_key(&mut self, key: KeyCode) {
         let mut tick = false;
         match key {
@@ -104,34 +187,9 @@ impl PlayState {
             KeyCode::Period | KeyCode::Space => {
                 tick |= self.sim.do_player_action(PlayerAction::Wait);
             }
-            KeyCode::E | KeyCode::A => {
-                if let Some(&min) = self.ui.inventory_selected.iter().min() {
-                    tick |= self.sim.do_player_action(PlayerAction::Use(min));
-                    self.ui.inventory_selected.remove(&min);
-                }
-            }
-            KeyCode::C => {
-                let mut selected = self
-                    .ui
-                    .inventory_selected
-                    .iter()
-                    .copied()
-                    .collect::<Vec<_>>();
-                selected.sort();
-                if selected.len() >= 2 {
-                    tick |= self
-                        .sim
-                        .do_player_action(PlayerAction::Craft(selected[0], selected[1]));
-                    self.ui.inventory_selected.remove(&selected[0]);
-                    self.ui.inventory_selected.remove(&selected[1]);
-                }
-            }
-            KeyCode::D => {
-                if let Some(&min) = self.ui.inventory_selected.iter().min() {
-                    tick |= self.sim.do_player_action(PlayerAction::Drop(min));
-                    self.ui.inventory_selected.remove(&min);
-                }
-            }
+            KeyCode::E | KeyCode::A => tick |= self.equip(),
+            KeyCode::C => tick |= self.craft(),
+            KeyCode::D => tick |= self.drop(),
             KeyCode::Q => self.ui.toggle_help(),
             KeyCode::Slash | KeyCode::Semicolon => {
                 if matches!(key, KeyCode::Slash)
@@ -140,19 +198,7 @@ impl PlayState {
                     // If they're actually pressing ?
                     self.ui.toggle_help();
                 } else {
-                    for item in self.ui.inventory_selected.iter() {
-                        if let Some(item) = self.sim.inventory.items.get(*item).map(|x| &x.item) {
-                            self.sim.log_message(vec![match item {
-                                world::Item::Instance(ii) => (
-                                    format!("{}: {}", ii.info.name, ii.info.description.clone()),
-                                    ii.info.ty.get_color(),
-                                ),
-                                world::Item::PendingCraft(_, _) => {
-                                    ("Crafting in progress...".into(), net::Color::Pink)
-                                }
-                            }]);
-                        }
-                    }
+                    self.inspect();
                 }
             }
             KeyCode::Escape => {
@@ -345,6 +391,8 @@ async fn main() {
                 for k in keys_to_repeat {
                     ps.handle_key(k);
                 }
+
+                ps.handle_buttons();
 
                 // Handle animations
                 for untriggered_animation in ps.sim.untriggered_animations.iter() {
