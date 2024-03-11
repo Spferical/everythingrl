@@ -747,6 +747,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
 }
 
 pub fn generate_world(world: &mut World, seed: u64) {
+    macroquad::miniquad::info!("seed: {}", seed);
     let mut rng = StdRng::seed_from_u64(seed);
     let mut results = vec![];
     for i in 0..world.world_info.areas.len() {

@@ -41,13 +41,26 @@ const KEYS_WITH_REPEAT: &[KeyCode] = &[
 const INIT_KEY_REPEAT: f32 = 0.5;
 const KEY_REPEAT_DELAY: f32 = 1.0 / 30.0;
 
+#[cfg(target_family = "wasm")]
+pub fn random() -> u64 {
+    extern "C" {
+        pub fn rand() -> u32;
+    }
+
+    unsafe { rand() as u64 }
+}
+#[cfg(not(target_family = "wasm"))]
+pub fn random() -> u64 {
+    ::rand::random()
+}
+
 impl PlayState {
     pub fn new(font: Font, ig: &mut IdeaGuy) -> Self {
         assert!(ig.monsters.is_some());
         assert!(ig.items.is_some());
         let mut sim = world::World::new();
         sim.update_defs(ig);
-        map_gen::generate_world(&mut sim, ::rand::random());
+        map_gen::generate_world(&mut sim, random());
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
         sim.post_init();

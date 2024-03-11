@@ -1,5 +1,8 @@
 use crate::net::IdeaGuy;
-use ::rand::seq::{index, SliceRandom};
+use ::rand::{
+    seq::{index, SliceRandom},
+    SeedableRng,
+};
 use macroquad::prelude::*;
 
 pub const CHARS_PER_SECOND: f32 = 35.;
@@ -111,6 +114,7 @@ pub struct IntroState {
 
 impl IntroState {
     pub fn new() -> IntroState {
+        let mut rng = ::rand::rngs::SmallRng::seed_from_u64(crate::random());
         IntroState {
             step: 0,
             prompt_dt: 0.,
@@ -118,8 +122,8 @@ impl IntroState {
             exit: false,
             theme: String::new(),
             ready_for_generation: false,
-            chosen_tip: (*TIPS.choose(&mut ::rand::thread_rng()).unwrap()).into(),
-            chosen_settings: index::sample(&mut ::rand::thread_rng(), SETTINGS.len(), 2)
+            chosen_tip: (*TIPS.choose(&mut rng).unwrap()).into(),
+            chosen_settings: index::sample(&mut rng, SETTINGS.len(), 2)
                 .iter()
                 .map(|i| (*SETTINGS[i]).into())
                 .collect(),
