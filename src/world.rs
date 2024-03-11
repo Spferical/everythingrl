@@ -240,9 +240,7 @@ fn calc_damage(
     if is_ranged {
         damage /= 2;
     }
-    if mult != 0 {
-        damage = damage.max(1);
-    }
+    damage = damage.max(1);
     damage
 }
 
