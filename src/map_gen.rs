@@ -7,7 +7,7 @@ use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
-use crate::net::MapGen;
+use crate::net::{ItemKind, MapGen};
 use crate::world::{self, Item, ItemInfo, ItemInstance, Mob, MobKind, TileKind, World, FOV_RANGE};
 
 #[derive(Debug, Clone, Copy)]
@@ -390,9 +390,11 @@ pub struct SimpleRoomOpts {
 
 pub struct SprinkleOpts {
     pub num_enemies: usize,
-    pub num_items: usize,
-    pub valid_enemies: Vec<MobKind>,
-    pub valid_equipment: Vec<Rc<ItemInfo>>,
+    pub num_armor: usize,
+    pub num_weapons: usize,
+    pub num_food: usize,
+    pub enemies: Vec<MobKind>,
+    pub items: Vec<Rc<ItemInfo>>,
     pub difficulty: usize,
 }
 
@@ -531,6 +533,30 @@ fn gen_level_mapgen(
     }
 }
 
+fn sprinkle_items(
+    world: &mut World,
+    poses: &mut Vec<Pos>,
+    num: usize,
+    items: &Vec<Rc<ItemInfo>>,
+    rng: &mut impl Rng,
+) -> usize {
+    for i in 0..num {
+        let pos = match poses.pop() {
+            Some(pos) => pos,
+            None => return i,
+        };
+        if let Some(ii) = items.choose(rng).cloned() {
+            world[pos].item = Some(Item::Instance(ItemInstance::new(
+                ii,
+                world::STARTING_DURABILITY,
+            )));
+        } else {
+            return i;
+        }
+    }
+    num
+}
+
 fn sprinkle_enemies_and_items(
     world: &mut World,
     rect: Rect,
@@ -561,7 +587,7 @@ fn sprinkle_enemies_and_items(
     let enemies_per_level = (1..=3)
         .map(|i| {
             sprinkle
-                .valid_enemies
+                .enemies
                 .iter()
                 .copied()
                 .filter(|mk| world.get_mobkind_info(*mk).level == i)
@@ -581,7 +607,7 @@ fn sprinkle_enemies_and_items(
         if let Some(mob_info) = enemies_per_level[desired_level - 1].choose(rng) {
             // Try to pick enemies with a good level distribution.
             world.add_mob(pos, Mob::new(*mob_info));
-        } else if let Some(mob_info) = sprinkle.valid_enemies.choose(rng) {
+        } else if let Some(mob_info) = sprinkle.enemies.choose(rng) {
             // Fall back to any enemy.
             world.add_mob(pos, Mob::new(*mob_info));
         } else {
@@ -589,33 +615,41 @@ fn sprinkle_enemies_and_items(
         }
     }
 
-    for _ in 0..sprinkle.num_items {
-        let pos = match walkable_poses.choose(rng) {
-            Some(pos) => *pos,
-            None => return Err("Failed to find walkable pos".into()),
-        };
-        // TODO: balance different equipment types
-        if let Some(equip) = sprinkle.valid_equipment.choose(rng).cloned() {
-            world[pos].item = Some(Item::Instance(ItemInstance::new(
-                equip,
-                world::STARTING_DURABILITY,
-            )));
-        }
+    let items_by_kind = |f: fn(ItemKind) -> bool| {
+        sprinkle
+            .items
+            .iter()
+            .filter(|ii| f(ii.kind))
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let armor = items_by_kind(|k| k == ItemKind::Armor);
+    let weapons = items_by_kind(|k| matches!(k, ItemKind::MeleeWeapon | ItemKind::RangedWeapon));
+    let food = items_by_kind(|k| k == ItemKind::Armor);
+
+    let mut item_poses = walkable_poses.clone();
+    item_poses.shuffle(rng);
+    for (num, items, name) in &[
+        (sprinkle.num_armor, &armor, "armor"),
+        (sprinkle.num_weapons, &weapons, "weapons"),
+        (sprinkle.num_food, &food, "food"),
+    ] {
+        let placed = sprinkle_items(world, &mut item_poses, *num, items, rng);
+        macroquad::miniquad::info!("{}", format!("Placed {placed}/{num} {name}"));
     }
+
     // sprinkle some starting items around the player if this is level 1
     if level_idx == 0 {
         let mut free_poses_near_player: Vec<Pos> = fov.iter().cloned().collect();
         free_poses_near_player.sort_by_key(|p| (*p - lgr.start).mhn_dist());
         free_poses_near_player.reverse();
-        for _ in 0..5 {
-            if let Some(p) = free_poses_near_player.pop() {
-                if let Some(equip) = sprinkle.valid_equipment.choose(rng).cloned() {
-                    world[p].item = Some(Item::Instance(ItemInstance::new(
-                        equip,
-                        world::STARTING_DURABILITY,
-                    )));
-                }
-            }
+        for (num, items, name) in &[
+            (2, &armor, "starting armor"),
+            (2, &weapons, "starting weapons"),
+            (3, &food, "starting food"),
+        ] {
+            let placed = sprinkle_items(world, &mut free_poses_near_player, *num, items, rng);
+            macroquad::miniquad::info!("{}", format!("Placed {placed}/{num} {name}"));
         }
     }
     // make some tiles bloody just for fun
@@ -641,9 +675,11 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
     let algo = world.world_info.areas[i].mapgen;
     let sprinkle = SprinkleOpts {
         num_enemies: 30,
-        num_items: 60,
-        valid_enemies: world.world_info.monsters_per_level[i].clone(),
-        valid_equipment: world.world_info.equipment_per_level[i].clone(),
+        num_armor: 20,
+        num_weapons: 20,
+        num_food: 20,
+        enemies: world.world_info.monsters_per_level[i].clone(),
+        items: world.world_info.equipment_per_level[i].clone(),
         difficulty: i,
     };
     let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
