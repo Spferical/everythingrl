@@ -214,7 +214,7 @@ pub struct MobKindInfo {
 
 impl MobKindInfo {
     pub fn max_hp(&self) -> usize {
-        self.level * 16
+        self.level * 8
     }
 }
 
