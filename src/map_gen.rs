@@ -640,7 +640,11 @@ fn sprinkle_enemies_and_items(
 
     // sprinkle some starting items around the player if this is level 1
     if level_idx == 0 {
-        let mut free_poses_near_player: Vec<Pos> = fov.iter().cloned().collect();
+        let mut free_poses_near_player: Vec<Pos> = fov
+            .iter()
+            .cloned()
+            .filter(|p| world[*p].kind.is_walkable())
+            .collect();
         free_poses_near_player.sort_by_key(|p| (*p - lgr.start).mhn_dist());
         free_poses_near_player.reverse();
         for (num, items, name) in &[
