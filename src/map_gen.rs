@@ -443,10 +443,18 @@ pub fn gen_simple_rooms(
             carve_floor(world, pos, 0, TileKind::Floor)
         }
     }
+    let topleft_room = rooms
+        .iter()
+        .min_by_key(|r| (r.topleft().x, r.topleft().y))
+        .unwrap();
+    let bottomright_room = rooms
+        .iter()
+        .max_by_key(|r| (r.center() - topleft_room.center()).mhn_dist())
+        .unwrap();
 
     LevelgenResult {
-        start: rooms[0].center(),
-        end: rooms.iter().last().unwrap().center(),
+        start: topleft_room.center(),
+        end: bottomright_room.center(),
     }
 }
 
@@ -463,7 +471,7 @@ fn gen_dijkstra_map(world: &mut World, start: Pos) -> TileMap<i32> {
     let mut new_periphery = Vec::new();
     visited.extend(periphery.iter());
     for i in 0.. {
-        if i > FOV_RANGE + 1 {
+        if periphery.is_empty() {
             break;
         }
         for pos in periphery.drain(..) {
@@ -471,7 +479,6 @@ fn gen_dijkstra_map(world: &mut World, start: Pos) -> TileMap<i32> {
                 .iter()
                 .copied()
                 .map(|c| pos + c)
-                .filter(|p| (*p - pos).dist_squared() <= FOV_RANGE)
                 .filter(|pos| !visited.contains(pos))
                 .filter(|pos| world[*pos].kind.is_walkable())
                 .collect::<Vec<_>>();
@@ -686,7 +693,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         items: world.world_info.equipment_per_level[i].clone(),
         difficulty: i,
     };
-    let rect = Rect::new_centered(Pos::new(i as i32 * 80, 0), 80, 50);
+    let rect = Rect::new_centered(Pos::new(i as i32 * 100, 0), 80, 50);
     let lgr = match algo {
         MapGen::SimpleRoomsAndCorridors => {
             let opts = SimpleRoomOpts {
@@ -699,7 +706,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         }
         MapGen::Caves => {
             let buf = mapgen::MapBuilder::new(80, 50)
-                .with(mapgen::NoiseGenerator::uniform())
+                .with(mapgen::NoiseGenerator::new(0.5))
                 .with(mapgen::CellularAutomata::new())
                 .with(mapgen::AreaStartingPosition::new(
                     mapgen::XStart::LEFT,
@@ -727,6 +734,15 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
             gen_offices(world, rng, rect)
         }
     };
+    let total_reachable = rect
+        .into_iter()
+        .filter(|p| world[*p].kind.is_walkable())
+        .count();
+    if (total_reachable as i32) < rect.width() * rect.height() / 16 {
+        // Try again
+        fill_rect(world, rect, TileKind::Wall);
+        return Err("Too small".into());
+    }
     sprinkle_enemies_and_items(world, rect, i, &lgr, &sprinkle, rng).map(|_| lgr)
 }
 
