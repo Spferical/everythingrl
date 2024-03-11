@@ -5,7 +5,7 @@ use macroquad::prelude::*;
 pub const CHARS_PER_SECOND: f32 = 35.;
 pub const CHARS_PER_SECOND_LOADING: f32 = 80.;
 
-pub const SETTINGS: [&str; 10] = [
+pub const SETTINGS: [&str; 11] = [
     "Richard Adams's Watership Down",
     "Frank Herbert's Dune",
     "Pirates, just lots of pirates",
@@ -15,7 +15,8 @@ pub const SETTINGS: [&str; 10] = [
     "Lord of the Rings but everyone is a cat",
     "Bears. Just lots of bears.",
     "Nethack, but better somehow.",
-    "Faster Than Light (FTL) (the popular roguelike game)"
+    "Faster Than Light (FTL) (the popular roguelike game)",
+    "Tetris"
 ];
 
 pub const TIPS: [&str; 3] = [
