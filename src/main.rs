@@ -266,7 +266,15 @@ fn heading3() -> egui::TextStyle {
     egui::TextStyle::Name("ContextHeading".into())
 }
 
-#[macroquad::main("game")]
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Upgraded Fishstick".to_owned(),
+        high_dpi: true,
+        ..Default::default()
+    }
+}
+
+#[macroquad::main(window_conf)]
 async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_startup();
