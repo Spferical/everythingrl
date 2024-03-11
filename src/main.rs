@@ -314,7 +314,7 @@ fn heading3() -> egui::TextStyle {
 
 fn window_conf() -> Conf {
     Conf {
-        window_title: "Upgraded Fishstick".to_owned(),
+        window_title: "EverythingRL".to_owned(),
         high_dpi: true,
         ..Default::default()
     }
