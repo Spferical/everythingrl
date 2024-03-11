@@ -1,6 +1,6 @@
 use enum_map::Enum;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fmt::Display,
     sync::mpsc::{self, Receiver},
     time::Duration,
@@ -330,7 +330,8 @@ pub struct Area {
 pub struct MonstersArgs {
     theme: String,
     setting: String,
-    areas: Vec<Area>,
+    // names we are requesting
+    names: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -398,8 +399,8 @@ pub fn api_url() -> String {
 pub enum Request {
     Setting,
     Areas,
-    Monsters,
-    Items,
+    Monsters(Vec<String>),
+    Items(Vec<String>),
     Craft {
         item1: usize,
         item2: usize,
@@ -508,6 +509,7 @@ impl IdeaGuy {
     }
 
     fn request_inner(&mut self, req: Request) -> PendingRequest {
+        macroquad::miniquad::info!("Requesting {:?}", req);
         let api_url = api_url();
         let fut = match req {
             Request::Setting => {
@@ -528,20 +530,20 @@ impl IdeaGuy {
                     setting: self.setting.clone().unwrap(),
                 },
             ),
-            Request::Monsters => request(
+            Request::Monsters(ref names) => request(
                 format!("{api_url}/monsters"),
                 MonstersArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
-                    areas: self.areas.clone().unwrap(),
+                    names: names.clone(),
                 },
             ),
-            Request::Items => request(
+            Request::Items(ref names) => request(
                 format!("{api_url}/items"),
                 MonstersArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
-                    areas: self.areas.clone().unwrap(),
+                    names: names.clone(),
                 },
             ),
             Request::Craft { item1, item2, .. } => request(
@@ -563,6 +565,39 @@ impl IdeaGuy {
         self.outgoing.push(pending_req);
     }
 
+    fn get_missing_monster_names(&self) -> Vec<String> {
+        let known_names = self
+            .monsters
+            .iter()
+            .flatten()
+            .map(|m| m.name.clone())
+            .collect::<HashSet<String>>();
+        let mut names = HashSet::new();
+        for area in self.areas.as_ref().unwrap() {
+            for name in &area.enemies {
+                if !known_names.contains(name) {
+                    names.insert(name.clone());
+                }
+            }
+        }
+        names.into_iter().collect()
+    }
+
+    fn get_missing_item_names(&self) -> Vec<String> {
+        let mut names = HashSet::new();
+        for area in self.areas.as_ref().unwrap() {
+            for name in area
+                .equipment
+                .iter()
+                .chain(&area.melee_weapons)
+                .chain(&area.ranged_weapons)
+                .chain(&area.food)
+            {
+                names.insert(name.clone());
+            }
+        }
+        names.into_iter().collect()
+    }
     pub fn tick(&mut self) {
         let mut queue = self.outgoing.drain(..).rev().collect::<Vec<_>>();
         while let Some(mut req) = queue.pop() {
@@ -581,11 +616,19 @@ impl IdeaGuy {
                 }
                 RequestResult::Areas(areas) => {
                     self.areas = Some(areas);
-                    self.request(Request::Monsters);
+
+                    self.request(Request::Monsters(self.get_missing_monster_names()));
                 }
-                RequestResult::Monsters(monsters) => {
-                    self.monsters = Some(monsters);
-                    self.request(Request::Items);
+                RequestResult::Monsters(mut monsters) => {
+                    self.monsters
+                        .get_or_insert_with(Vec::new)
+                        .append(&mut monsters);
+                    let missing_names = self.get_missing_monster_names();
+                    if missing_names.is_empty() {
+                        self.request(Request::Items(self.get_missing_item_names()));
+                    } else {
+                        self.request(Request::Monsters(missing_names));
+                    }
                 }
                 RequestResult::Items(items) => {
                     self.items = Some(items);

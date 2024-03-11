@@ -90,11 +90,11 @@ def get_boss():
 def monsters():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
-    areas = flask.request.json["areas"]
+    names = flask.request.json["names"]
     if theme == PREGEN_THEME:
         monsters = ai.get_test_json("hk_monsters.json")
     else:
-        monsters = ai.gen_monsters(theme, setting_desc, areas)
+        monsters = ai.gen_monsters(theme, setting_desc, names)
     logging.info(json.dumps(monsters))
     return monsters
 
@@ -103,11 +103,11 @@ def monsters():
 def items():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
-    areas = flask.request.json["areas"]
+    names = flask.request.json["names"]
     if theme == PREGEN_THEME:
         items = ai.get_test_json("hk_items.json")
     else:
-        items = ai.gen_items(theme, setting_desc, areas)
+        items = ai.gen_items(theme, setting_desc, names)
     logging.info(json.dumps(items))
     return items
 

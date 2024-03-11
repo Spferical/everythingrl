@@ -58,7 +58,14 @@ def gen_areas(theme: str, setting_desc_file):
 def gen_monsters(theme: str, setting_desc_file, areas_file):
     setting_desc = setting_desc_file.read()
     areas = json.load(areas_file)
-    monsters = ai.gen_monsters(theme, setting_desc, areas)
+    names_needed = set(m for area in areas for m in area["enemies"])
+    monsters = []
+    while names_needed:
+        logging.info(f"need {names_needed}")
+        for monster in ai.gen_monsters(theme, setting_desc, list(names_needed)):
+            monsters.append(monster)
+            if monster["name"] in names_needed:
+                names_needed.remove(monster["name"])
     print(json.dumps(monsters, indent=2))
 
 
@@ -69,7 +76,21 @@ def gen_monsters(theme: str, setting_desc_file, areas_file):
 def gen_items(theme: str, setting_desc_file, areas_file):
     setting_desc = setting_desc_file.read()
     areas = json.load(areas_file)
-    items = ai.gen_items(theme, setting_desc, areas)
+    names_needed = set(
+        name
+        for area in areas
+        for name in area["equipment"]
+        + area["melee_weapons"]
+        + area["ranged_weapons"]
+        + area["food"]
+    )
+    items = []
+    while names_needed:
+        print("need", names_needed)
+        for item in ai.gen_items(theme, setting_desc, list(names_needed)):
+            items.append(item)
+            if item["name"] in names_needed:
+                names_needed.remove(item["name"])
     print(json.dumps(items, indent=2))
 
 
@@ -96,12 +117,22 @@ def gen_all(theme: str, output_dir: str | None):
     if output_dir is not None:
         with open(os.path.join(output_dir, "areas.json"), "w") as f:
             json.dump(areas, f)
-    monsters = ai.gen_monsters(theme, setting_desc, areas)
+    monster_names = set(name for area in areas for name in area["enemies"])
+    monsters = ai.gen_monsters(theme, setting_desc, list(monster_names))
     print(json.dumps(monsters, indent=2))
     if output_dir is not None:
         with open(os.path.join(output_dir, "monsters.json"), "w") as f:
             json.dump(monsters, f)
-    items = ai.gen_items(theme, setting_desc, areas)
+
+    item_names = set(
+        name
+        for area in areas
+        for name in area["equipment"]
+        + area["melee_weapons"]
+        + area["ranged_weapons"]
+        + area["food"]
+    )
+    items = ai.gen_items(theme, setting_desc, list(item_names))
     print(json.dumps(items, indent=2))
     if output_dir is not None:
         with open(os.path.join(output_dir, "items.json"), "w") as f:
