@@ -11,7 +11,7 @@ use enum_map::{enum_map, Enum, EnumMap};
 use lazy_static::lazy_static;
 use rand::{seq::SliceRandom as _, Rng, SeedableRng};
 
-pub const FOV_RANGE: i32 = 16;
+pub const FOV_RANGE: i32 = 8;
 pub const STARTING_DURABILITY: usize = 10;
 pub const PLAYER_MAX_HEALTH: usize = 100;
 pub const RELOAD_DELAY: usize = 2;
