@@ -5,7 +5,7 @@ use macroquad::prelude::*;
 pub const CHARS_PER_SECOND: f32 = 35.;
 pub const CHARS_PER_SECOND_LOADING: f32 = 80.;
 
-pub const SETTINGS: [&str; 8] = [
+pub const SETTINGS: [&str; 9] = [
     "Richard Adams's Watership Down",
     "Frank Herbert's Dune",
     "Pirates, just lots of pirates",
@@ -14,6 +14,7 @@ pub const SETTINGS: [&str; 8] = [
     "Star Wars but everyone is a cat",
     "Lord of the Rings but everyone is a cat",
     "Bears. Just lots of bears.",
+    "Nethack, but better somehow.",
 ];
 
 pub const TIPS: [&str; 3] = [
@@ -29,7 +30,7 @@ pub const PROMPTS: [&str; 12] = [
     "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.",
     "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
     "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.",
-    "The movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\'/\' or \';\' will inspect an item.",
+    "The movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.",
     "Some other notes --\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
     "If this is a lot to remember, press \'q\' or \'?\' for a quick summary.",
     "If the fonts are rendering too small or large, there is a font scale slider on the bottom left.",

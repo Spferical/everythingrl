@@ -182,8 +182,8 @@ impl Ui {
                         basic_label("e", "Equip/eat selected item(s).");
                         basic_label("d", "Drop selected item(s).");
                         basic_label("c", "Combine/cook selected item(s).");
-                        basic_label("/ or ;", "Inspect selected item(s).");
-                        basic_label("?/q", "Request help.");
+                        basic_label("; or /", "Inspect selected item(s).");
+                        basic_label("q or ?", "Request help.");
                         ui.separator();
                         ui.label("Click on 'details' in the upper right panel to get more info about that monster.");
                     });
@@ -665,7 +665,7 @@ impl Ui {
             });
 
         let log_upper_bound = offset_y + panel_height * 0.35;
-        let log_lower_bound = offset_y + panel_height * 0.85;
+        let log_lower_bound = offset_y + panel_height * 0.9;
         let log_height = log_lower_bound - log_upper_bound;
 
         let log_width = panel_width * miniquad::window::dpi_scale();
