@@ -308,7 +308,7 @@ impl WorldInfo {
                 type1: boss.type1,
                 type2: boss.type2,
                 description: boss.description.clone(),
-                level: 5,
+                level: 8,
                 seen: boss.intro_message.clone(),
                 attack: boss.attack_messages.clone(),
                 death: boss.game_victory_paragraph.clone(),
