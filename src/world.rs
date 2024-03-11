@@ -16,6 +16,7 @@ pub const STARTING_DURABILITY: usize = 20;
 pub const PLAYER_MAX_HEALTH: usize = 100;
 pub const RELOAD_DELAY: usize = 2;
 pub const SPEED_MUL: i32 = 8;
+pub const INVENTORY_LIMIT: usize = 10;
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",
@@ -632,7 +633,7 @@ impl Inventory {
             item,
             equipped: false,
         });
-        if self.items.len() > 9 {
+        if self.items.len() > INVENTORY_LIMIT {
             for i in 0..self.items.len() {
                 if !self.items[i].equipped {
                     return Some(self.items.remove(i).item);
