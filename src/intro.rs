@@ -29,7 +29,7 @@ pub const PROMPTS: [&str; 12] = [
     "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
     "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.",
     "The movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\'/\' or \';\' will inspect an item.",
-    "Some other notes --\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
+    "Some other notes --\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
     "If this is a lot to remember, press \'q\' or \'?\' for a quick summary.",
     "If the fonts are rendering too small or large, there is a font scale slider on the bottom left.",
     "A quick tip -- {tip}",
