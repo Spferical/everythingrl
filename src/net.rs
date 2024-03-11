@@ -620,19 +620,28 @@ impl IdeaGuy {
                     self.request(Request::Monsters(self.get_missing_monster_names()));
                 }
                 RequestResult::Monsters(mut monsters) => {
+                    let num_new = monsters.len();
                     self.monsters
                         .get_or_insert_with(Vec::new)
                         .append(&mut monsters);
                     let missing_names = self.get_missing_monster_names();
-                    if missing_names.is_empty() {
+                    // Give up if we get an empty response.
+                    if missing_names.is_empty() || num_new == 0 {
                         self.request(Request::Items(self.get_missing_item_names()));
                     } else {
                         self.request(Request::Monsters(missing_names));
                     }
                 }
-                RequestResult::Items(items) => {
-                    self.items = Some(items);
-                    self.request(Request::Boss);
+                RequestResult::Items(mut items) => {
+                    let num_new = items.len();
+                    self.items.get_or_insert_with(Vec::new).append(&mut items);
+                    let missing_names = self.get_missing_item_names();
+                    // Give up if we get an empty response.
+                    if missing_names.is_empty() || num_new == 0 {
+                        self.request(Request::Boss);
+                    } else {
+                        self.request(Request::Monsters(missing_names));
+                    }
                 }
                 RequestResult::Boss(boss) => {
                     self.boss = Some(boss);

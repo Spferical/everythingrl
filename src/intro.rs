@@ -57,10 +57,17 @@ impl LoadingTypewriter {
         if dt.is_none() {
             *dt = Some(0.0);
         }
+        if text.chars().next().is_none() {
+            return ""
+        }
 
         let length = (dt.unwrap() * CHARS_PER_SECOND_LOADING) as usize;
         let length = text.len().min(length);
-        &text[..length]
+        let mut iter = text.char_indices();
+        let (end, _) = iter
+            .nth(length)
+            .unwrap_or(text.char_indices().last().unwrap());
+        &text[..end]
     }
 
     fn get_setting_text<'a>(&mut self, text: &'a str) -> &'a str {
