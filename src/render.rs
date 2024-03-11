@@ -394,7 +394,7 @@ impl Ui {
                                     ItemKind::MeleeWeapon => ')',
                                     ItemKind::RangedWeapon => '/',
                                     ItemKind::Armor => '[',
-                                    ItemKind::Food => '*',
+                                    ItemKind::Food => '%',
                                 };
                                 let color = ii.info.ty.get_color().into();
                                 (char, color)
