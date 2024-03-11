@@ -5,7 +5,7 @@ use macroquad::prelude::*;
 pub const CHARS_PER_SECOND: f32 = 35.;
 pub const CHARS_PER_SECOND_LOADING: f32 = 80.;
 
-pub const SETTINGS: [&str; 7] = [
+pub const SETTINGS: [&str; 8] = [
     "Richard Adams's Watership Down",
     "Frank Herbert's Dune",
     "Pirates, just lots of pirates",
@@ -13,6 +13,7 @@ pub const SETTINGS: [&str; 7] = [
     "Microcenter",
     "Star Wars but everyone is a cat",
     "Lord of the Rings but everyone is a cat",
+    "Bears. Just lots of bears.",
 ];
 
 pub const TIPS: [&str; 3] = [
