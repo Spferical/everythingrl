@@ -815,6 +815,19 @@ impl World {
         }
     }
 
+    fn get_eff_msg(&mut self, eff: AttackEffectiveness) -> Vec<(String, Color)> {
+        match eff {
+            AttackEffectiveness::Zero => vec![(" It had no effect!".into(), Color::Red)],
+            AttackEffectiveness::Quarter | AttackEffectiveness::Half => {
+                vec![(" It's not very effective...".into(), Color::Red)]
+            }
+            AttackEffectiveness::Two | AttackEffectiveness::Four => {
+                vec![(" It's super effective!".into(), Color::Gold)]
+            }
+            _ => vec![],
+        }
+    }
+
     fn damage_mob(&mut self, mut mob: Mob, mob_pos: Pos, damage: usize, eff: AttackEffectiveness) {
         let mki = self.get_mobkind_info(mob.kind).clone();
         mob.damage += damage;
@@ -825,16 +838,7 @@ impl World {
             (" for ".into(), Color::White),
             (format!("{}", damage), Color::Red),
         ];
-        match eff {
-            AttackEffectiveness::Zero => msg.push((" It had no effect!".into(), Color::Red)),
-            AttackEffectiveness::Quarter | AttackEffectiveness::Half => {
-                msg.push((" It's not very effective...".into(), Color::Red))
-            }
-            AttackEffectiveness::Two | AttackEffectiveness::Four => {
-                msg.push((" It's super effective!".into(), Color::Gold))
-            }
-            _ => {}
-        };
+        msg.append(&mut self.get_eff_msg(eff));
         self.log_message(msg);
         if mob.damage >= mki.max_hp() {
             self.log_message(vec![(mki.death, mki.color)]);
@@ -1281,12 +1285,15 @@ impl World {
 
                         if can_fire {
                             let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
-                            self.log_message(vec![
+                            let mut log_msg = vec![
                                 (msg, mki.color),
                                 (" You take ".into(), Color::White),
                                 (format!("{}", damage), Color::Red),
                                 (" damage!".into(), Color::White),
-                            ]);
+                            ];
+                            log_msg.append(&mut self.get_eff_msg(eff));
+
+                            self.log_message(log_msg);
 
                             // See if armor is destroyed.
                             for destroyed_armor in self.inventory.damage_armor() {
