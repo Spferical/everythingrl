@@ -702,8 +702,8 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
                 .with(mapgen::NoiseGenerator::uniform())
                 .with(mapgen::CellularAutomata::new())
                 .with(mapgen::AreaStartingPosition::new(
-                    mapgen::XStart::CENTER,
-                    mapgen::YStart::CENTER,
+                    mapgen::XStart::LEFT,
+                    mapgen::YStart::TOP,
                 ))
                 .with(mapgen::CullUnreachable::new())
                 .with(mapgen::DistantExit::new())
