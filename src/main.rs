@@ -133,6 +133,7 @@ impl PlayState {
                     self.ui.inventory_selected.remove(&min);
                 }
             }
+            KeyCode::Q => self.ui.toggle_help(),
             KeyCode::Slash | KeyCode::Semicolon => {
                 if matches!(key, KeyCode::Slash)
                     && (is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift))

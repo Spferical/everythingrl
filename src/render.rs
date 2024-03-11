@@ -183,7 +183,7 @@ impl Ui {
                         basic_label("d", "Drop selected item(s).");
                         basic_label("c", "Combine/cook selected item(s).");
                         basic_label("/ or ;", "Inspect selected item(s).");
-                        basic_label("?", "Request help.");
+                        basic_label("?/q", "Request help.");
                         ui.separator();
                         ui.label("Click on 'details' in the upper right panel to get more info about that monster.");
                     });
