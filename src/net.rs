@@ -584,6 +584,12 @@ impl IdeaGuy {
     }
 
     fn get_missing_item_names(&self) -> Vec<String> {
+        let known_names = self
+            .items
+            .iter()
+            .flatten()
+            .map(|i| i.name.clone())
+            .collect::<HashSet<String>>();
         let mut names = HashSet::new();
         for area in self.areas.as_ref().unwrap() {
             for name in area
@@ -593,7 +599,9 @@ impl IdeaGuy {
                 .chain(&area.ranged_weapons)
                 .chain(&area.food)
             {
-                names.insert(name.clone());
+                if !known_names.contains(name) {
+                    names.insert(name.clone());
+                }
             }
         }
         names.into_iter().collect()
@@ -640,7 +648,7 @@ impl IdeaGuy {
                     if missing_names.is_empty() || num_new == 0 {
                         self.request(Request::Boss);
                     } else {
-                        self.request(Request::Monsters(missing_names));
+                        self.request(Request::Items(missing_names));
                     }
                 }
                 RequestResult::Boss(boss) => {
