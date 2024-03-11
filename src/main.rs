@@ -17,7 +17,6 @@ use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
 enum GameState {
     Intro(intro::IntroState),
-    Startup,
     Play(PlayState),
 }
 
@@ -300,21 +299,14 @@ async fn main() {
                 if intro.ready_for_generation && ig.is_none() {
                     ig = Some(IdeaGuy::new(&intro.theme));
                 }
-                if !intro::intro_loop(intro, &ig) {
-                    GameState::Startup
+                let intro_waiting = intro::intro_loop(intro, &ig);
+                if !intro_waiting && ig.as_ref().filter(|ig| ig.boss.is_some()).is_some() {
+                    GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap()))
                 } else {
                     if intro.exit {
                         return;
                     }
                     gs
-                }
-            }
-            GameState::Startup => {
-                let ig = ig.as_mut().unwrap();
-                if ig.monsters.is_some() && ig.items.is_some() && ig.boss.is_some() {
-                    GameState::Play(PlayState::new(font.clone(), ig))
-                } else {
-                    GameState::Startup
                 }
             }
             GameState::Play(ref mut ps) => {
