@@ -59,7 +59,7 @@ impl LoadingTypewriter {
             *dt = Some(0.0);
         }
         if text.chars().next().is_none() {
-            return ""
+            return "";
         }
 
         let length = (dt.unwrap() * CHARS_PER_SECOND_LOADING) as usize;
