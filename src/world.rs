@@ -769,6 +769,17 @@ impl World {
         self[pos].item = None;
     }
 
+    fn get_craft_msg(a: Rc<ItemInfo>, b: Rc<ItemInfo>, c: Rc<ItemInfo>) -> Vec<(String, Color)> {
+        vec![
+            ("You crafted a ".into(), Color::White),
+            (c.name.clone(), c.ty.get_color()),
+            (" out of your ".into(), Color::White),
+            (a.name.clone(), a.ty.get_color()),
+            (" and ".into(), Color::White),
+            (b.name.clone(), b.ty.get_color()),
+        ]
+    }
+
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
         self.world_info.update(ig);
         let mut msgs = vec![];
@@ -776,14 +787,7 @@ impl World {
             if let Item::PendingCraft(a, b) = item.item.clone() {
                 if let Some(c) = self.world_info.recipes.get(&(a.clone(), b.clone())) {
                     item.item = Item::Instance(ItemInstance::new(c.clone(), STARTING_DURABILITY));
-                    msgs.push(vec![
-                        ("You crafted a ".into(), Color::White),
-                        (c.name.clone(), c.ty.get_color()),
-                        (" out of your ".into(), Color::White),
-                        (a.name.clone(), a.ty.get_color()),
-                        (" and ".into(), Color::White),
-                        (b.name.clone(), b.ty.get_color()),
-                    ]);
+                    msgs.push(Self::get_craft_msg(a.clone(), b.clone(), c.clone()));
                 }
             }
         }
@@ -1047,9 +1051,22 @@ impl World {
                     false
                 } else if let Some(item1) = self.inventory.get(i) {
                     if let Some(item2) = self.inventory.get(j) {
-                        match self.world_info.craft(item1, item2) {
+                        match self.world_info.craft(item1.clone(), item2.clone()) {
                             Ok(new_item) => {
                                 self.inventory.remove_all(vec![i, j]);
+                                if let (
+                                    Item::Instance(ref a),
+                                    Item::Instance(ref b),
+                                    Item::Instance(ref c),
+                                ) = (item1, item2, new_item.clone())
+                                {
+                                    self.log_message(Self::get_craft_msg(
+                                        a.info.clone(),
+                                        b.info.clone(),
+                                        c.info.clone(),
+                                    ));
+                                }
+
                                 self.inventory.add(new_item);
                                 true
                             }
