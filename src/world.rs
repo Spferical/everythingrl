@@ -929,6 +929,11 @@ impl World {
                     .skip(0)
                     {
                         let zapped_pos = Pos::new(x, y);
+
+                        // Stop if the projectile hits a wall.
+                        if !self.tile_map[zapped_pos].kind.is_walkable() {
+                            break;
+                        }
                         if let Some(mob) = self.mobs.remove(&zapped_pos) {
                             let mki = self.get_mobkind_info(mob.kind).clone();
                             let (att_type, att_level) = (pwi.ty, pwi.level);
