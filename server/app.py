@@ -32,7 +32,7 @@ class Base(DeclarativeBase):
     pass
 
 
-@app.post("/setting/<theme>")
+@app.post("/setting/<path:theme>")
 def get_setting(theme):
     if theme == PREGEN_THEME:
         setting_desc = ai.get_test_str("hk.txt")
