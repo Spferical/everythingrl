@@ -7,6 +7,9 @@ use crate::net::{Color, ItemKind};
 use crate::world::{Item, MobKindInfo};
 use crate::{grid::Pos, grid::Rect, world::TileKind};
 
+pub const FOV_BG: macroquad::color::Color = DARKGRAY;
+pub const OOS_BG: macroquad::color::Color = BLACK;
+
 #[derive(Clone, Debug)]
 pub struct ShotAnimation {
     pub cells: Vec<Pos>,
@@ -62,6 +65,7 @@ pub struct Ui {
 pub struct Glyph {
     character: char,
     color: macroquad::color::Color,
+    bg: macroquad::color::Color,
     location: (usize, usize),
     layer: usize,
 }
@@ -381,11 +385,14 @@ impl Ui {
             let mut glyphs = vec![Glyph {
                 character: '@',
                 color: WHITE,
+                bg: FOV_BG,
                 location: (player_pos.x as usize, player_pos.y as usize),
                 layer: 2,
             }];
+            let fov = sim.get_fov();
             for pos in grid_rect {
                 let tile = &memory.tile_map[pos];
+                let bg = if fov.contains(&pos) { FOV_BG } else { OOS_BG };
                 if let Some(tile) = tile {
                     let (character, color) = match tile.kind {
                         TileKind::Floor => ('.', LIGHTGRAY),
@@ -398,6 +405,7 @@ impl Ui {
                     glyphs.push(Glyph {
                         character,
                         color,
+                        bg,
                         location: (pos.x as usize, pos.y as usize),
                         layer: 0,
                     });
@@ -418,6 +426,7 @@ impl Ui {
                         glyphs.push(Glyph {
                             character,
                             color,
+                            bg,
                             location: (pos.x as usize, pos.y as usize),
                             layer: 1,
                         });
@@ -428,6 +437,7 @@ impl Ui {
                     glyphs.push(Glyph {
                         character: mob_kind_info.char.chars().next().unwrap(),
                         color: mob_kind_info.color.into(),
+                        bg,
                         location: (pos.x as usize, pos.y as usize),
                         layer: 2,
                     });
@@ -768,6 +778,7 @@ impl Ui {
             .map(|(pos, glyph)| Glyph {
                 character: glyph.character,
                 color: glyph.color,
+                bg: glyph.bg,
                 location: (pos.0 as usize, pos.1 as usize),
                 layer: glyph.layer,
             })
@@ -814,6 +825,13 @@ impl Ui {
                     && y >= offset_y
                     && y < game_size + offset_y - 20.0
                 {
+                    draw_rectangle(
+                        x - sq_size / 2.,
+                        y - sq_size / 2.,
+                        sq_size,
+                        sq_size,
+                        glyph.bg,
+                    );
                     draw_text_ex(
                         &format!("{}", glyph.character),
                         x,

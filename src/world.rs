@@ -1197,6 +1197,10 @@ impl World {
         }
     }
 
+    pub fn get_fov(&self) -> HashSet<Pos> {
+        crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self)
+    }
+
     pub fn get_visible_mobs(&self) -> Vec<Mob> {
         let fov = crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self);
         let mut all_mobs: Vec<(i32, Pos, Mob)> = Vec::new();
