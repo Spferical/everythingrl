@@ -40,7 +40,7 @@ pub enum UiButton {
     Equip,
     Drop,
     Craft,
-    Inspect
+    Inspect,
 }
 
 pub struct Ui {

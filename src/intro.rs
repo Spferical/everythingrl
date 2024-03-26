@@ -19,7 +19,7 @@ pub const SETTINGS: [&str; 11] = [
     "Bears. Just lots of bears.",
     "Nethack, but better somehow.",
     "Faster Than Light (FTL) (the popular roguelike game)",
-    "Tetris"
+    "Tetris",
 ];
 
 pub const TIPS: [&str; 3] = [
