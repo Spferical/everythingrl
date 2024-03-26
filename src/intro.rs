@@ -35,8 +35,8 @@ pub const PROMPTS: [&str; 12] = [
     "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.",
     "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
     "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.",
-    "CONTROLS\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.",
-    "Some other notes --\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
+    "CONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.",
+    "Some other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
     "If this is a lot to remember, press \'q\' for a quick summary.",
     "If the fonts are rendering too small or large, there is a font scale slider on the bottom left.",
     "A quick tip -- {tip}",
@@ -141,6 +141,7 @@ pub fn create_info_prompt(
     let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.prompt_dt) as usize;
     let typewritten_prompt: String = prompt.chars().take(num_typewritten_chars).collect();
     let width = screen_width() * miniquad::window::dpi_scale();
+    let padding = 3.0 * miniquad::window::dpi_scale();
     egui::Window::new("StoryTeller")
         .resizable(false)
         .collapsible(false)
@@ -148,38 +149,44 @@ pub fn create_info_prompt(
         .max_width(width)
         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
-            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                ui.label(egui::RichText::new(typewritten_prompt));
-                ui.separator();
-                if yes_no {
-                    if ui.button("I understand").clicked() {
-                        intro_state.step += 1;
-                    }
-                    if ui.button("Exit").clicked() {
-                        intro_state.exit = true;
-                    }
-                } else {
-                    ui.label(
-                        egui::RichText::new("(Press Enter to continue)")
-                            .small()
-                            .color(egui::Color32::from_rgb(100, 100, 100)),
-                    );
+            egui::Frame::none()
+                .inner_margin(egui::style::Margin::symmetric(padding, padding))
+                .show(ui, |ui| {
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                        ui.label(egui::RichText::new(typewritten_prompt));
+                        ui.separator();
+                    });
+                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                        if yes_no {
+                            if ui.button("I understand").clicked() {
+                                intro_state.step += 1;
+                            }
+                            if ui.button("Exit").clicked() {
+                                intro_state.exit = true;
+                            }
+                        } else {
+                            ui.label(
+                                egui::RichText::new("(Press Enter to continue)")
+                                    .small()
+                                    .color(egui::Color32::from_rgb(100, 100, 100)),
+                            );
 
-                    if edit_text_box {
-                        ui.add(
-                            egui::widgets::TextEdit::singleline(&mut intro_state.theme)
-                                .desired_width(width * 0.8),
-                        );
-                    }
-                    if ui.button("OK").clicked() {
-                        if edit_text_box && intro_state.theme.is_empty() {
-                            return;
+                            if edit_text_box {
+                                ui.add(
+                                    egui::widgets::TextEdit::singleline(&mut intro_state.theme)
+                                        .desired_width(width * 0.8),
+                                );
+                            }
+                            if ui.button("OK").clicked() {
+                                if edit_text_box && intro_state.theme.is_empty() {
+                                    return;
+                                }
+                                intro_state.step += 1;
+                                intro_state.prompt_dt = 0.;
+                            }
                         }
-                        intro_state.step += 1;
-                        intro_state.prompt_dt = 0.;
-                    }
-                }
-            });
+                    });
+                });
         });
 
     if let Some(key) = get_last_key_pressed() {
