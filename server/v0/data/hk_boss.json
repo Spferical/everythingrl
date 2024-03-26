@@ -1,0 +1,21 @@
+{
+  "name": "The Radiance",
+  "char": "R",
+  "color": "white",
+  "type1": "bug",
+  "type2": "psychic",
+  "attack_type": "psychic",
+  "description": "The towering figure of a moth stands before you, glowing with a malevolent golden light. Its blinding radiance can pierce through darkness and shatter minds.",
+  "intro_message": "As you approach the heart of the Abyss, a blinding light engulfs your vision. The Radiance, the ancient evil, has emerged to challenge you.",
+  "attack_messages": [
+    "The Radiance summons an orb of light and hurls it at you. It explodes!",
+    "The Radiance's body glows brighter, and a beam of bright golden light engulfs you.",
+    "The Radiance flaps its wings, and swords rain down on you."
+  ],
+  "periodic_messages": [
+    "The Radiance's aura intensifies, threatening to overwhelm your senses.",
+    "The light flickers and distorts, creating illusions that dance around you.",
+    "You hear whispers in your mind, the Radiance attempting to corrupt your thoughts."
+  ],
+  "game_victory_paragraph": "With a surge of determination and the might of your newfound abilities, you strike down the Radiance. Its blinding light fades, and the Hollow Kingdom is freed from its oppressive grip. You have triumphed against the ancient evil, restoring balance and hope to the once-corrupted realm."
+}

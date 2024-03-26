@@ -24,13 +24,13 @@ USE_VERTEX_AI = True
 
 @cache
 def get_test_str(fname):
-    with open(os.path.join(DIR_PATH, "../data", fname)) as f:
+    with open(os.path.join(DIR_PATH, "data", fname)) as f:
         return f.read()
 
 
 @cache
 def get_test_json(fname):
-    with open(os.path.join(DIR_PATH, "../data", fname)) as f:
+    with open(os.path.join(DIR_PATH, "data", fname)) as f:
         return json.load(f)
 
 
