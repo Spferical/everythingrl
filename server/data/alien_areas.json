@@ -1,0 +1,116 @@
+[
+  {
+    "name": "Communications Center",
+    "blurb": "Your enter the Communications Center for Sevastapol station. In the distance, you see several Working Joes hunched over their computers, actively scanning the area for any threats.",
+    "mapgen": "simple_rooms_and_corridors",
+    "enemies": [
+      "Working Joe",
+      "Sevastapol Survivor",
+      "Sentry Turret",
+      "Incapacitated Working Joe",
+      "Service Android",
+      "Hunter-Killer",
+      "Guard Android",
+      "Flamethrower Android",
+      "Bandit Survivor",
+      "Sevastapol Security Officer"
+    ],
+    "equipment": [
+      "Security Officer Vest",
+      "Firefighting Armor",
+      "Welding Helmet",
+      "Bulletproof Vest",
+      "Riot Shield"
+    ],
+    "melee_weapons": [
+      "Stun Gun",
+      "Maintenance Jack",
+      "Plasma Cutter"
+    ],
+    "ranged_weapons": [
+      "Pistol",
+      "Shotgun"
+    ],
+    "food": [
+      "Medkit",
+      "Morphine",
+      "Freeze-dried rations"
+    ]
+  },
+  {
+    "name": "Transit Center",
+    "blurb": "As you walk through the main Transit Center of Sevastopol station, you notice that the large, open area is mostly empty.",
+    "mapgen": "caves",
+    "enemies": [
+      "Xenomorph",
+      "Facehugger",
+      "Sevastapol Survivor",
+      "Runner",
+      "Drone",
+      "Industrial Android",
+      "Working Joe",
+      "Sentry Turret",
+      "Sevastapol Security",
+      "Praetorian"
+    ],
+    "equipment": [
+      "Hazmat Suit",
+      "Motion Tracker",
+      "Power Armor",
+      "Oxygen Tank",
+      "Fire-retardant vest"
+    ],
+    "melee_weapons": [
+      "Crowbar",
+      "Pipe Wrench",
+      "Fire Axe"
+    ],
+    "ranged_weapons": [
+      "Boltgun",
+      "Flamethrower"
+    ],
+    "food": [
+      "Energy Bar",
+      "Nutrient Paste",
+      "Medkit"
+    ]
+  },
+  {
+    "name": "Reactor Core",
+    "blurb": "You are standing inside the main reactor core of Sevastopol station. The massive, glowing orb of energy in the center of the room is alive with power, and you can feel the heat radiating off of it.",
+    "mapgen": "hive",
+    "enemies": [
+      "Working Joe",
+      "Sevastapol Survivor",
+      "Guard Drone",
+      "Industrial Working Joe",
+      "Facehugger",
+      "Alien Drone",
+      "Xenomorph",
+      "Alien Egg",
+      "Explosive Alien Egg",
+      "Nearly-dead Sevastapol Survivor"
+    ],
+    "equipment": [
+      "Power Suit",
+      "Cryo Suit",
+      "Thermal Suit",
+      "Radiation Suit",
+      "Hazmat Suit"
+    ],
+    "melee_weapons": [
+      "Laser Cutter",
+      "Arc Welder",
+      "Power Drill"
+    ],
+    "ranged_weapons": [
+      "Bolt Gun",
+      "Flame Thrower"
+    ],
+    "food": [
+      "Alien Honey",
+      "Protein Bar",
+      "Energy Drink"
+    ]
+  }
+]

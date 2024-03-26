@@ -354,7 +354,7 @@ def gen_setting_desc(theme: str):
 
 
 def gen_areas(theme: str, setting_desc: str):
-    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 20 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, names of 2 ranged weapons, and names of 3 food items that may be found on that level. DO NOT generate the final boss; the final boss will be on a special fourth level. DO NOT generate the final boss level."
+    instructions = f"You are the game master for a difficult permadeath roguelike. Based on the provided theme and high-level setting descriptions, produce JSON data describing the contents of each of the levels: name, blurb (a moody message presented to the user as they enter the level), mapgen (a string representing what map generation algorithm should be used for this level, one of: 'simple_rooms_and_corridors', 'caves', 'hive', or 'dense_rooms'), names of 20 possible enemies, names of 5 pieces of equipment (i.e. armor or accessories), names of 3 melee weapons, names of 2 ranged weapons, and names of 3 food items that may be found on that level. Make sure that all generated weapons, armor, monsters, and food are appropriate for the provided theme, try to avoid common or generic roguelike items. DO NOT generate the final boss; the final boss will be on a special fourth level. DO NOT generate the final boss level."
     examples = [
         (
             {
@@ -362,7 +362,21 @@ def gen_areas(theme: str, setting_desc: str):
                 "setting_desc": get_test_str("nethack.txt"),
             },
             get_test_json("nethack_areas.json"),
-        )
+        ),
+        (
+            {
+                "theme": "Hollow Knight",
+                "setting_desc": get_test_str("hk.txt"),
+            },
+            get_test_json("hk_areas.json"),
+        ),
+        (
+            {
+                "theme": "Alien Isolation",
+                "setting_desc": get_test_str("alien.txt"),
+            },
+            get_test_json("alien_areas.json"),
+        ),
     ]
     return ask_google_structured(
         instructions,
