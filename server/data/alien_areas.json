@@ -1,7 +1,7 @@
 [
   {
     "name": "Communications Center",
-    "blurb": "Your enter the Communications Center for Sevastapol station. In the distance, you see several Working Joes hunched over their computers, actively scanning the area for any threats.",
+    "blurb": "You enter the Communications Center for Sevastapol station. In the distance, you see several Working Joes hunched over their computers, actively scanning the area for any threats.",
     "mapgen": "simple_rooms_and_corridors",
     "enemies": [
       "Working Joe",
