@@ -514,24 +514,24 @@ impl IdeaGuy {
         let fut = match req {
             Request::Setting => {
                 let theme = &self.theme;
-                request(format!("{api_url}/setting/{theme}"), "")
+                request(format!("{api_url}/v1/setting/{theme}"), "")
             }
             Request::Areas => request(
-                format!("{api_url}/areas"),
+                format!("{api_url}/v1/areas"),
                 AreasArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
                 },
             ),
             Request::Boss => request(
-                format!("{api_url}/boss"),
+                format!("{api_url}/v1/boss"),
                 AreasArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
                 },
             ),
             Request::Monsters(ref names) => request(
-                format!("{api_url}/monsters"),
+                format!("{api_url}/v1/monsters"),
                 MonstersArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
@@ -539,7 +539,7 @@ impl IdeaGuy {
                 },
             ),
             Request::Items(ref names) => request(
-                format!("{api_url}/items"),
+                format!("{api_url}/v1/items"),
                 MonstersArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),
@@ -547,7 +547,7 @@ impl IdeaGuy {
                 },
             ),
             Request::Craft { item1, item2, .. } => request(
-                format!("{api_url}/craft"),
+                format!("{api_url}/v1/craft"),
                 CraftArgs {
                     theme: self.theme.clone(),
                     setting: self.setting.clone().unwrap(),

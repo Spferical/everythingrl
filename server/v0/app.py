@@ -1,51 +1,17 @@
 #!/usr/bin/env python
 import json
 import logging
-import os
 
 import flask
-from flask import Flask, send_from_directory, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.orm import DeclarativeBase
-from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.serving import is_running_from_reloader
+from flask import jsonify
 
-import v0
-import ai
+from . import ai
 
-
-logging.basicConfig(level=logging.DEBUG)
-
-app = Flask(__name__)
-
-# needed for running under reverse proxy
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-    "DATABASE_URI", "sqlite:///db.sqlite"
-)
 
 PREGEN_THEME = "pregen"
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-# Legacy 7drl version API
-app.add_url_rule(
-    "/setting/<path:theme>", view_func=v0.app.get_setting, methods=["POST"]
-)
-app.add_url_rule("/craft", view_func=v0.app.craft, methods=["POST"])
-app.add_url_rule("/areas", view_func=v0.app.get_areas, methods=["POST"])
-app.add_url_rule("/boss", view_func=v0.app.get_boss, methods=["POST"])
-app.add_url_rule("/monsters", view_func=v0.app.monsters, methods=["POST"])
-app.add_url_rule("/items", view_func=v0.app.items, methods=["POST"])
-
-
-@app.post("/v1/setting/<path:theme>")
-def get_setting_v1(theme):
+def get_setting(theme):
     if theme == PREGEN_THEME:
         setting_desc = ai.get_test_str("hk.txt")
     else:
@@ -53,8 +19,7 @@ def get_setting_v1(theme):
     return jsonify(setting_desc)
 
 
-@app.post("/v1/craft")
-def craft_v1():
+def craft():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     items = flask.request.json["items"]
@@ -74,8 +39,7 @@ def craft_v1():
         return new_item
 
 
-@app.post("/v1/areas")
-def get_areas_v1():
+def get_areas():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     if theme == PREGEN_THEME:
@@ -86,8 +50,7 @@ def get_areas_v1():
     return areas
 
 
-@app.post("/v1/boss")
-def get_boss_v1():
+def get_boss():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     if theme == PREGEN_THEME:
@@ -98,8 +61,7 @@ def get_boss_v1():
     return boss
 
 
-@app.post("/v1/monsters")
-def monsters_v1():
+def monsters():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     names = flask.request.json["names"]
@@ -111,8 +73,7 @@ def monsters_v1():
     return monsters
 
 
-@app.post("/v1/items")
-def items_v1():
+def items():
     theme = flask.request.json["theme"]
     setting_desc = flask.request.json["setting"]
     names = flask.request.json["names"]
@@ -122,32 +83,3 @@ def items_v1():
         items = ai.gen_items(theme, setting_desc, names)
     logging.info(json.dumps(items))
     return items
-
-
-@app.route("/")
-def root():
-    return send_from_directory("../dist", "index.html")
-
-
-@app.route("/<path:path>")
-def serve_static(path):
-    return send_from_directory("../dist", path)
-
-
-print(f"Using database {app.config['SQLALCHEMY_DATABASE_URI']}")
-
-db = SQLAlchemy(model_class=Base)
-
-
-class Game(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    theme: Mapped[str] = mapped_column()
-    setting_desc: Mapped[str] = mapped_column()
-    areas: Mapped[str] = mapped_column()
-    monsters: Mapped[str] = mapped_column()
-    items: Mapped[str] = mapped_column()
-
-
-if __name__ == "__main__":
-    db.init_app(app)
-    app.run(debug=True)
