@@ -718,6 +718,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "libm"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ec2a862134d2a7d32d7983ddcdd1c4923530833c9f2ea1a44fc5fa473989058"
+
+[[package]]
 name = "line_drawing"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -887,12 +893,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
 
 [[package]]
+name = "noise"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6da45c8333f2e152fc665d78a380be060eb84fad8ca4c9f7ac8ca29216cff0cc"
+dependencies = [
+ "num-traits",
+ "rand",
+ "rand_xorshift",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da0df0e5185db44f69b44f26786fe401b6c293d1907744beaa7fa62b2e5a517a"
 dependencies = [
  "autocfg",
+ "libm",
 ]
 
 [[package]]
@@ -1120,6 +1138,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand_distr"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32cb0b9bc82b0a0876c2dd994a7e7a2683d3e7390ca40e6886785ef0c7e3ee31"
+dependencies = [
+ "num-traits",
+ "rand",
+]
+
+[[package]]
+name = "rand_xorshift"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d25bf25ec5ae4a3f1b92f929810509a2f53d7dca2f50b794ff57e3face536c8f"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1311,8 +1348,10 @@ dependencies = [
  "line_drawing",
  "macroquad",
  "mapgen",
+ "noise",
  "quad-url",
  "rand",
+ "rand_distr",
  "reqwest",
  "sapp-jsutils",
  "serde",

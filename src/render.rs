@@ -1,6 +1,10 @@
+use ::rand::rngs::StdRng;
+use ::rand::SeedableRng;
 use egui::{Color32, FontId, RichText};
 use macroquad::prelude::*;
 use macroquad::text::Font;
+use noise::{NoiseFn, Perlin};
+use rand_distr::{Distribution, Normal};
 use std::collections::HashSet;
 
 use crate::net::{Color, ItemKind};
@@ -816,6 +820,8 @@ impl Ui {
                 z_buffer[glyph.location.0][glyph.location.1].max(glyph.layer);
         }
 
+        let mut flicker_rng = StdRng::seed_from_u64(0);
+        let flicker_dist = Perlin::new(1);
         for glyph in &glyphs {
             if glyph.layer >= z_buffer[glyph.location.0][glyph.location.1] {
                 let (x, y) =
@@ -825,12 +831,31 @@ impl Ui {
                     && y >= offset_y
                     && y < game_size + offset_y - 20.0
                 {
+                    let off_from_center = (
+                        glyph.location.0 as i32 - (self.grid_size as i32 / 2),
+                        glyph.location.1 as i32 - (self.grid_size as i32 / 2),
+                    );
+                    let dist_from_center_sq =
+                        ((off_from_center.0.pow(2) + off_from_center.1.pow(2)) as f32).powf(0.5);
+
+                    let flicker = flicker_dist.get([
+                        get_time() / 2.0,
+                        Normal::new(0.0, 1.0).unwrap().sample(&mut flicker_rng),
+                    ]) as f32
+                        * 0.4
+                        + 1.;
+                    let attenuation = 1. / (dist_from_center_sq * flicker).max(2.0).min(4.0);
+                    let bg_hsl = macroquad::color::rgb_to_hsl(glyph.bg);
+                    let bg_rgb =
+                        macroquad::color::hsl_to_rgb(bg_hsl.0, bg_hsl.1, bg_hsl.2 * attenuation);
+                    let (sq_x, sq_y) =
+                        translate_coords(glyph.location.0 as i32, glyph.location.1 as i32, false);
                     draw_rectangle(
-                        x - sq_size / 2.,
-                        y - sq_size / 2.,
+                        sq_x - sq_size / 2.,
+                        sq_y - sq_size / 2. - 3.,
                         sq_size,
                         sq_size,
-                        glyph.bg,
+                        bg_rgb,
                     );
                     draw_text_ex(
                         &format!("{}", glyph.character),
