@@ -488,6 +488,9 @@ impl Ui {
                                 if response.drag_released() {
                                     self.user_scale_factor = self.tmp_scale_factor;
                                 }
+                                if ui.button("Help (q)").clicked() {
+                                    self.toggle_help();
+                                }
                             },
                         );
                     });
