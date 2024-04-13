@@ -9,6 +9,7 @@ import pydantic
 import requests
 from requests.adapters import Retry, HTTPAdapter
 
+import google.api_core.exceptions
 import vertexai
 from vertexai.preview.generative_models import GenerativeModel, Part
 import vertexai.preview.generative_models as generative_models
@@ -200,26 +201,55 @@ def init_vertex_ai():
     vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
 
 
+class AiError(Exception):
+    pass
+
+
+def get_safety_error(safety_ratings) -> AiError:
+    safety_issues = []
+    for rating in safety_ratings:
+        if rating.probability > 1:  # can't find this protobuf enum anywhere
+            match rating.category:
+                case generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH:
+                    safety_issues.append("hateful")
+                case generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
+                    safety_issues.append("dangerous")
+                case generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT:
+                    safety_issues.append("harrassment")
+                case generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
+                    safety_issues.append("too horny")
+    raise AiError(", ".join(safety_issues))
+
+
 def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
     model = GenerativeModel("gemini-1.0-pro-001")
-    responses = model.generate_content(
-        "".join(prompt_parts),
-        generation_config={
-            "max_output_tokens": 2048,
-            "temperature": 0.9,
-            "top_p": 1,
-            "stop_sequences": ["--"],
-        },
-        safety_settings={
-            generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-            generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-            generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-            generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-        },
-        stream=False,
-    )
     try:
-        text = responses.candidates[0].content.parts[0].text
+        responses = model.generate_content(
+            "".join(prompt_parts),
+            generation_config={
+                "max_output_tokens": 2048,
+                "temperature": 0.9,
+                "top_p": 1,
+                "stop_sequences": ["--"],
+            },
+            safety_settings={
+                generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+                generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+                generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+            },
+            stream=False,
+        )
+    except google.api_core.exceptions.ResourceExhausted as e:
+        logging.error(e)
+        sleep(1)
+        ask_google_vertex_ai(prompt_parts)
+    try:
+        candidate = responses.candidates[0]
+        if candidate.finish_reason == generative_models.FinishReason.SAFETY:
+            logging.error(candidate)
+            raise get_safety_error(candidate.safety_ratings)
+        text = candidate.content.parts[0].text
         text = text.strip("--")
         logging.info(text)
         return text

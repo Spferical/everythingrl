@@ -33,6 +33,10 @@ class Base(DeclarativeBase):
     pass
 
 
+@app.errorhandler(ai.AiError)
+def ai_error(e):
+    return jsonify({'error': str(e)}), 500
+
 # Legacy 7drl version API
 app.add_url_rule(
     "/setting/<path:theme>", view_func=v0.app.get_setting, methods=["POST"]
