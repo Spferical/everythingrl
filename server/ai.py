@@ -2,6 +2,7 @@ from enum import Enum
 import json
 import logging
 import os
+import time
 from functools import cache
 from typing import Annotated
 
@@ -242,7 +243,7 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
         )
     except google.api_core.exceptions.ResourceExhausted as e:
         logging.error(e)
-        sleep(1)
+        time.sleep(1)
         ask_google_vertex_ai(prompt_parts)
     try:
         candidate = responses.candidates[0]
