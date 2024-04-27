@@ -244,7 +244,7 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
     except google.api_core.exceptions.ResourceExhausted as e:
         logging.error(e)
         time.sleep(1)
-        ask_google_vertex_ai(prompt_parts)
+        return ask_google_vertex_ai(prompt_parts)
     try:
         candidate = responses.candidates[0]
         if candidate.finish_reason == generative_models.FinishReason.SAFETY:
