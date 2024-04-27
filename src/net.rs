@@ -365,7 +365,13 @@ impl<T> BootlegFuture<T> {
     }
 }
 
-pub fn request<Input>(url: String, input: Input) -> BootlegFuture<Result<String, String>>
+#[derive(Debug, Clone)]
+pub struct Response {
+    pub status: u32,
+    pub data: String,
+}
+
+pub fn request<Input>(url: String, input: Input) -> BootlegFuture<Result<Response, String>>
 where
     Input: serde::Serialize + Send + 'static,
 {
@@ -376,16 +382,15 @@ where
     #[cfg(not(target_family = "wasm"))]
     std::thread::spawn(move || {
         let client = reqwest::blocking::Client::new();
-        tx.send(
-            client
-                .post(url)
-                .json(&input)
-                .timeout(Duration::from_secs(60 * 3))
-                .send()
-                .map_err(|e| e.to_string())
-                .and_then(|r| r.error_for_status().map_err(|e| e.to_string()))
-                .and_then(|r| r.text().map_err(|e| e.to_string())),
-        )
+        let resp = client
+            .post(url)
+            .json(&input)
+            .timeout(Duration::from_secs(60 * 3))
+            .send();
+        tx.send(resp.map_err(|e| e.to_string()).map(|r| Response {
+            status: r.status().as_u16().into(),
+            data: r.text().unwrap_or_default(),
+        }))
         .ok();
     });
     BootlegFuture { rx, state: None }
@@ -413,7 +418,7 @@ impl Request {}
 
 pub struct PendingRequest {
     req: Request,
-    fut: BootlegFuture<Result<String, String>>,
+    fut: BootlegFuture<Result<Response, String>>,
 }
 
 enum RequestResult {
@@ -427,6 +432,11 @@ enum RequestResult {
     Error(String),
 }
 
+#[derive(serde::Deserialize)]
+struct ServerError {
+    error: String,
+}
+
 impl PendingRequest {
     fn get(&mut self) -> RequestResult {
         use RequestResult::*;
@@ -434,25 +444,33 @@ impl PendingRequest {
         match resp {
             None => Pending,
             Some(Err(s)) => Error(s.clone()),
-            Some(Ok(s)) => {
-                macroquad::miniquad::info!("{}", s);
+            Some(Ok(resp)) => {
+                macroquad::miniquad::info!("{:?}", resp);
+                if resp.status >= 400 {
+                    // try decoding full server error
+                    return Error(
+                        serde_json::from_str::<ServerError>(&resp.data)
+                            .map(|e| e.error)
+                            .unwrap_or(crate::util::trim(&resp.data, 100).into()),
+                    );
+                }
                 match self.req {
-                    Request::Setting { .. } => serde_json::from_str(s)
+                    Request::Setting { .. } => serde_json::from_str(&resp.data)
                         .map(Setting)
                         .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Areas { .. } => serde_json::from_str(s)
+                    Request::Areas { .. } => serde_json::from_str(&resp.data)
                         .map(Areas)
                         .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Monsters { .. } => serde_json::from_str(s)
+                    Request::Monsters { .. } => serde_json::from_str(&resp.data)
                         .map(Monsters)
                         .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Items { .. } => serde_json::from_str(s)
+                    Request::Items { .. } => serde_json::from_str(&resp.data)
                         .map(Items)
                         .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Craft { .. } => serde_json::from_str(s)
+                    Request::Craft { .. } => serde_json::from_str(&resp.data)
                         .map(Craft)
                         .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Boss { .. } => serde_json::from_str(s)
+                    Request::Boss { .. } => serde_json::from_str(&resp.data)
                         .map(Boss)
                         .unwrap_or_else(|e| Error(e.to_string())),
                 }
@@ -463,6 +481,12 @@ impl PendingRequest {
 
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct CraftId(usize);
+
+pub enum IgState {
+    Generating(&'static str),
+    Idle,
+    Error { msg: String, count: usize },
+}
 
 /// Contains raw AI-generated content fetched from the server.
 pub struct IdeaGuy {
@@ -477,6 +501,8 @@ pub struct IdeaGuy {
     pub recipes: HashMap<(usize, usize), usize>,
     outgoing: Vec<PendingRequest>,
     pub next_craft_id: CraftId,
+    pub error: Option<String>,
+    pub error_count: usize,
 }
 
 impl IdeaGuy {
@@ -493,6 +519,8 @@ impl IdeaGuy {
             outgoing: vec![],
             recipes: HashMap::new(),
             next_craft_id: CraftId(0),
+            error: None,
+            error_count: 0,
         };
         slf.request(Request::Setting);
         slf
@@ -609,9 +637,16 @@ impl IdeaGuy {
     pub fn tick(&mut self) {
         let mut queue = self.outgoing.drain(..).rev().collect::<Vec<_>>();
         while let Some(mut req) = queue.pop() {
-            match req.get() {
+            let result = req.get();
+            if !matches!(result, RequestResult::Error(_) | RequestResult::Pending) {
+                self.error = None;
+                self.error_count = 0;
+            }
+            match result {
                 RequestResult::Error(e) => {
                     macroquad::miniquad::error!("{}", e);
+                    self.error = Some(e);
+                    self.error_count += 1;
                     // Retry
                     self.request(req.req);
                 }
@@ -670,6 +705,28 @@ impl IdeaGuy {
                     }
                 }
             }
+        }
+    }
+    pub fn get_state(&self) -> IgState {
+        if let Some(err) = self.error.as_ref() {
+            IgState::Error {
+                msg: err.clone(),
+                count: self.error_count,
+            }
+        } else if self.setting.is_none() {
+            IgState::Generating("setting")
+        } else if self.areas.is_none() {
+            IgState::Generating("areas")
+        } else if self.monsters.is_none() {
+            IgState::Generating("monsters")
+        } else if self.items.is_none() {
+            IgState::Generating("items")
+        } else if self.boss.is_none() {
+            IgState::Generating("boss")
+        } else if !self.outgoing.is_empty() {
+            IgState::Generating("crafted item")
+        } else {
+            IgState::Idle
         }
     }
 }

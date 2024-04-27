@@ -1,4 +1,4 @@
-use crate::net::IdeaGuy;
+use crate::net::{IdeaGuy, IgState};
 use ::rand::{
     seq::{index, SliceRandom},
     SeedableRng,
@@ -64,17 +64,8 @@ impl LoadingTypewriter {
         if dt.is_none() {
             *dt = Some(0.0);
         }
-        if text.chars().next().is_none() {
-            return "";
-        }
-
         let length = (dt.unwrap() * CHARS_PER_SECOND_LOADING) as usize;
-        let length = text.len().min(length);
-        let mut iter = text.char_indices();
-        let (end, _) = iter
-            .nth(length)
-            .unwrap_or(text.char_indices().last().unwrap());
-        &text[..end]
+        crate::util::trim(text, length)
     }
 
     fn get_setting_text<'a>(&mut self, text: &'a str) -> &'a str {
@@ -137,6 +128,7 @@ pub fn create_info_prompt(
     prompt: &str,
     yes_no: bool,
     edit_text_box: bool,
+    ok_button: bool,
 ) {
     let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.prompt_dt) as usize;
     let typewritten_prompt: String = prompt.chars().take(num_typewritten_chars).collect();
@@ -177,7 +169,7 @@ pub fn create_info_prompt(
                                         .desired_width(width * 0.8),
                                 );
                             }
-                            if ui.button("OK").clicked() {
+                            if ok_button && ui.button("OK").clicked() {
                                 if edit_text_box && intro_state.theme.is_empty() {
                                     return;
                                 }
@@ -279,9 +271,22 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                 prompt = prompt.replace("{setting1}", &state.chosen_settings[0]);
                 prompt = prompt.replace("{setting2}", &state.chosen_settings[1]);
             }
-            create_info_prompt(egui_ctx, state, &prompt, state.step == 3, state.step == 4);
+            create_info_prompt(
+                egui_ctx,
+                state,
+                &prompt,
+                state.step == 3,
+                state.step == 4,
+                true,
+            );
         } else {
             continuing = false;
+            let gen_status = match ig.as_ref().unwrap().get_state() {
+                IgState::Generating(s) => format!("Generating {s}..."),
+                IgState::Idle => "".into(),
+                IgState::Error { msg, count } => format!("ERROR: {msg} (x{count}). Retrying..."),
+            };
+            create_info_prompt(egui_ctx, state, &gen_status, false, false, false);
         }
     });
     if state.step >= 5 {

@@ -9,7 +9,7 @@ extern "C" {
 }
 
 thread_local! {
-    static SENDERS: RefCell<HashMap<u32, Sender<Result<String, String>>>> = RefCell::new(HashMap::new());
+    static SENDERS: RefCell<HashMap<u32, Sender<Result<crate::net::Response, String>>>> = RefCell::new(HashMap::new());
 }
 
 #[derive(serde::Serialize)]
@@ -18,7 +18,7 @@ struct PostArgs {
     json_payload: String,
 }
 
-pub fn post(url: String, json_payload: String, tx: Sender<Result<String, String>>) {
+pub fn post(url: String, json_payload: String, tx: Sender<Result<crate::net::Response, String>>) {
     let args = PostArgs { url, json_payload };
     let encoded = serde_json::to_string(&args).unwrap();
     let encoded = CString::new(encoded.as_bytes()).unwrap();
@@ -31,9 +31,18 @@ pub fn post(url: String, json_payload: String, tx: Sender<Result<String, String>
 
 #[derive(serde::Deserialize, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
-enum PostResult {
-    Success(String),
-    Error(String),
+struct Response {
+    pub status: u32,
+    pub data: String,
+}
+
+impl From<Response> for crate::net::Response {
+    fn from(other: Response) -> crate::net::Response {
+        crate::net::Response {
+            status: other.status,
+            data: other.data,
+        }
+    }
 }
 
 #[no_mangle]
@@ -41,14 +50,11 @@ pub extern "C" fn request_done(file_id: u32, result: JsObject) {
     let mut resp = String::new();
     result.to_string(&mut resp);
     macroquad::miniquad::debug!("{}", resp);
-    let resp: PostResult = serde_json::from_str(&resp.trim()).unwrap();
+    let resp: Response = serde_json::from_str(&resp.trim()).unwrap();
     SENDERS.with(|senders| {
         let mut senders = senders.borrow_mut();
         if let Some(sender) = senders.remove(&file_id) {
-            let _ = sender.send(match resp {
-                PostResult::Success(s) => Ok(s),
-                PostResult::Error(s) => Err(s),
-            });
+            let _ = sender.send(Ok(resp.into()));
         };
     })
 }

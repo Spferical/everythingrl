@@ -21,11 +21,7 @@ register_plugin = function (importObject) {
                 // https://stackoverflow.com/a/19247992
                 if (this.readyState === 4) {
                     var resp;
-                    if(this.status === 200) {
-                        resp = {'success': this.response}
-                    } else {
-                        resp = {'error': "" + this.status +  " " + this.response};
-                    }
+                    resp = {'status': this.status, 'data': this.response}
                     console.log(JSON.stringify(resp));
                     var asdf = JSON.stringify(resp);
                     wasm_exports.request_done(file_id, js_object(asdf));

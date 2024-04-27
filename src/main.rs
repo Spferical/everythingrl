@@ -9,6 +9,7 @@ mod intro;
 mod map_gen;
 mod net;
 mod render;
+mod util;
 #[cfg(target_family = "wasm")]
 mod wasm;
 mod world;
