@@ -388,6 +388,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "everythingrl"
+version = "0.1.0"
+dependencies = [
+ "egui",
+ "egui-macroquad",
+ "egui_extras",
+ "enum-map",
+ "indexmap",
+ "lazy_static",
+ "line_drawing",
+ "macroquad",
+ "mapgen",
+ "noise",
+ "quad-url",
+ "rand",
+ "rand_distr",
+ "reqwest",
+ "sapp-jsutils",
+ "serde",
+ "serde_json",
+ "textwrap",
+]
+
+[[package]]
 name = "fdeflate"
 version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1323,30 +1347,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "seven-drl-2024"
-version = "0.1.0"
-dependencies = [
- "egui",
- "egui-macroquad",
- "egui_extras",
- "enum-map",
- "indexmap",
- "lazy_static",
- "line_drawing",
- "macroquad",
- "mapgen",
- "noise",
- "quad-url",
- "rand",
- "rand_distr",
- "reqwest",
- "sapp-jsutils",
- "serde",
- "serde_json",
- "textwrap",
 ]
 
 [[package]]
