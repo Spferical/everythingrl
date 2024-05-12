@@ -59,11 +59,11 @@ def get_setting_v1(theme):
 
 @app.post("/v1/craft")
 def craft_v1():
-    theme = flask.request.json["theme"]
-    setting_desc = flask.request.json["setting"]
-    items = flask.request.json["items"]
-    item1 = flask.request.json["item1"]
-    item2 = flask.request.json["item2"]
+    theme = flask.request.get_json()["theme"]
+    setting_desc = flask.request.get_json()["setting"]
+    items = flask.request.get_json()["items"]
+    item1 = flask.request.get_json()["item1"]
+    item2 = flask.request.get_json()["item2"]
     if theme == PREGEN_THEME:
         return {
             "name": "PREGEN",
@@ -80,8 +80,8 @@ def craft_v1():
 
 @app.post("/v1/areas")
 def get_areas_v1():
-    theme = flask.request.json["theme"]
-    setting_desc = flask.request.json["setting"]
+    theme = flask.request.get_json()["theme"]
+    setting_desc = flask.request.get_json()["setting"]
     if theme == PREGEN_THEME:
         areas = ai.get_test_json("hk_areas.json")
     else:
@@ -92,8 +92,8 @@ def get_areas_v1():
 
 @app.post("/v1/boss")
 def get_boss_v1():
-    theme = flask.request.json["theme"]
-    setting_desc = flask.request.json["setting"]
+    theme = flask.request.get_json()["theme"]
+    setting_desc = flask.request.get_json()["setting"]
     if theme == PREGEN_THEME:
         boss = ai.get_test_json("hk_boss.json")
     else:
@@ -104,9 +104,9 @@ def get_boss_v1():
 
 @app.post("/v1/monsters")
 def monsters_v1():
-    theme = flask.request.json["theme"]
-    setting_desc = flask.request.json["setting"]
-    names = flask.request.json["names"]
+    theme = flask.request.get_json()["theme"]
+    setting_desc = flask.request.get_json()["setting"]
+    names = flask.request.get_json()["names"]
     if theme == PREGEN_THEME:
         monsters = ai.get_test_json("hk_monsters.json")
     else:
@@ -117,9 +117,9 @@ def monsters_v1():
 
 @app.post("/v1/items")
 def items_v1():
-    theme = flask.request.json["theme"]
-    setting_desc = flask.request.json["setting"]
-    names = flask.request.json["names"]
+    theme = flask.request.get_json()["theme"]
+    setting_desc = flask.request.get_json()["setting"]
+    names = flask.request.get_json()["names"]
     if theme == PREGEN_THEME:
         items = ai.get_test_json("hk_items.json")
     else:

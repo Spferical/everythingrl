@@ -22,9 +22,9 @@ def cli():
 def craft(theme: str, setting_desc_file, items_file, item1: str, item2: str):
     setting_desc = setting_desc_file.read()
     items = json.load(items_file)
-    item1 = next(x for x in items if x["name"] == item1)
-    item2 = next(x for x in items if x["name"] == item2)
-    print(json.dumps(ai.craft(theme, setting_desc, items, item1, item2)))
+    item1_obj = next(x for x in items if x["name"] == item1)
+    item2_obj = next(x for x in items if x["name"] == item2)
+    print(json.dumps(ai.craft(theme, setting_desc, items, item1_obj, item2_obj)))
 
 
 @cli.command()
@@ -32,7 +32,7 @@ def craft(theme: str, setting_desc_file, items_file, item1: str, item2: str):
 @click.argument("level")
 @click.argument("count")
 def gen_monster(theme: str, level: str, count: int):
-    print(json.dumps(ai.gen_monster(theme, int(level), int(count)), indent=2))
+    raise NotImplementedError()
 
 
 @cli.command()
