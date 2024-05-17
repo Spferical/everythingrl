@@ -1,15 +1,17 @@
-FROM python:3.11
+FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y python3-dev libgeos-dev build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    python3-dev libgeos-dev build-essential git && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /docker-flask/server
 
-RUN ["pip3", "install", "pipenv"]
+RUN pip3 install pipenv --no-cache-dir
 
 COPY server/Pipfile .
 COPY server/Pipfile.lock .
 
-RUN ["pipenv", "install"]
+RUN PIP_NO_CACHE_DIR=off pipenv install --deploy --system
 
 WORKDIR /docker-flask
 
