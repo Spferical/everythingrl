@@ -123,7 +123,7 @@ impl Ui {
         Ui {
             grid_size: grid_size.unwrap_or(32),
             font,
-            ui_selected: false,
+            ui_selected: true,
             help_selected: false,
             camera_delta: None,
             last_upper_left: None,
