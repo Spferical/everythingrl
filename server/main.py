@@ -51,6 +51,17 @@ def gen_areas(theme: str, setting_desc_file):
     print(json.dumps(areas, indent=2))
 
 
+def gen_monsters_with_retry(theme: str, setting_desc: str, names_needed: set[str]):
+    monsters = []
+    while names_needed:
+        logging.info(f"need {names_needed}")
+        for monster in ai.gen_monsters(theme, setting_desc, list(names_needed)):
+            monsters.append(monster)
+            if monster["name"] in names_needed:
+                names_needed.remove(monster["name"])
+    return monsters
+
+
 @cli.command()
 @click.argument("theme")
 @click.argument("setting_desc_file", type=click.File("r"))
@@ -59,14 +70,20 @@ def gen_monsters(theme: str, setting_desc_file, areas_file):
     setting_desc = setting_desc_file.read()
     areas = json.load(areas_file)
     names_needed = set(m for area in areas for m in area["enemies"])
-    monsters = []
-    while names_needed:
-        logging.info(f"need {names_needed}")
-        for monster in ai.gen_monsters(theme, setting_desc, list(names_needed)):
-            monsters.append(monster)
-            if monster["name"] in names_needed:
-                names_needed.remove(monster["name"])
+    monsters = gen_monsters_with_retry(theme, setting_desc, names_needed)
     print(json.dumps(monsters, indent=2))
+
+
+def gen_items_with_retry(theme: str, setting_desc: str, names: set[str]) -> list[dict]:
+    items = []
+    names_needed = set.copy(names)
+    while names_needed:
+        print("need", names_needed)
+        for item in ai.gen_items(theme, setting_desc, list(names_needed)):
+            items.append(item)
+            if item["name"] in names_needed:
+                names_needed.remove(item["name"])
+    return items
 
 
 @cli.command()
@@ -76,7 +93,7 @@ def gen_monsters(theme: str, setting_desc_file, areas_file):
 def gen_items(theme: str, setting_desc_file, areas_file):
     setting_desc = setting_desc_file.read()
     areas = json.load(areas_file)
-    names_needed = set(
+    names = set(
         name
         for area in areas
         for name in area["equipment"]
@@ -84,13 +101,7 @@ def gen_items(theme: str, setting_desc_file, areas_file):
         + area["ranged_weapons"]
         + area["food"]
     )
-    items = []
-    while names_needed:
-        print("need", names_needed)
-        for item in ai.gen_items(theme, setting_desc, list(names_needed)):
-            items.append(item)
-            if item["name"] in names_needed:
-                names_needed.remove(item["name"])
+    items = gen_items_with_retry(theme, setting_desc, names)
     print(json.dumps(items, indent=2))
 
 
@@ -118,7 +129,7 @@ def gen_all(theme: str, output_dir: str | None):
         with open(os.path.join(output_dir, "areas.json"), "w") as f:
             json.dump(areas, f)
     monster_names = set(name for area in areas for name in area["enemies"])
-    monsters = ai.gen_monsters(theme, setting_desc, list(monster_names))
+    monsters = gen_monsters_with_retry(theme, setting_desc, monster_names)
     print(json.dumps(monsters, indent=2))
     if output_dir is not None:
         with open(os.path.join(output_dir, "monsters.json"), "w") as f:
@@ -132,7 +143,7 @@ def gen_all(theme: str, output_dir: str | None):
         + area["ranged_weapons"]
         + area["food"]
     )
-    items = ai.gen_items(theme, setting_desc, list(item_names))
+    items = gen_items_with_retry(theme, setting_desc, item_names)
     print(json.dumps(items, indent=2))
     if output_dir is not None:
         with open(os.path.join(output_dir, "items.json"), "w") as f:
