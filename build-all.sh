@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -xeo pipefail
 
+# ugly hack for cross to work on nixos
+if [ -e /nix/store ]; then
+    export NIX_STORE=/nix/store
+fi
+
 target_dir=$(cargo metadata --format-version=1 | jq -r .target_directory)
 root=$(cargo metadata --format-version=1 | jq -r .resolve.root)
 project_name=$(cargo metadata --format-version=1 \
@@ -24,11 +29,9 @@ function build_windows() {
 build_windows
 
 function build_wasm() {
-    devenv shell -- cargo build --release --target wasm32-unknown-unknown
+    nix develop --command 'cargo build --release --target wasm32-unknown-unknown'
     cp -f "${target_dir}/wasm32-unknown-unknown/release/${project_name}.wasm" dist/
     rm -rf dist/assets/
     rsync -a assets/ dist/assets/
 }
 build_wasm
-
-
