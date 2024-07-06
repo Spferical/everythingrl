@@ -28,19 +28,13 @@ pub const TIPS: [&str; 3] = [
     "narrow corridors are your friend. Try luring enemies into a narrow chokepoint to benefit from Lanchester's linear law :)"
 ];
 
-pub const PROMPTS: [&str; 12] = [
+pub const PROMPTS: [&str; 6] = [
     "Welcome, traveler. I am the Storyteller of this roguelike game.",
     "My objective is to create the world of the game which you are about to play. From the inhabitants of this virtual dungeon, to their implements and attire, to their demeanor and persuasion, to the very earth they step foot upon....",
     "... they will be invented by yours truly. With a bit of help from you of course.",
     "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.",
     "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
-    "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.",
-    "CONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.",
-    "Some other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.",
-    "If this is a lot to remember, press \'q\' for a quick summary.",
-    "If the fonts are rendering too small or large, there is a font scale slider on the bottom left.",
-    "A quick tip -- {tip}",
-    "Thank you for listening to me. Please wait a moment as the game world is generated.",
+    "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.\n\nCONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.\n\nSome other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.\n\nIf this is a lot to remember, press \'q\' for a quick summary.\n\nIf the fonts are rendering too small or large, there is a font scale slider on the bottom left.\n\nA quick tip -- {tip}\n\nThank you for listening to me. Please wait a moment as the game world is generated.\n\n{gen_status}",
 ];
 
 pub struct LoadingTypewriter {
@@ -173,8 +167,10 @@ pub fn create_info_prompt(
                                 if edit_text_box && intro_state.theme.is_empty() {
                                     return;
                                 }
-                                intro_state.step += 1;
-                                intro_state.prompt_dt = 0.;
+                                if intro_state.step < PROMPTS.len() - 1 {
+                                    intro_state.step += 1;
+                                    intro_state.prompt_dt = 0.;
+                                }
                             }
                         }
                     });
@@ -190,8 +186,10 @@ pub fn create_info_prompt(
                         return;
                     }
                 }
-                intro_state.step += 1;
-                intro_state.prompt_dt = 0.;
+                if intro_state.step < PROMPTS.len() - 1 {
+                    intro_state.step += 1;
+                    intro_state.prompt_dt = 0.;
+                }
             } else {
                 intro_state.prompt_dt = 1000.;
             }
@@ -261,33 +259,28 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
     }
     state.typewriter.advance();
 
+    continuing = state.step < PROMPTS.len() - 1;
     egui_macroquad::ui(|egui_ctx| {
-        if state.step < PROMPTS.len() {
-            let mut prompt = PROMPTS[state.step].to_owned();
-            if prompt.contains("{tip}") {
-                prompt = prompt.replace("{tip}", &state.chosen_tip);
-            }
-            if prompt.contains("{setting1}") || prompt.contains("{setting2}") {
-                prompt = prompt.replace("{setting1}", &state.chosen_settings[0]);
-                prompt = prompt.replace("{setting2}", &state.chosen_settings[1]);
-            }
-            create_info_prompt(
-                egui_ctx,
-                state,
-                &prompt,
-                state.step == 3,
-                state.step == 4,
-                true,
-            );
-        } else {
-            continuing = false;
-            let gen_status = match ig.as_ref().unwrap().get_state() {
-                IgState::Generating(s) => format!("Generating {s}..."),
-                IgState::Idle => "".into(),
-                IgState::Error { msg, count } => format!("ERROR: {msg} (x{count}). Retrying..."),
-            };
-            create_info_prompt(egui_ctx, state, &gen_status, false, false, false);
-        }
+        let prompt_num = state.step.min(PROMPTS.len() - 1);
+        let mut prompt = PROMPTS[state.step.min(PROMPTS.len() - 1)].to_owned();
+        prompt = prompt.replace("{tip}", &state.chosen_tip);
+        prompt = prompt.replace("{setting1}", &state.chosen_settings[0]);
+        prompt = prompt.replace("{setting2}", &state.chosen_settings[1]);
+        let gen_status = match ig.as_ref().map(|ig| ig.get_state()) {
+            Some(IgState::Generating(s)) => format!("Generating {s}..."),
+            Some(IgState::Idle) => "".into(),
+            Some(IgState::Error { msg, count }) => format!("ERROR: {msg} (x{count}). Retrying..."),
+            None => "".into(),
+        };
+        prompt = prompt.replace("{gen_status}", &gen_status);
+        create_info_prompt(
+            egui_ctx,
+            state,
+            &prompt,
+            state.step == 3,
+            state.step == 4,
+            continuing,
+        );
     });
     if state.step >= 5 {
         state.ready_for_generation = true;
