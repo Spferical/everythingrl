@@ -23,13 +23,3 @@ dist/*.wasm
 # nix and wasm build script
 result
 dist/assets
-
-# Devenv
-.devenv*
-devenv.local.nix
-
-# direnv
-.direnv
-
-# pre-commit
-.pre-commit-config.yaml
