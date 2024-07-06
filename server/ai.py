@@ -223,7 +223,7 @@ def get_safety_error(safety_ratings) -> AiError:
 
 
 def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
-    model = GenerativeModel("gemini-1.0-pro-001")
+    model = GenerativeModel("gemini-1.5-flash-001")
     try:
         responses = cast(
             GenerationResponse,
@@ -254,7 +254,7 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
             logging.error(candidate)
             raise get_safety_error(candidate.safety_ratings)
         text = candidate.content.parts[0].text
-        text = text.strip("--")
+        text = text.strip("--").strip("```json").strip("```").strip('\n')
         logging.info(text)
         return text
     except KeyError:
