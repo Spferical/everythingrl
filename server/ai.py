@@ -181,6 +181,8 @@ class Item(pydantic.BaseModel):
     kind: ItemKind
 
 
+class SettingDesc(pydantic.BaseModel):
+    setting_desc: str
 
 
 class AiError(Exception):
@@ -332,8 +334,15 @@ def gen_items(theme: str, setting_desc: str, names: list[str]):
 
 
 def gen_setting_desc(theme: str):
-    instructions = f"Write a two paragraph setting description for a roguelike game based off of the following theme: {theme}. The game has three levels and features melee attacks, ranged attacks, and crafting. The description should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
-    return ask_google([instructions])
+    instructions = f"Write a two paragraph setting description for a roguelike game based off of the provided theme. The game has three levels and features melee attacks, ranged attacks, and crafting. The description should describe the setting and discuss the kinds of monsters, items, the setting of each level, and the final boss."
+    input = {"theme": theme}
+    examples = [
+        ({"theme": "Hollow Knight"}, [{"setting_desc": get_test_str("hk.txt")}]),
+        ({"theme": "Alien Isolation"}, [{"setting_desc": get_test_str("alien.txt")}]),
+    ]
+    return ask_google_structured(instructions, examples, input, 1, SettingDesc)[0][
+        "setting_desc"
+    ]
 
 
 def gen_areas(theme: str, setting_desc: str):
