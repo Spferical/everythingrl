@@ -181,25 +181,6 @@ class Item(pydantic.BaseModel):
     kind: ItemKind
 
 
-def ask_mistral(prompt_parts: list[str]) -> str:
-    messages = [{"role": "user", "content": "".join(prompt_parts)}]
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": f"Bearer {MISTRAL_API_KEY}",
-    }
-    payload = {"model": "open-mixtral-8x7b", "messages": messages, "max_tokens": 2048}
-    response = session.post(
-        f"{MISTRAL_API_URL}/v1/chat/completions",
-        headers=headers,
-        json=payload,
-    )
-    response.raise_for_status()
-    return response.json()["choices"][0]["message"]["content"]
-
-
-def init_vertex_ai():
-    vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
 
 
 class AiError(Exception):
@@ -254,7 +235,7 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
             logging.error(candidate)
             raise get_safety_error(candidate.safety_ratings)
         text = candidate.content.parts[0].text
-        text = text.strip("--").strip("```json").strip("```").strip('\n')
+        text = text.strip("--").strip("```json").strip("```").strip("\n")
         logging.info(text)
         return text
     except KeyError:
@@ -265,40 +246,8 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
         raise
 
 
-def ask_google_ai_studio(prompt_parts: list[str]) -> str:
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.0-pro:generateContent?key={AISTUDIO_API_KEY}"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "contents": [
-            {
-                "parts": [{"text": part} for part in prompt_parts],
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.9,
-            "topK": 1,
-            "topP": 1,
-            "maxOutputTokens": 8192,
-            "stopSequences": ["--"],
-        },
-    }
-    response = session.post(url, headers=headers, json=payload)
-    response.raise_for_status()
-    try:
-        text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-        text = text.strip("--")
-        logging.info(text)
-        return text
-    except (IndexError, KeyError):
-        logging.error(response.json())
-        raise
-
-
 def ask_google(prompt_parts: list[str]):
-    if USE_VERTEX_AI:
-        return ask_google_vertex_ai(prompt_parts)
-    else:
-        return ask_google_ai_studio(prompt_parts)
+    return ask_google_vertex_ai(prompt_parts)
 
 
 def ask_google_structured(
@@ -461,5 +410,4 @@ def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: d
     )[0]
 
 
-if USE_VERTEX_AI:
-    init_vertex_ai()
+vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
