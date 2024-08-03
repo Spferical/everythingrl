@@ -90,6 +90,17 @@ def gen_items_with_retry(theme: str, setting_desc: str, names: set[str]) -> list
 @click.argument("theme")
 @click.argument("setting_desc_file", type=click.File("r"))
 @click.argument("areas_file", type=click.File("r"))
+def gen_characters(theme: str, setting_desc_file, areas_file):
+    setting_desc = setting_desc_file.read()
+    areas = json.load(areas_file)
+    characters = ai.gen_characters(theme, setting_desc, areas)
+    print(json.dumps(characters, indent=2))
+
+
+@cli.command()
+@click.argument("theme")
+@click.argument("setting_desc_file", type=click.File("r"))
+@click.argument("areas_file", type=click.File("r"))
 def gen_items(theme: str, setting_desc_file, areas_file):
     setting_desc = setting_desc_file.read()
     areas = json.load(areas_file)

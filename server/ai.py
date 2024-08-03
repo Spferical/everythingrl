@@ -181,6 +181,12 @@ class Item(pydantic.BaseModel):
     kind: ItemKind
 
 
+class Character(pydantic.BaseModel):
+    name: str
+    backstory: str
+    starting_items: list[str]
+
+
 class SettingDesc(pydantic.BaseModel):
     setting_desc: str
 
@@ -417,6 +423,16 @@ def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: d
         1,
         Item,
     )[0]
+
+
+def gen_characters(theme: str, setting_desc: str, areas: list[Area]) -> list[dict]:
+    instructions = f"You are the game master for a difficult permadeath roguelike with a crafting system. Output a JSON definition for varied starting characters for the player to choose from. These can be named people or classes for the player to play as. For each, produce a name, a paragraph-long backstory that includes their motivation, and 5 starting items. These should include at least one piece of armor and a melee weapon. They may also include food and/or a ranged weapon."
+    args = {
+        "theme": theme,
+        "setting_desc": setting_desc,
+        "areas": areas,
+    }
+    return ask_google_structured(instructions, [], args, 5, Character)
 
 
 vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
