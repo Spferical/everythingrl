@@ -145,6 +145,11 @@ def gen_all(theme: str, output_dir: str | None):
     if output_dir is not None:
         with open(os.path.join(output_dir, "monsters.json"), "w") as f:
             json.dump(monsters, f)
+    characters = ai.gen_characters(theme, setting_desc, areas)
+    print(json.dumps(characters, indent=2))
+    if output_dir is not None:
+        with open(os.path.join(output_dir, "characters.json"), "w") as f:
+            json.dump(characters, f)
 
     item_names = set(
         name
@@ -153,6 +158,9 @@ def gen_all(theme: str, output_dir: str | None):
         + area["melee_weapons"]
         + area["ranged_weapons"]
         + area["food"]
+    )
+    item_names |= set(
+        name for character in characters for name in character["starting_items"]
     )
     items = gen_items_with_retry(theme, setting_desc, item_names)
     print(json.dumps(items, indent=2))
