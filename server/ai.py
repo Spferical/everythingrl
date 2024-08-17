@@ -267,7 +267,9 @@ def ask_google_structured(
 ) -> list[dict]:
     # Build prompt
     prompt_parts = [instructions, "--"]
-    prompt_parts.append("Expected JSON schema of each output line: ")
+    prompt_parts.append(
+        "Produce JSON-L output, that is, one JSON object per line. Expected JSON schema of each output line: "
+    )
     prompt_parts.append(json.dumps(model.model_json_schema()))
     prompt_parts.append("--")
     for ex_input, ex_outputs in examples:
