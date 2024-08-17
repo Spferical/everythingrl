@@ -1,0 +1,57 @@
+[
+    {
+        "name": "The Knight",
+        "backstory": "A silent warrior from wilds beyond, carrying a broken nail.",
+        "starting_items": [
+            "Nail",
+            "Lantern",
+            "Broken Mask",
+            "Stale Bread",
+            "Rotten Egg"
+        ]
+    },
+    {
+        "name": "The Hunter",
+        "backstory": "A skilled hunter from a tribe that has long protected the borders of Hallownest. Their people have been decimated by the Radiance's influence, and they now seek vengeance against the ancient evil. Armed with their trusty nail and a keen sense of survival, they venture into the heart of the infected kingdom, determined to find a way to end the Radiance's reign.",
+        "starting_items": [
+            "Thorns of Agony",
+            "Spelunker's Hat",
+            "Miner's Boots",
+            "Salted Fungus",
+            "Howling Wraiths"
+        ]
+    },
+    {
+        "name": "The Weaver",
+        "backstory": "A weaver from the ancient city of Deepnest, their skills once used to create intricate tapestries for the royal court. Now, the city is consumed by the Radiance, and the Weaver seeks to find a way to restore balance. They wield a unique weapon, a woven blade imbued with the essence of the Deepnest, and are guided by a deep connection to the natural world.",
+        "starting_items": [
+            "Mantis Claw",
+            "Dreamweaver",
+            "Glowing Mushroom",
+            "Stale Bread",
+            "Abyss Shriek"
+        ]
+    },
+    {
+        "name": "The Seer",
+        "backstory": "A seer from the forgotten village of Dirtmouth, their visions plagued by the encroaching darkness. Seeking to uncover the truth behind the Radiance's influence, they venture into the infected depths, hoping to find a way to break the curse that has consumed the land. With a keen intellect and a thirst for knowledge, they strive to understand the very essence of the ancient evil.",
+        "starting_items": [
+            "Nailmaster's Glory",
+            "Spell Twister",
+            "Stale Bread",
+            "Fruit",
+            "Shade Soul"
+        ]
+    },
+    {
+        "name": "The Wanderer",
+        "backstory": "A nameless wanderer, driven by a desire to escape the encroaching darkness. Once a cartographer in the bustling city of Hallownest, they were forced to flee when the Radiance's influence began to spread. Driven by a desperate hope to find a safe haven, they venture deeper into the infected depths, seeking a way to defeat the Radiance.",
+        "starting_items": [
+            "Nail",
+            "Broken Mask",
+            "Spelunker's Hat",
+            "Stale Bread",
+            "Lantern"
+        ]
+    }
+]

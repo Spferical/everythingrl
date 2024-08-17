@@ -434,7 +434,17 @@ def gen_characters(theme: str, setting_desc: str, areas: list[Area]) -> list[dic
         "setting_desc": setting_desc,
         "areas": areas,
     }
-    return ask_google_structured(instructions, [], args, 5, Character)
+    examples = [
+        (
+            {
+                "theme": "Hollow Knight",
+                "setting_desc": get_test_str("hk.txt"),
+                "areas": get_test_json("hk_areas.json"),
+            },
+            get_test_json("hk_characters.json"),
+        )
+    ]
+    return ask_google_structured(instructions, examples, args, 5, Character)
 
 
 vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
