@@ -160,7 +160,8 @@ impl PlayState {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyCode) {
+    /// Returns true if the game should be restarted.
+    pub fn handle_key(&mut self, key: KeyCode) -> bool {
         let mut tick = false;
         match key {
             KeyCode::L | KeyCode::Right => {
@@ -205,6 +206,11 @@ impl PlayState {
             KeyCode::C => tick |= self.craft(),
             KeyCode::D => tick |= self.drop(),
             KeyCode::Q => self.ui.toggle_help(),
+            KeyCode::R => {
+                if self.sim.player_is_dead() {
+                    return true
+                }
+            },
             KeyCode::Slash | KeyCode::Semicolon => {
                 if matches!(key, KeyCode::Slash)
                     && (is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift))
@@ -238,6 +244,7 @@ impl PlayState {
         if tick {
             self.tick();
         }
+        false
     }
 
     fn update_memory(&mut self) {
@@ -362,6 +369,7 @@ async fn main() {
             last_user_scale_factor = user_scale;
         }
 
+        let mut restart = false;
         gs = match gs {
             GameState::Intro(ref mut intro) => {
                 if intro.ready_for_generation && ig.is_none() {
@@ -381,7 +389,7 @@ async fn main() {
                 let ig = ig.as_mut().unwrap();
                 ps.sim.update_defs(ig);
                 if let Some(key) = get_last_key_pressed() {
-                    ps.handle_key(key);
+                    restart |= ps.handle_key(key);
                     if KEYS_WITH_REPEAT.contains(&key) {
                         ps.pressed_keys.insert(key, 0.0);
                     }
@@ -415,7 +423,12 @@ async fn main() {
                 ps.sim.untriggered_animations.clear();
 
                 ps.ui.render(&ps.sim, &ps.memory);
-                gs
+
+                if restart {
+                    GameState::Play(PlayState::new(font.clone(), ig))
+                } else {
+                    gs
+                }
             }
         };
 

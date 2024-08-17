@@ -1344,7 +1344,12 @@ impl World {
             self.mobs.insert(current_pos, mob);
         }
         if self.player_is_dead() {
-            self.log_message(vec![("YOU DIED".into(), Color::Red)]);
+            self.log_message(vec![
+                ("YOU DIED!".into(), Color::Red),
+                (" Press ".into(), Color::White),
+                ("R".into(), Color::Red),
+                (" to restart.".into(), Color::White),
+            ]);
         }
         self.step += 1;
     }
