@@ -34,7 +34,8 @@
     "food": [
       "Stale Bread",
       "Fruit",
-      "Mushroom"
+      "Mushroom",
+      "Rancid Egg"
     ]
   },
   {
@@ -109,7 +110,7 @@
     ],
     "food": [
       "Dream Fruit",
-      "Radiant Root",
+      "Whispering Root",
       "Lifeblood"
     ]
   }

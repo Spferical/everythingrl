@@ -4,7 +4,7 @@
     "level": 3,
     "type": "normal",
     "kind": "armor",
-    "description": "A cloak imbued with the power of the Radiance, enhancing the user's speed and agility."
+    "description": "A glowing cloak imbued with the power of the Radiance."
   },
   {
     "name": "Reflective Cloak",
@@ -43,7 +43,7 @@
   },
   {
     "name": "Thorns of Agony",
-    "level": 1,
+    "level": 2,
     "type": "poison",
     "kind": "melee_weapon",
     "description": "A cruel and deadly nail studded with thorns that leaves a painful poison in its wake."
@@ -67,7 +67,7 @@
     "level": 3,
     "type": "steel",
     "kind": "armor",
-    "description": "A charm that grants the user incredible strength, enabling them to wield their weapon with devastating force."
+    "description": "A charm that grants the user incredible strength."
   },
   {
     "name": "Void Heart",
@@ -88,35 +88,35 @@
     "level": 2,
     "type": "grass",
     "kind": "melee_weapon",
-    "description": "A sharp claw, imbued with the power of the mantis, giving the user an increased range and speed."
+    "description": "A sharp claw, imbued with the power of the mantis."
   },
   {
     "name": "Void Armor",
     "level": 3,
     "type": "ghost",
     "kind": "armor",
-    "description": "A set of armor made from pure void, enhancing the user's defense and resistance to darkness."
+    "description": "A sleek set of armor made from pure void."
   },
   {
     "name": "Miner's Boots",
     "level": 1,
     "type": "ground",
     "kind": "armor",
-    "description": "Boots designed for miners, providing increased grip and durability."
+    "description": "You will never again stub your toe on sharp crystals if you wear this rugged set of boots."
   },
   {
     "name": "Hiveblood",
     "level": 2,
     "type": "bug",
     "kind": "armor",
-    "description": "A charm that grants the user the ability to regenerate lost health, making them more resilient."
+    "description": "A small flow of honey drips from this honeycomb charm."
   },
   {
     "name": "Nail",
     "level": 1,
     "type": "normal",
     "kind": "melee_weapon",
-    "description": "A basic nail, commonly used by warriors, providing a steady and reliable attack."
+    "description": "A basic nail, commonly used by warriors. It is old and worn from battles long gone."
   },
   {
     "name": "Dreamweaver",
@@ -144,7 +144,7 @@
     "level": 3,
     "type": "water",
     "kind": "armor",
-    "description": "A charm that enhances the user's magic abilities, making their spells more powerful and versatile."
+    "description": "A charm once worn by members of the Soul Sanctum who achieved mastery over soul."
   },
   {
     "name": "Abyss Shriek",
@@ -165,7 +165,7 @@
     "level": 3,
     "type": "rock",
     "kind": "armor",
-    "description": "A protective shell made from strong crystals, generating a shield around the user."
+    "description": "A protective shell made from strong crystals."
   },
   {
     "name": "Shadow Boots",
@@ -179,14 +179,14 @@
     "level": 3,
     "type": "fighting",
     "kind": "melee_weapon",
-    "description": "A charm that enhances the user's attack speed, enabling them to strike multiple times in quick succession."
+    "description": "A charm born from imperfect, discarded nails that have fused together."
   },
   {
     "name": "Mark of Pride",
     "level": 2,
     "type": "normal",
     "kind": "melee_weapon",
-    "description": "A charm that increases the user's nail's reach, allowing them to attack from a safer distance."
+    "description": "Freely given by the Mantis Tribe to those they respect."
   },
   {
     "name": "Pure Nail",
@@ -200,28 +200,28 @@
     "level": 3,
     "type": "normal",
     "kind": "ranged_weapon",
-    "description": "Strikes the ground with a concentrated force of soul, which can destroy foes in its path."
+    "description": "A concentrated force of soul, which can destroy foes in its path."
   },
   {
     "name": "Desolate Dive",
     "level": 2,
     "type": "normal",
     "kind": "ranged_weapon",
-    "description": "Attack below the knight with a soul attack, destroying foes in its path."
+    "description": "Slams the ground with a concentrated force of soul."
   },
   {
     "name": "Lifeblood",
     "level": 2,
     "type": "normal",
     "kind": "food",
-    "description": "A vial filled with a pulsating, red liquid that heals the user when consumed."
+    "description": "A vial filled with a pulsating, blue liquid."
   },
   {
     "name": "Glowing Mushroom",
     "level": 1,
     "type": "grass",
     "kind": "food",
-    "description": "A large, glowing mushroom that emits a soft light and heals the user when eaten."
+    "description": "A large, glowing mushroom that emits a soft light."
   },
   {
     "name": "Stale Bread",
@@ -252,17 +252,24 @@
     "description": "A large and fleshy fungus that has been preserved with salt, providing a substantial amount of sustenance."
   },
   {
-    "name": "Radiant Root",
+    "name": "Whispering Root",
     "level": 2,
     "type": "fire",
     "kind": "food",
-    "description": "A rare and glowing root that provides a powerful healing effect when consumed."
+    "description": "A rare glowing root. It is said to hold the memories of generations past."
   },
   {
     "name": "Dream Fruit",
     "level": 2,
     "type": "psychic",
     "kind": "food",
-    "description": "A mysterious and otherworldly fruit that grants the user a brief glimpse into the future."
+    "description": "A mysterious and otherworldly fruit grown by the Moth tribe."
+  },
+  {
+      "name": "Rancid Egg",
+      "level": 1,
+      "type": "poison",
+      "Kind": "food",
+      "description": "This foul-smelling orb is not for those with weak stomachs."
   }
 ]
