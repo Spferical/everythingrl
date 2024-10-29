@@ -100,13 +100,16 @@ def ask_google_vertex_ai(prompt_parts: list[str], system_instruction=None) -> st
         time.sleep(1)
         return ask_google_vertex_ai(prompt_parts)
     try:
+        input_tokens = responses.usage_metadata.prompt_token_count
+        output_tokens = responses.usage_metadata.candidates_token_count
+        price_est = 0.0000003125 * input_tokens + 0.00000125 * output_tokens
         candidate = responses.candidates[0]
         if candidate.finish_reason == generative_models.FinishReason.SAFETY:
             logging.error(candidate)
             raise get_safety_error(candidate.safety_ratings)
         text = candidate.content.parts[0].text
         text = text.strip("--").strip("```json").strip("```").strip("\n")
-        logging.info(text)
+        logging.info(f"generated {output_tokens} tokens for ${price_est:.4f}")
         return text
     except KeyError:
         logging.error(responses)
