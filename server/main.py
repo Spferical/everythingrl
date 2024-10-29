@@ -6,6 +6,7 @@ import os
 import click
 
 import ai
+import game_types
 
 
 @click.group()
@@ -29,149 +30,43 @@ def craft(theme: str, setting_desc_file, items_file, item1: str, item2: str):
 
 @cli.command()
 @click.argument("theme")
-@click.argument("level")
-@click.argument("count")
-def gen_monster(theme: str, level: str, count: int):
-    raise NotImplementedError()
-
-
-@cli.command()
-@click.argument("theme")
-def gen_setting_desc(theme: str):
-    setting_desc = ai.gen_setting_desc(theme)
-    print(setting_desc)
-
-
-@cli.command()
-@click.argument("theme")
-@click.argument("setting_desc_file", type=click.File("r"))
-def gen_areas(theme: str, setting_desc_file):
-    setting_desc = setting_desc_file.read()
-    areas = ai.gen_areas(theme, setting_desc)
-    print(json.dumps(areas, indent=2))
-
-
-def gen_monsters_with_retry(theme: str, setting_desc: str, names_needed: set[str]):
-    monsters = []
-    while names_needed:
-        logging.info(f"need {names_needed}")
-        for monster in ai.gen_monsters(theme, setting_desc, list(names_needed)):
-            monsters.append(monster)
-            if monster["name"] in names_needed:
-                names_needed.remove(monster["name"])
-    return monsters
-
-
-@cli.command()
-@click.argument("theme")
-@click.argument("setting_desc_file", type=click.File("r"))
-@click.argument("areas_file", type=click.File("r"))
-def gen_monsters(theme: str, setting_desc_file, areas_file):
-    setting_desc = setting_desc_file.read()
-    areas = json.load(areas_file)
-    names_needed = set(m for area in areas for m in area["enemies"])
-    monsters = gen_monsters_with_retry(theme, setting_desc, names_needed)
-    print(json.dumps(monsters, indent=2))
-
-
-def gen_items_with_retry(theme: str, setting_desc: str, names: set[str]) -> list[dict]:
-    items = []
-    names_needed = set.copy(names)
-    while names_needed:
-        print("need", names_needed)
-        for item in ai.gen_items(theme, setting_desc, list(names_needed)):
-            items.append(item)
-            if item["name"] in names_needed:
-                names_needed.remove(item["name"])
-    return items
-
-
-@cli.command()
-@click.argument("theme")
-@click.argument("setting_desc_file", type=click.File("r"))
-@click.argument("areas_file", type=click.File("r"))
-def gen_characters(theme: str, setting_desc_file, areas_file):
-    setting_desc = setting_desc_file.read()
-    areas = json.load(areas_file)
-    characters = ai.gen_characters(theme, setting_desc, areas)
-    print(json.dumps(characters, indent=2))
-
-
-@cli.command()
-@click.argument("theme")
-@click.argument("setting_desc_file", type=click.File("r"))
-@click.argument("areas_file", type=click.File("r"))
-def gen_items(theme: str, setting_desc_file, areas_file):
-    setting_desc = setting_desc_file.read()
-    areas = json.load(areas_file)
-    names = set(
-        name
-        for area in areas
-        for name in area["equipment"]
-        + area["melee_weapons"]
-        + area["ranged_weapons"]
-        + area["food"]
-    )
-    items = gen_items_with_retry(theme, setting_desc, names)
-    print(json.dumps(items, indent=2))
-
-
-@cli.command()
-@click.argument("theme")
-@click.argument("setting_desc_file", type=click.File("r"))
-def gen_boss(theme: str, setting_desc_file):
-    setting_desc = setting_desc_file.read()
-    boss = ai.gen_boss(theme, setting_desc)
-    print(json.dumps(boss, indent=2))
-
-
-@cli.command()
-@click.argument("theme")
 @click.option("--output-dir", default=None)
 def gen_all(theme: str, output_dir: str | None):
-    setting_desc = ai.gen_setting_desc(theme)
-    print(setting_desc)
+    state = game_types.GameState(theme=theme)
+    tries = 0
+    while True:
+        remaining_requirements = []
+        if state.theme is None:
+            remaining_requirements.append(
+                "a setting_desc string describing the style, mood, substance, and high-level ideas to inform the artistic direction and content for the game.")
+        if len(state.areas) < 3:
+            remaining_requirements.append("three areas i.e. levels for the player to explore on his way to the final boss")
+        for area in state.areas:
+            missing_monster_defs = set()
+            for monster_name in area.enemies:
+                if not any(m.name == monster_name for m in state.monsters):
+                    missing_monster_defs.add(monster_name)
+            for monster_name in missing_monster_defs:
+                remaining_requirements.append(f"a monster definition for {monster_name}")
+            missing_item_defs = set()
+            for item_list in [area.equipment, area.melee_weapons, area.ranged_weapons, area.food]:
+                for item_name in item_list:
+                    if not any(item.name == item_name for item in state.items):
+                        missing_item_defs.add(item_name)
+            for item_name in missing_item_defs:
+                remaining_requirements.append(f"an item definition for {item_name}")
+        if state.boss is None:
+            remaining_requirements.append("a final boss")
+        if not remaining_requirements: break
+        instructions = f"Generate any missing data for the game. The game still requires at least:\n"
+        instructions += "\n".join(f"- {req}" for req in remaining_requirements)
+        ai.ask_google_json_merge(instructions, [], state)
+        tries += 1
+    print(f'done after {tries} tries')
+    print(state)
     if output_dir is not None:
-        with open(os.path.join(output_dir, "setting.txt"), "w") as f:
-            f.write(setting_desc)
-    areas = ai.gen_areas(theme, setting_desc)
-    print(json.dumps(areas, indent=2))
-    if output_dir is not None:
-        with open(os.path.join(output_dir, "areas.json"), "w") as f:
-            json.dump(areas, f)
-    monster_names = set(name for area in areas for name in area["enemies"])
-    monsters = gen_monsters_with_retry(theme, setting_desc, monster_names)
-    print(json.dumps(monsters, indent=2))
-    if output_dir is not None:
-        with open(os.path.join(output_dir, "monsters.json"), "w") as f:
-            json.dump(monsters, f)
-    characters = ai.gen_characters(theme, setting_desc, areas)
-    print(json.dumps(characters, indent=2))
-    if output_dir is not None:
-        with open(os.path.join(output_dir, "characters.json"), "w") as f:
-            json.dump(characters, f)
-
-    item_names = set(
-        name
-        for area in areas
-        for name in area["equipment"]
-        + area["melee_weapons"]
-        + area["ranged_weapons"]
-        + area["food"]
-    )
-    item_names |= set(
-        name for character in characters for name in character["starting_items"]
-    )
-    items = gen_items_with_retry(theme, setting_desc, item_names)
-    print(json.dumps(items, indent=2))
-    if output_dir is not None:
-        with open(os.path.join(output_dir, "items.json"), "w") as f:
-            json.dump(items, f)
-    boss = ai.gen_boss(theme, setting_desc)
-    if output_dir is not None:
-        with open(os.path.join(output_dir, "boss.json"), "w") as f:
-            json.dump(boss, f)
-    print(json.dumps(boss, indent=2))
+        with open(os.path.join(output_dir, "game.json"), "w") as f:
+            f.write(state.model_dump_json())
 
 
 def main():
