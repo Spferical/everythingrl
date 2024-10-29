@@ -57,8 +57,6 @@ pub fn random() -> u64 {
 
 impl PlayState {
     pub fn new(font: Font, ig: &mut IdeaGuy) -> Self {
-        assert!(ig.monsters.is_some());
-        assert!(ig.items.is_some());
         let mut sim = world::World::new();
         sim.update_defs(ig);
         map_gen::generate_world(&mut sim, random());
@@ -208,9 +206,9 @@ impl PlayState {
             KeyCode::Q => self.ui.toggle_help(),
             KeyCode::R => {
                 if self.sim.player_is_dead() {
-                    return true
+                    return true;
                 }
-            },
+            }
             KeyCode::Slash | KeyCode::Semicolon => {
                 if matches!(key, KeyCode::Slash)
                     && (is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift))
@@ -376,7 +374,12 @@ async fn main() {
                     ig = Some(IdeaGuy::new(&intro.theme));
                 }
                 let intro_waiting = intro::intro_loop(intro, &ig);
-                if !intro_waiting && ig.as_ref().filter(|ig| ig.boss.is_some()).is_some() {
+                if !intro_waiting
+                    && ig
+                        .as_ref()
+                        .filter(|ig| ig.game_defs.boss.is_some())
+                        .is_some()
+                {
                     GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap()))
                 } else {
                     if intro.exit {

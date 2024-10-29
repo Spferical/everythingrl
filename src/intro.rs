@@ -198,20 +198,19 @@ pub fn create_info_prompt(
 }
 
 pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
-    let mut continuing = true;
     state.prompt_dt += get_frame_time();
 
     let font_size = screen_width() / 100.;
     let spacing = screen_width() / 90.;
     if let Some(ig) = ig {
-        if let Some(setting) = &ig.setting {
+        if let Some(setting) = &ig.game_defs.setting_desc {
             let setting = state.typewriter.get_setting_text(setting);
             for (i, line) in textwrap::wrap(setting, (screen_width() / (font_size * 2.)) as usize)
                 .iter()
                 .enumerate()
             {
                 draw_text(
-                    &line,
+                    line,
                     screen_width() * 0.1,
                     spacing * i as f32 + screen_height() * 0.1,
                     font_size,
@@ -228,8 +227,10 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
             );
         }
 
-        if let Some(monsters) = &ig.monsters {
-            let monsters: Vec<_> = monsters
+        if !ig.game_defs.monsters.is_empty() {
+            let monsters: Vec<_> = ig
+                .game_defs
+                .monsters
                 .iter()
                 .map(|m| format!("{}: {}\n", m.name, m.description))
                 .collect();
@@ -240,7 +241,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                 .enumerate()
             {
                 draw_text(
-                    &line,
+                    line,
                     screen_width() * 0.6,
                     spacing * i as f32 + screen_height() * 0.1,
                     font_size,
@@ -259,9 +260,8 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
     }
     state.typewriter.advance();
 
-    continuing = state.step < PROMPTS.len() - 1;
+    let continuing = state.step < PROMPTS.len() - 1;
     egui_macroquad::ui(|egui_ctx| {
-        let prompt_num = state.step.min(PROMPTS.len() - 1);
         let mut prompt = PROMPTS[state.step.min(PROMPTS.len() - 1)].to_owned();
         prompt = prompt.replace("{tip}", &state.chosen_tip);
         prompt = prompt.replace("{setting1}", &state.chosen_settings[0]);

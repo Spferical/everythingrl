@@ -1,6 +1,6 @@
 use enum_map::Enum;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     fmt::Display,
     sync::mpsc::{self, Receiver},
     time::Duration,
@@ -207,7 +207,7 @@ impl Display for PokemonType {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Color {
     Lightgray,
@@ -262,7 +262,7 @@ impl From<Color> for macroquad::color::Color {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct MonsterDefinition {
     pub name: String,
     pub char: String,
@@ -279,7 +279,7 @@ pub struct MonsterDefinition {
     pub speed: u8,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct BossDefinition {
     pub name: String,
     pub char: String,
@@ -400,18 +400,20 @@ pub fn api_url() -> String {
     std::env::var("SERVER_URL").unwrap_or("https://7drl24.pfe.io".into())
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AnythingRequest {
+    state: GameDefs,
+    ask: String,
+}
+
 #[derive(Debug, Clone)]
 pub enum Request {
-    Setting,
-    Areas,
-    Monsters(Vec<String>),
-    Items(Vec<String>),
     Craft {
         item1: usize,
         item2: usize,
         craft_id: CraftId,
     },
-    Boss,
+    Anything(AnythingRequest),
 }
 
 impl Request {}
@@ -422,12 +424,8 @@ pub struct PendingRequest {
 }
 
 enum RequestResult {
-    Setting(String),
-    Areas(Vec<Area>),
-    Monsters(Vec<MonsterDefinition>),
-    Items(Vec<ItemDefinition>),
     Craft(ItemDefinition),
-    Boss(BossDefinition),
+    Anything(GameDefs),
     Pending,
     Error(String),
 }
@@ -455,23 +453,11 @@ impl PendingRequest {
                     );
                 }
                 match self.req {
-                    Request::Setting { .. } => serde_json::from_str(&resp.data)
-                        .map(Setting)
-                        .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Areas { .. } => serde_json::from_str(&resp.data)
-                        .map(Areas)
-                        .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Monsters { .. } => serde_json::from_str(&resp.data)
-                        .map(Monsters)
-                        .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Items { .. } => serde_json::from_str(&resp.data)
-                        .map(Items)
+                    Request::Anything { .. } => serde_json::from_str(&resp.data)
+                        .map(Anything)
                         .unwrap_or_else(|e| Error(e.to_string())),
                     Request::Craft { .. } => serde_json::from_str(&resp.data)
                         .map(Craft)
-                        .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Boss { .. } => serde_json::from_str(&resp.data)
-                        .map(Boss)
                         .unwrap_or_else(|e| Error(e.to_string())),
                 }
             }
@@ -488,15 +474,20 @@ pub enum IgState {
     Error { msg: String, count: usize },
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct GameDefs {
+    pub theme: String,
+    pub setting_desc: Option<String>,
+    pub areas: Vec<Area>,
+    pub monsters: Vec<MonsterDefinition>,
+    pub items: Vec<ItemDefinition>,
+    pub boss: Option<BossDefinition>,
+}
+
 /// Contains raw AI-generated content fetched from the server.
 pub struct IdeaGuy {
-    pub theme: String,
+    pub game_defs: GameDefs,
     pub api_url: String,
-    pub setting: Option<String>,
-    pub areas: Option<Vec<Area>>,
-    pub monsters: Option<Vec<MonsterDefinition>>,
-    pub items: Option<Vec<ItemDefinition>>,
-    pub boss: Option<BossDefinition>,
     // keys/vals are indices into items.
     pub recipes: HashMap<(usize, usize), usize>,
     outgoing: Vec<PendingRequest>,
@@ -509,20 +500,25 @@ impl IdeaGuy {
     pub fn new(theme: &str) -> Self {
         let api_url = api_url();
         let mut slf = Self {
-            theme: theme.into(),
+            game_defs: GameDefs {
+                theme: theme.into(),
+                setting_desc: None,
+                areas: vec![],
+                monsters: vec![],
+                items: vec![],
+                boss: None,
+            },
             api_url,
-            setting: None,
-            areas: None,
-            monsters: None,
-            items: None,
-            boss: None,
             outgoing: vec![],
             recipes: HashMap::new(),
             next_craft_id: CraftId(0),
             error: None,
             error_count: 0,
         };
-        slf.request(Request::Setting);
+        slf.request(Request::Anything(AnythingRequest {
+            ask: "Generate everything".into(),
+            state: slf.game_defs.clone(),
+        }));
         slf
     }
 
@@ -540,48 +536,15 @@ impl IdeaGuy {
         macroquad::miniquad::info!("Requesting {:?}", req);
         let api_url = api_url();
         let fut = match req {
-            Request::Setting => {
-                let theme = &self.theme;
-                request(format!("{api_url}/v1/setting/{theme}"), "")
-            }
-            Request::Areas => request(
-                format!("{api_url}/v1/areas"),
-                AreasArgs {
-                    theme: self.theme.clone(),
-                    setting: self.setting.clone().unwrap(),
-                },
-            ),
-            Request::Boss => request(
-                format!("{api_url}/v1/boss"),
-                AreasArgs {
-                    theme: self.theme.clone(),
-                    setting: self.setting.clone().unwrap(),
-                },
-            ),
-            Request::Monsters(ref names) => request(
-                format!("{api_url}/v1/monsters"),
-                MonstersArgs {
-                    theme: self.theme.clone(),
-                    setting: self.setting.clone().unwrap(),
-                    names: names.clone(),
-                },
-            ),
-            Request::Items(ref names) => request(
-                format!("{api_url}/v1/items"),
-                MonstersArgs {
-                    theme: self.theme.clone(),
-                    setting: self.setting.clone().unwrap(),
-                    names: names.clone(),
-                },
-            ),
+            Request::Anything(ref req) => request(format!("{api_url}/v1/anything"), req.clone()),
             Request::Craft { item1, item2, .. } => request(
                 format!("{api_url}/v1/craft"),
                 CraftArgs {
-                    theme: self.theme.clone(),
-                    setting: self.setting.clone().unwrap(),
-                    items: self.items.clone().unwrap(),
-                    item1: self.items.as_ref().unwrap()[item1].clone(),
-                    item2: self.items.as_ref().unwrap()[item2].clone(),
+                    theme: self.game_defs.theme.clone(),
+                    setting: self.game_defs.setting_desc.clone().unwrap(),
+                    items: self.game_defs.items.clone(),
+                    item1: self.game_defs.items[item1].clone(),
+                    item2: self.game_defs.items[item2].clone(),
                 },
             ),
         };
@@ -593,47 +556,6 @@ impl IdeaGuy {
         self.outgoing.push(pending_req);
     }
 
-    fn get_missing_monster_names(&self) -> Vec<String> {
-        let known_names = self
-            .monsters
-            .iter()
-            .flatten()
-            .map(|m| m.name.clone())
-            .collect::<HashSet<String>>();
-        let mut names = HashSet::new();
-        for area in self.areas.as_ref().unwrap() {
-            for name in &area.enemies {
-                if !known_names.contains(name) {
-                    names.insert(name.clone());
-                }
-            }
-        }
-        names.into_iter().collect()
-    }
-
-    fn get_missing_item_names(&self) -> Vec<String> {
-        let known_names = self
-            .items
-            .iter()
-            .flatten()
-            .map(|i| i.name.clone())
-            .collect::<HashSet<String>>();
-        let mut names = HashSet::new();
-        for area in self.areas.as_ref().unwrap() {
-            for name in area
-                .equipment
-                .iter()
-                .chain(&area.melee_weapons)
-                .chain(&area.ranged_weapons)
-                .chain(&area.food)
-            {
-                if !known_names.contains(name) {
-                    names.insert(name.clone());
-                }
-            }
-        }
-        names.into_iter().collect()
-    }
     pub fn tick(&mut self) {
         let mut queue = self.outgoing.drain(..).rev().collect::<Vec<_>>();
         while let Some(mut req) = queue.pop() {
@@ -653,41 +575,8 @@ impl IdeaGuy {
                 RequestResult::Pending => {
                     self.outgoing.push(req);
                 }
-                RequestResult::Setting(s) => {
-                    self.setting = Some(s);
-                    self.request(Request::Areas);
-                }
-                RequestResult::Areas(areas) => {
-                    self.areas = Some(areas);
-
-                    self.request(Request::Monsters(self.get_missing_monster_names()));
-                }
-                RequestResult::Monsters(mut monsters) => {
-                    let num_new = monsters.len();
-                    self.monsters
-                        .get_or_insert_with(Vec::new)
-                        .append(&mut monsters);
-                    let missing_names = self.get_missing_monster_names();
-                    // Give up if we get an empty response.
-                    if missing_names.is_empty() || num_new == 0 {
-                        self.request(Request::Items(self.get_missing_item_names()));
-                    } else {
-                        self.request(Request::Monsters(missing_names));
-                    }
-                }
-                RequestResult::Items(mut items) => {
-                    let num_new = items.len();
-                    self.items.get_or_insert_with(Vec::new).append(&mut items);
-                    let missing_names = self.get_missing_item_names();
-                    // Give up if we get an empty response.
-                    if missing_names.is_empty() || num_new == 0 {
-                        self.request(Request::Boss);
-                    } else {
-                        self.request(Request::Items(missing_names));
-                    }
-                }
-                RequestResult::Boss(boss) => {
-                    self.boss = Some(boss);
+                RequestResult::Anything(new_defs) => {
+                    self.game_defs = new_defs;
                 }
                 RequestResult::Craft(mut item) => {
                     if let Request::Craft {
@@ -698,11 +587,9 @@ impl IdeaGuy {
                     {
                         item.craft_id = Some(craft_id);
                         self.recipes
-                            .insert((item1, item2), self.items.as_ref().unwrap().len());
+                            .insert((item1, item2), self.game_defs.items.len());
                     }
-                    if let Some(items) = self.items.as_mut() {
-                        items.push(item)
-                    }
+                    self.game_defs.items.push(item);
                 }
             }
         }
@@ -713,16 +600,8 @@ impl IdeaGuy {
                 msg: err.clone(),
                 count: self.error_count,
             }
-        } else if self.setting.is_none() {
-            IgState::Generating("setting")
-        } else if self.areas.is_none() {
-            IgState::Generating("areas")
-        } else if self.monsters.is_none() {
-            IgState::Generating("monsters")
-        } else if self.items.is_none() {
-            IgState::Generating("items")
-        } else if self.boss.is_none() {
-            IgState::Generating("boss")
+        } else if self.game_defs.setting_desc.is_none() {
+            IgState::Generating("everything")
         } else if !self.outgoing.is_empty() {
             IgState::Generating("crafted item")
         } else {

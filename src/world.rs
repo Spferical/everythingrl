@@ -274,10 +274,10 @@ impl WorldInfo {
     }
 
     pub fn update(&mut self, ig: &mut IdeaGuy) {
-        for i in self.areas.len()..ig.areas.as_ref().unwrap().len() {
-            self.areas.push(ig.areas.as_ref().unwrap()[i].clone());
+        for i in self.areas.len()..ig.game_defs.areas.len() {
+            self.areas.push(ig.game_defs.areas[i].clone());
         }
-        for item in ig.items.iter().flatten() {
+        for item in ig.game_defs.items.iter() {
             if self.item_kinds.iter().any(|e| e.name == item.name) {
                 continue;
             }
@@ -298,7 +298,7 @@ impl WorldInfo {
                 kind,
             }));
         }
-        let boss = &ig.boss.as_ref().unwrap();
+        let boss = &ig.game_defs.boss.as_ref().unwrap();
         if self.boss_info.is_none() {
             self.monster_kinds.push(MobKindInfo {
                 name: boss.name.clone(),
@@ -320,7 +320,7 @@ impl WorldInfo {
                 periodic_messages: boss.periodic_messages.clone(),
             })
         }
-        for mob in ig.monsters.iter().flatten().chain(&[]) {
+        for mob in ig.game_defs.monsters.iter() {
             if self.monster_kinds.iter().any(|m| m.name == mob.name) {
                 continue;
             }
@@ -365,9 +365,9 @@ impl WorldInfo {
         };
 
         self.monsters_per_level = ig
+            .game_defs
             .areas
             .iter()
-            .flatten()
             .map(|area| {
                 area.enemies
                     .iter()
@@ -380,9 +380,9 @@ impl WorldInfo {
             |name: &String| self.item_kinds.iter().find(|k| &k.name == name);
 
         self.equipment_per_level = ig
+            .game_defs
             .areas
             .iter()
-            .flatten()
             .map(|area| {
                 area.equipment
                     .iter()
@@ -396,9 +396,9 @@ impl WorldInfo {
             })
             .collect();
         self.level_blurbs = ig
+            .game_defs
             .areas
             .iter()
-            .flatten()
             .map(|area| format!("{}: {}", area.name, area.blurb.clone()))
             .collect();
 
@@ -410,9 +410,9 @@ impl WorldInfo {
                     .cloned()
                     .unwrap()
             };
-            let ig_item_a = &ig.items.as_ref().unwrap()[a];
-            let ig_item_b = &ig.items.as_ref().unwrap()[b];
-            let ig_item_c = &ig.items.as_ref().unwrap()[c];
+            let ig_item_a = &ig.game_defs.items[a];
+            let ig_item_b = &ig.game_defs.items[b];
+            let ig_item_c = &ig.game_defs.items[c];
             let ek_a = ek_by_name(&ig_item_a.name);
             let ek_b = ek_by_name(&ig_item_b.name);
             let ek_c = ek_by_name(&ig_item_c.name);
@@ -420,9 +420,9 @@ impl WorldInfo {
         }
         if let Some((a, b)) = self.pending_recipes.iter().next().cloned() {
             let ig_equip_by_name = |name: &str| {
-                ig.items
+                ig.game_defs
+                    .items
                     .iter()
-                    .flatten()
                     .position(|x| x.name == name)
                     .unwrap()
             };

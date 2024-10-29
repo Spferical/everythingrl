@@ -182,7 +182,7 @@ The player may choose between 5 varied starting characters. These may be named p
         system_prompt += (
             f"\n\nExample input: {example_input}\nExample output: {example_output}"
         )
-    prompt = f"Game JSON: {input.model_dump_json()}\Output schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
+    prompt = f"Game JSON: {input.model_dump_json()}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
     logging.debug(f"ASKING: {prompt}")
     response_text = ask_google([prompt], system_instruction=system_prompt)
     logging.info(f"RECEIVED: {response_text}")
@@ -194,7 +194,9 @@ The player may choose between 5 varied starting characters. These may be named p
         raise
 
 
-def ask_google_json_merge(instructions: str, examples: list[tuple[dict, dict]], state: game_types.GameState):
+def ask_google_json_merge(
+    instructions: str, examples: list[tuple[dict, dict]], state: game_types.GameState
+):
     """Mutates and returns the game state."""
     output = ask_google_big_prompt(instructions, examples, state)
     logging.info(f"AI Action: {output}")
@@ -348,6 +350,55 @@ def gen_characters(
         )
     ]
     return ask_google_structured(instructions, examples, args, 5, game_types.Character)
+
+
+def get_missing_requirements(state: game_types.GameState) -> list[str]:
+    missing_requirements = []
+    if state.setting_desc is None:
+        missing_requirements.append(
+            "a setting_desc string describing the style, mood, substance, and high-level ideas to inform the artistic direction and content for the game."
+        )
+    if len(state.areas) < 3:
+        missing_requirements.append(
+            "three areas i.e. levels for the player to explore on his way to the final boss"
+        )
+    for area in state.areas:
+        missing_monster_defs = set()
+        for monster_name in area.enemies:
+            if not any(m.name == monster_name for m in state.monsters):
+                missing_monster_defs.add(monster_name)
+        for monster_name in missing_monster_defs:
+            missing_requirements.append(f"a monster definition for {monster_name}")
+        missing_item_defs = set()
+        for item_list in [
+            area.equipment,
+            area.melee_weapons,
+            area.ranged_weapons,
+            area.food,
+        ]:
+            for item_name in item_list:
+                if not any(item.name == item_name for item in state.items):
+                    missing_item_defs.add(item_name)
+        for item_name in missing_item_defs:
+            missing_requirements.append(f"an item definition for {item_name}")
+    if state.boss is None:
+        missing_requirements.append("a final boss")
+    return missing_requirements
+
+
+def gen_anything(instructions: str, state: game_types.GameState):
+    ask_google_json_merge(instructions, [], state)
+    generations = 1
+    while True:
+        missing_requirements = get_missing_requirements(state)
+        if not missing_requirements:
+            break
+        instructions = f"Generate any missing data for the game. The game still requires at least:\n"
+        instructions += "\n".join(f"- {req}" for req in missing_requirements)
+        ask_google_json_merge(instructions, [], state)
+        generations += 1
+    print(f"done after {generations} generations")
+    print(state)
 
 
 vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")

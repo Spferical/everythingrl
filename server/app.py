@@ -13,6 +13,7 @@ from werkzeug.serving import is_running_from_reloader
 
 import v0
 import ai
+import game_types
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -35,7 +36,8 @@ class Base(DeclarativeBase):
 
 @app.errorhandler(ai.AiError)
 def ai_error(e):
-    return jsonify({'error': str(e)}), 500
+    return jsonify({"error": str(e)}), 500
+
 
 # Legacy 7drl version API
 app.add_url_rule(
@@ -49,7 +51,7 @@ app.add_url_rule("/items", view_func=v0.app.items, methods=["POST"])
 
 
 @app.post("/v1/setting/<path:theme>")
-def get_setting_v1(theme):
+def v1_get_setting(theme):
     if theme == PREGEN_THEME:
         setting_desc = ai.get_test_str("hk.txt")
     else:
@@ -58,7 +60,7 @@ def get_setting_v1(theme):
 
 
 @app.post("/v1/craft")
-def craft_v1():
+def v1_craft():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     items = flask.request.get_json()["items"]
@@ -79,7 +81,7 @@ def craft_v1():
 
 
 @app.post("/v1/areas")
-def get_areas_v1():
+def v1_get_areas():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     if theme == PREGEN_THEME:
@@ -91,7 +93,7 @@ def get_areas_v1():
 
 
 @app.post("/v1/boss")
-def get_boss_v1():
+def v1_get_boss():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     if theme == PREGEN_THEME:
@@ -103,7 +105,7 @@ def get_boss_v1():
 
 
 @app.post("/v1/monsters")
-def monsters_v1():
+def v1_monsters():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     names = flask.request.get_json()["names"]
@@ -116,7 +118,7 @@ def monsters_v1():
 
 
 @app.post("/v1/items")
-def items_v1():
+def v1_items():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     names = flask.request.get_json()["names"]
@@ -126,6 +128,18 @@ def items_v1():
         items = ai.gen_items(theme, setting_desc, names)
     logging.info(json.dumps(items))
     return items
+
+
+@app.post("/v1/anything")
+def v1_anything():
+    game_state = flask.request.get_json()["state"]
+    game_state = game_types.GameState(**game_state)
+    ask = flask.request.get_json()["ask"]
+    if game_state.theme == PREGEN_THEME:
+        return ai.get_test_json("hk.json")
+    else:
+        ai.gen_anything(ask, game_state)
+        return game_state.model_dump_json()
 
 
 @app.route("/")

@@ -3,6 +3,7 @@ from typing import Annotated
 
 import pydantic
 
+
 class Color(str, Enum):
     lightgray = "lightgray"
     yellow = "yellow"
@@ -148,17 +149,17 @@ class AiAction(pydantic.BaseModel):
     add_areas: list[Area] = []
     add_monster_defs: list[Monster] = []
     add_item_defs: list[Item] = []
-    set_boss: Boss|None = None
+    set_boss: Boss | None = None
     add_characters: list[Character] = []
 
 
 class GameState(pydantic.BaseModel):
-    theme: str|None = None
+    theme: str | None = None
     setting_desc: str | None = None
     areas: list[Area] = []
     monsters: list[Monster] = []
     items: list[Item] = []
-    boss: Boss|None=None
+    boss: Boss | None = None
     characters: list[Character] = []
 
     def apply_action(self, action: AiAction):
@@ -170,5 +171,3 @@ class GameState(pydantic.BaseModel):
         if action.set_boss is not None:
             self.boss = action.set_boss
         self.characters.extend(action.add_characters)
-
-
