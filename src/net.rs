@@ -1,6 +1,6 @@
 use enum_map::Enum;
 use std::{
-    collections::{HashMap},
+    collections::HashMap,
     fmt::Display,
     sync::mpsc::{self, Receiver},
     time::Duration,
