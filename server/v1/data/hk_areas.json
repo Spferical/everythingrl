@@ -1,0 +1,117 @@
+[
+  {
+    "name": "Forgotten Tunnels",
+    "blurb": "You emerge into the forgotten tunnels, where a somber silence hangs in the air. Cobwebs drape the walls, and the only sound is the distant dripping of water. Your footsteps echo through the gloom, stirring the dust that has settled over centuries.",
+    "mapgen": "simple_rooms_and_corridors",
+    "enemies": [
+      "Husky Knight",
+      "Hollow Warrior",
+      "Lurker",
+      "Fungus",
+      "Baldur",
+      "Winged Fool",
+      "Mantis Petra",
+      "Crystal Hunter",
+      "Great Husk Sentry",
+      "Oblobble"
+    ],
+    "equipment": [
+      "Broken Mask",
+      "Spelunker's Hat",
+      "Miner's Boots",
+      "Lantern",
+      "Void Heart"
+    ],
+    "melee_weapons": [
+      "Nail",
+      "Thorns of Agony",
+      "Mantis Claw"
+    ],
+    "ranged_weapons": [
+      "Vengeful Spirit",
+      "Howling Wraiths"
+    ],
+    "food": [
+      "Stale Bread",
+      "Fruit",
+      "Mushroom",
+      "Rancid Egg"
+    ]
+  },
+  {
+    "name": "Crystal Caverns",
+    "blurb": "You enter the crystal caverns, where the air is filled with a faint luminescence. The walls shimmer with crystalline formations, reflecting the light from your lantern. The silence is broken by the gentle tinkling of crystals.",
+    "mapgen": "caves",
+    "enemies": [
+      "Vengefly",
+      "Crystal Crawler",
+      "Shrieker",
+      "Lurker",
+      "Primal Aspid",
+      "Mantis Warrior",
+      "Great Husk Sentry",
+      "Uoma",
+      "Stone Golem",
+      "Flukemunga"
+    ],
+    "equipment": [
+      "Crystal Shell",
+      "Geode Breastplate",
+      "Reflective Cloak",
+      "Dreamweaver",
+      "Spell Twister"
+    ],
+    "melee_weapons": [
+      "Nailmaster's Glory",
+      "Coiled Nail",
+      "Mark of Pride"
+    ],
+    "ranged_weapons": [
+      "Abyss Shriek",
+      "Shade Soul"
+    ],
+    "food": [
+      "Stale Bread",
+      "Salted Fungus",
+      "Glowing Mushroom"
+    ]
+  },
+  {
+    "name": "Heart of the Radiance",
+    "blurb": "The air grows heavy as you approach the Heart of the Radiance. Shadows dance on the walls, and the ground trembles beneath your feet. The silence is deafening, broken only by the faint beating of a distant drum.",
+    "mapgen": "dense_rooms",
+    "enemies": [
+      "Diseased Husk",
+      "Radiance Knight",
+      "Oblobble",
+      "Brooding Mawlek",
+      "Nosk",
+      "Nightmare King",
+      "Soul Tyrant",
+      "Pure Vessel",
+      "Primal Aspid",
+      "Winged Fool"
+    ],
+    "equipment": [
+      "Void Armor",
+      "Radiance Cloak",
+      "Shadow Boots",
+      "Void Heart",
+      "Unbreakable Strength"
+    ],
+    "melee_weapons": [
+      "Pure Nail",
+      "Fury of the Fallen",
+      "Quick Slash"
+    ],
+    "ranged_weapons": [
+      "Descending Dark",
+      "Desolate Dive"
+    ],
+    "food": [
+      "Dream Fruit",
+      "Whispering Root",
+      "Lifeblood"
+    ]
+  }
+]

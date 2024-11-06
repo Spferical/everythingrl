@@ -3,15 +3,24 @@ import json
 import logging
 
 import flask
+from sqlalchemy.orm import DeclarativeBase
 from flask import jsonify
 
-from . import ai
+import ai
 
 
 PREGEN_THEME = "pregen"
 
 
-def get_setting(theme):
+class Base(DeclarativeBase):
+    pass
+
+
+def ai_error(e):
+    return jsonify({"error": str(e)}), 500
+
+
+def v1_get_setting(theme):
     if theme == PREGEN_THEME:
         setting_desc = ai.get_test_str("hk.txt")
     else:
@@ -19,7 +28,7 @@ def get_setting(theme):
     return jsonify(setting_desc)
 
 
-def craft():
+def v1_craft():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     items = flask.request.get_json()["items"]
@@ -39,7 +48,7 @@ def craft():
         return new_item
 
 
-def get_areas():
+def v1_get_areas():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     if theme == PREGEN_THEME:
@@ -50,7 +59,7 @@ def get_areas():
     return areas
 
 
-def get_boss():
+def v1_get_boss():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     if theme == PREGEN_THEME:
@@ -61,7 +70,7 @@ def get_boss():
     return boss
 
 
-def monsters():
+def v1_monsters():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     names = flask.request.get_json()["names"]
@@ -73,7 +82,7 @@ def monsters():
     return monsters
 
 
-def items():
+def v1_items():
     theme = flask.request.get_json()["theme"]
     setting_desc = flask.request.get_json()["setting"]
     names = flask.request.get_json()["names"]

@@ -1,0 +1,263 @@
+[
+  {
+    "name": "Mimic",
+    "level": 2,
+    "char": "m",
+    "color": "brown",
+    "type1": "normal",
+    "attack_type": "dark",
+    "description": "Its form, once indistinguishable from treasure chests, shifts suddenly, revealing gnashing teeth amidst the promise of riches."
+  },
+  {
+    "name": "Rust Monster",
+    "level": 1,
+    "char": "r",
+    "color": "orange",
+    "type1": "bug",
+    "attack_type": "steel",
+    "description": "Its antennae quiver at the scent of metal, a harbinger of decay for any blade or armor it touches, leaving only rust in its wake."
+  },
+  {
+    "name": "Gnome",
+    "level": 1,
+    "char": "g",
+    "color": "green",
+    "type1": "ground",
+    "attack_type": "rock",
+    "description": "Under the dim light, the Gnome's shadow dances on the walls of the mine, its pickaxe a testament to its tireless toil."
+  },
+  {
+    "name": "Giant Snake",
+    "level": 2,
+    "char": "S",
+    "color": "lime",
+    "type1": "poison",
+    "attack_type": "grass",
+    "description": "The scales of the Giant Snake shimmer with a venomous gleam, slithering silently over the dungeon floor towards its prey."
+  },
+  {
+    "name": "Medusa",
+    "level": 3,
+    "char": "M",
+    "color": "green",
+    "type1": "rock",
+    "type2": "psychic",
+    "attack_type": "psychic",
+    "description": "Her hair, a writhing mass of serpents, frames a face whose eyes promise a stony eternity for those who gaze upon her."
+  },
+  {
+    "name": "Kobold",
+    "level": 1,
+    "char": "k",
+    "color": "red",
+    "type1": "dark",
+    "attack_type": "fire",
+    "description": "Amidst the darkness, the Kobold's eyes gleam with malice, its tiny figure obscured by the shadows it calls home."
+  },
+  {
+    "name": "Xorn",
+    "level": 3,
+    "char": "X",
+    "color": "maroon",
+    "type1": "ground",
+    "type2": "rock",
+    "attack_type": "ground",
+    "description": "Its three arms churn the earth, emerging without warning, a maw agape in hunger for the treasures buried deep."
+  },
+  {
+    "name": "Jackal",
+    "level": 1,
+    "char": "j",
+    "color": "yellow",
+    "type1": "normal",
+    "attack_type": "normal",
+    "description": "The flicker of its eyes in the torchlight precedes the Jackal's howl, signaling the pack's imminent pounce."
+  },
+  {
+    "name": "Gorgon",
+    "level": 3,
+    "char": "G",
+    "color": "steel",
+    "type1": "rock",
+    "type2": "steel",
+    "attack_type": "poison",
+    "description": "Its iron hide reflects the torchlight, a steely exterior that belies the lethal power contained within its breath."
+  },
+  {
+    "name": "Stone Golem",
+    "level": 3,
+    "char": "S",
+    "color": "gray",
+    "type1": "rock",
+    "attack_type": "ground",
+    "description": "Carved runes pulse with a dim light across its surface, the Stone Golem's imposing form a silent sentinel of the deep."
+  },
+  {
+    "name": "Killer Bee",
+    "level": 1,
+    "char": "B",
+    "color": "yellow",
+    "type1": "bug",
+    "attack_type": "poison",
+    "description": "A blur of wings and the sharp sting of venom, the Killer Bee's assault is as swift as it is deadly, a yellow flash amidst the dark."
+  },
+  {
+    "name": "Snake",
+    "level": 1,
+    "char": "s",
+    "color": "green",
+    "type1": "poison",
+    "attack_type": "grass",
+    "description": "Its hiss cuts through the silence of the dungeon, the Snake's lithe body coiled and ready to strike with lethal precision."
+  },
+  {
+    "name": "Earth Elemental",
+    "level": 3,
+    "char": "E",
+    "color": "brown",
+    "type1": "ground",
+    "attack_type": "ground",
+    "description": "Rising from the dungeon floor, its form is as ancient as the earth, its rumble a deep echo through the cavernous depths."
+  },
+  {
+    "name": "Zombie",
+    "level": 1,
+    "char": "z",
+    "color": "maroon",
+    "type1": "ghost",
+    "attack_type": "dark",
+    "description": "Shambling forward, its decaying flesh a grotesque tapestry of its past life, the Zombie's moan is a chilling harbinger of undeath."
+  },
+  {
+    "name": "Lamia",
+    "level": 2,
+    "char": "L",
+    "color": "violet",
+    "type1": "dark",
+    "type2": "poison",
+    "attack_type": "psychic",
+    "description": "Her coils glint in the dim light, each movement a mesmerizing dance that lures victims into a deadly embrace."
+  },
+  {
+    "name": "Amphisbaena",
+    "level": 2,
+    "char": "a",
+    "color": "green",
+    "type1": "poison",
+    "type2": "dragon",
+    "attack_type": "poison",
+    "description": "With a head at each end, its body undulates through the dungeon, a silent hunter capable of striking from two fronts simultaneously."
+  },
+  {
+    "name": "Fire Elemental",
+    "level": 3,
+    "char": "F",
+    "color": "orange",
+    "type1": "fire",
+    "attack_type": "fire",
+    "description": "A flickering form that dances with devastating grace, its touch sets the very air ablaze, consuming all in its path."
+  },
+  {
+    "name": "Basilisk",
+    "level": 2,
+    "char": "b",
+    "color": "green",
+    "type1": "poison",
+    "type2": "rock",
+    "attack_type": "poison",
+    "description": "Its gaze, heavy and ominous, petrifies not just flesh but the very courage of those who dare meet it, a living embodiment of dread."
+  },
+  {
+    "name": "Giant Rat",
+    "level": 1,
+    "char": "r",
+    "color": "brown",
+    "type1": "normal",
+    "attack_type": "normal",
+    "description": "In the gloom, its eyes gleam like coins; its teeth, sharp and eager, ready to gnaw through bone and bravery alike."
+  },
+  {
+    "name": "Giant Bat",
+    "level": 1,
+    "char": "B",
+    "color": "black",
+    "type1": "flying",
+    "attack_type": "dark",
+    "description": "Silhouetted against the dim light, the Giant Bat's wings envelop shadows, its screech a herald of swift, swooping doom."
+  },
+  {
+    "name": "Water Elemental",
+    "level": 3,
+    "char": "W",
+    "color": "blue",
+    "type1": "water",
+    "attack_type": "water",
+    "description": "A surge, a splash, a suffocating embrace, the dungeon's corridors flooded with the rage of the sea."
+  },
+  {
+    "name": "Cockatrice",
+    "level": 2,
+    "char": "c",
+    "color": "yellow",
+    "type1": "flying",
+    "type2": "poison",
+    "attack_type": "rock",
+    "description": "Feathers ruffled with toxic dust, the Cockatrice's mere touch promises a petrified fate to the unwary."
+  },
+  {
+    "name": "Elemental",
+    "level": 3,
+    "char": "E",
+    "color": "magenta",
+    "type1": "fairy",
+    "attack_type": "psychic",
+    "description": "A convergence of elemental forces, its presence warps the very fabric of reality, challenging the boundaries between the physical and the ethereal."
+  },
+  {
+    "name": "Air Elemental",
+    "level": 3,
+    "char": "A",
+    "color": "skyblue",
+    "type1": "flying",
+    "attack_type": "electric",
+    "description": "Unseen but for the swirling debris caught in its wrath, the Air Elemental's howl is the voice of the storm's fury, unleashed."
+  },
+  {
+    "name": "Wumpus",
+    "level": 2,
+    "char": "W",
+    "color": "purple",
+    "type1": "dark",
+    "attack_type": "ground",
+    "description": "Lurking in the shadows, the Wumpus waits, its presence betrayed only by the soft echo of its breath, a whisper of impending doom."
+  },
+  {
+    "name": "Dwarf",
+    "level": 1,
+    "char": "d",
+    "color": "red",
+    "type1": "steel",
+    "attack_type": "rock",
+    "description": "Clad in armor forged in deep furnaces, the Dwarf's stout form belies a strength and resilience honed in the heart of the mountains."
+  },
+  {
+    "name": "Yuan-ti",
+    "level": 2,
+    "char": "y",
+    "color": "violet",
+    "type1": "poison",
+    "type2": "psychic",
+    "attack_type": "poison",
+    "description": "Its scales shimmer with a sinister beauty, the Yuan-ti's gaze entrancing its prey with promises of dark wonders and deeper fears."
+  },
+  {
+    "name": "Naga",
+    "level": 3,
+    "char": "N",
+    "color": "blue",
+    "type1": "water",
+    "type2": "psychic",
+    "attack_type": "psychic",
+    "description": "In the gloom of the dungeon's depths, the Naga's coils glisten, a creature of both intellect and power, its whispers weaving spells of destruction."
+  }
+]
