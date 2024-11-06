@@ -36,6 +36,7 @@ def gen_all(theme: str, output_dir: str | None):
     ai.gen_anything("Generate everything", state)
     print(state)
     if output_dir is not None:
+        os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, "game.json"), "w") as f:
             f.write(state.model_dump_json())
 
