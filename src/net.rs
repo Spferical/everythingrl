@@ -608,4 +608,8 @@ impl IdeaGuy {
             IgState::Idle
         }
     }
+
+    pub fn initial_generation_done(&self) -> bool {
+        self.game_defs.boss.is_some()
+    }
 }
