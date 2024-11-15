@@ -116,16 +116,14 @@ impl IntroState {
     }
 }
 
-pub fn create_info_prompt(
+fn storyteller_window(
     egui_ctx: &egui::Context,
-    intro_state: &mut IntroState,
-    prompt: &str,
-    yes_no: bool,
-    edit_text_box: bool,
-    ok_button: bool,
+    text: String,
+    typewriter_time: f32,
+    add_contents: impl FnOnce(&mut egui::Ui),
 ) {
-    let num_typewritten_chars = (CHARS_PER_SECOND * intro_state.prompt_dt) as usize;
-    let typewritten_prompt: String = prompt.chars().take(num_typewritten_chars).collect();
+    let num_typewritten_chars = (CHARS_PER_SECOND * typewriter_time) as usize;
+    let typewritten_text: String = text.chars().take(num_typewritten_chars).collect();
     let width = screen_width() * miniquad::window::dpi_scale();
     let padding = 3.0 * miniquad::window::dpi_scale();
     egui::Window::new("StoryTeller")
@@ -139,43 +137,56 @@ pub fn create_info_prompt(
                 .inner_margin(egui::style::Margin::symmetric(padding, padding))
                 .show(ui, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                        ui.label(egui::RichText::new(typewritten_prompt));
+                        ui.label(egui::RichText::new(typewritten_text));
                         ui.separator();
                     });
-                    ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                        if yes_no {
-                            if ui.button("I understand").clicked() {
-                                intro_state.step += 1;
-                            }
-                            if ui.button("Exit").clicked() {
-                                intro_state.exit = true;
-                            }
-                        } else {
-                            ui.label(
-                                egui::RichText::new("(Press Enter to continue)")
-                                    .small()
-                                    .color(egui::Color32::from_rgb(100, 100, 100)),
-                            );
-
-                            if edit_text_box {
-                                ui.add(
-                                    egui::widgets::TextEdit::singleline(&mut intro_state.theme)
-                                        .desired_width(width * 0.8),
-                                );
-                            }
-                            if ok_button && ui.button("OK").clicked() {
-                                if edit_text_box && intro_state.theme.is_empty() {
-                                    return;
-                                }
-                                if intro_state.step < PROMPTS.len() - 1 {
-                                    intro_state.step += 1;
-                                    intro_state.prompt_dt = 0.;
-                                }
-                            }
-                        }
-                    });
+                    add_contents(ui);
                 });
         });
+}
+
+pub fn create_info_prompt(
+    egui_ctx: &egui::Context,
+    intro_state: &mut IntroState,
+    prompt: &str,
+    yes_no: bool,
+    edit_text_box: bool,
+    ok_button: bool,
+) {
+    storyteller_window(egui_ctx, prompt.into(), intro_state.prompt_dt, |ui| {
+        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+            if yes_no {
+                if ui.button("I understand").clicked() {
+                    intro_state.step += 1;
+                }
+                if ui.button("Exit").clicked() {
+                    intro_state.exit = true;
+                }
+            } else {
+                ui.label(
+                    egui::RichText::new("(Press Enter to continue)")
+                        .small()
+                        .color(egui::Color32::from_rgb(100, 100, 100)),
+                );
+
+                if edit_text_box {
+                    ui.add(
+                        egui::widgets::TextEdit::singleline(&mut intro_state.theme)
+                            .desired_width(f32::INFINITY),
+                    );
+                }
+                if ok_button && ui.button("OK").clicked() {
+                    if edit_text_box && intro_state.theme.is_empty() {
+                        return;
+                    }
+                    if intro_state.step < PROMPTS.len() - 1 {
+                        intro_state.step += 1;
+                        intro_state.prompt_dt = 0.;
+                    }
+                }
+            }
+        });
+    });
 
     if let Some(key) = get_last_key_pressed() {
         if key == KeyCode::Enter {
@@ -197,66 +208,71 @@ pub fn create_info_prompt(
     }
 }
 
+fn draw_background(state: &mut IntroState, ig: &IdeaGuy) {
+    let font_size = screen_width() / 100.;
+    let spacing = screen_width() / 90.;
+
+    if let Some(setting) = &ig.game_defs.setting_desc {
+        let setting = state.typewriter.get_setting_text(setting);
+        for (i, line) in textwrap::wrap(setting, (screen_width() / (font_size * 2.)) as usize)
+            .iter()
+            .enumerate()
+        {
+            draw_text(
+                line,
+                screen_width() * 0.1,
+                spacing * i as f32 + screen_height() * 0.1,
+                font_size,
+                BLACK,
+            );
+        }
+    } else {
+        draw_text(
+            "Loading setting...",
+            screen_width() * 0.1,
+            screen_height() * 0.1,
+            font_size,
+            BLACK,
+        );
+    }
+
+    if !ig.game_defs.monsters.is_empty() {
+        let monsters: Vec<_> = ig
+            .game_defs
+            .monsters
+            .iter()
+            .map(|m| format!("{}: {}\n", m.name, m.description))
+            .collect();
+        let monsters = monsters.join("\n");
+        let monsters = state.typewriter.get_monsters_text(&monsters);
+        for (i, line) in textwrap::wrap(monsters, (screen_width() / (font_size * 2.)) as usize)
+            .iter()
+            .enumerate()
+        {
+            draw_text(
+                line,
+                screen_width() * 0.6,
+                spacing * i as f32 + screen_height() * 0.1,
+                font_size,
+                BLACK,
+            );
+        }
+    } else {
+        draw_text(
+            "Loading monsters...",
+            screen_width() * 0.6,
+            screen_height() * 0.1,
+            font_size,
+            BLACK,
+        );
+    }
+}
+
 pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
     state.prompt_dt += get_frame_time();
 
-    let font_size = screen_width() / 100.;
-    let spacing = screen_width() / 90.;
     if let Some(ig) = ig {
-        if let Some(setting) = &ig.game_defs.setting_desc {
-            let setting = state.typewriter.get_setting_text(setting);
-            for (i, line) in textwrap::wrap(setting, (screen_width() / (font_size * 2.)) as usize)
-                .iter()
-                .enumerate()
-            {
-                draw_text(
-                    line,
-                    screen_width() * 0.1,
-                    spacing * i as f32 + screen_height() * 0.1,
-                    font_size,
-                    BLACK,
-                );
-            }
-        } else {
-            draw_text(
-                "Loading setting...",
-                screen_width() * 0.1,
-                screen_height() * 0.1,
-                font_size,
-                BLACK,
-            );
-        }
-
-        if !ig.game_defs.monsters.is_empty() {
-            let monsters: Vec<_> = ig
-                .game_defs
-                .monsters
-                .iter()
-                .map(|m| format!("{}: {}\n", m.name, m.description))
-                .collect();
-            let monsters = monsters.join("\n");
-            let monsters = state.typewriter.get_monsters_text(&monsters);
-            for (i, line) in textwrap::wrap(monsters, (screen_width() / (font_size * 2.)) as usize)
-                .iter()
-                .enumerate()
-            {
-                draw_text(
-                    line,
-                    screen_width() * 0.6,
-                    spacing * i as f32 + screen_height() * 0.1,
-                    font_size,
-                    BLACK,
-                );
-            }
-        } else {
-            draw_text(
-                "Loading monsters...",
-                screen_width() * 0.6,
-                screen_height() * 0.1,
-                font_size,
-                BLACK,
-            );
-        }
+        draw_background(state, ig);
     }
     state.typewriter.advance();
 
