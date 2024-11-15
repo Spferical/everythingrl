@@ -593,20 +593,6 @@ impl Inventory {
             .collect()
     }
 
-    fn get_equipped_armor_slots(&self) -> Vec<usize> {
-        self.items
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| x.equipped)
-            .filter_map(|(i, x)| match x.item {
-                Item::PendingCraft(_, _) => None,
-                Item::Instance(ref ek) => Some((i, ek)),
-            })
-            .filter(|(_, eki)| eki.info.kind == ItemKind::Armor)
-            .map(|(i, _)| i)
-            .collect()
-    }
-
     fn sort(&mut self) {
         self.items.sort_by_key(|x| match x {
             InventoryItem {
@@ -924,9 +910,7 @@ impl World {
                     for (x, y) in line_drawing::Bresenham::new(
                         (start_pos.x, start_pos.y),
                         (end_pos.x, end_pos.y),
-                    )
-                    .skip(0)
-                    {
+                    ) {
                         let zapped_pos = Pos::new(x, y);
 
                         // Stop if the projectile hits a wall.
@@ -1008,7 +992,7 @@ impl World {
                                 .collect::<Vec<_>>();
                             let heal_amt = ii.info.get_heal_amount(&armor_types);
                             if heal_amt < 0 {
-                                self.player_damage += heal_amt.abs() as usize;
+                                self.player_damage += heal_amt.unsigned_abs() as usize;
                                 self.log_message(vec![(
                                     format!(
                                         "You eat a poisonous {} and lose {heal_amt} HP! Ouch!",

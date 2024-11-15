@@ -28,15 +28,6 @@ pub const TIPS: [&str; 3] = [
     "narrow corridors are your friend. Try luring enemies into a narrow chokepoint to benefit from Lanchester's linear law :)"
 ];
 
-pub const PROMPTS: [&str; 6] = [
-    "Welcome, traveler. I am the Storyteller of this roguelike game.",
-    "My objective is to create the world of the game which you are about to play. From the inhabitants of this virtual dungeon, to their implements and attire, to their demeanor and persuasion, to the very earth they step foot upon....",
-    "... they will be invented by yours truly. With a bit of help from you of course.",
-    "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.",
-    "Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings.",
-    "Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.\n\nCONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.\n\nSome other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.\n\nIf this is a lot to remember, press \'q\' for a quick summary.\n\nIf the fonts are rendering too small or large, there is a font scale slider on the bottom left.\n\nA quick tip -- {tip}\n\nThank you for listening to me. Please wait a moment as the game world is generated.\n\n{gen_status}",
-];
-
 pub struct LoadingTypewriter {
     setting_dt: Option<f32>,
     areas_dt: Option<f32>,
@@ -66,16 +57,8 @@ impl LoadingTypewriter {
         LoadingTypewriter::trim(text, &mut self.setting_dt)
     }
 
-    fn get_areas_text<'a>(&mut self, text: &'a str) -> &'a str {
-        LoadingTypewriter::trim(text, &mut self.areas_dt)
-    }
-
     fn get_monsters_text<'a>(&mut self, text: &'a str) -> &'a str {
         LoadingTypewriter::trim(text, &mut self.monsters_dt)
-    }
-
-    fn get_items_text<'a>(&mut self, text: &'a str) -> &'a str {
-        LoadingTypewriter::trim(text, &mut self.items_dt)
     }
 
     fn advance(&mut self) {
