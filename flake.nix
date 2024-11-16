@@ -171,10 +171,13 @@
             # Additional dev-shell environment variables can be set directly
             # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
             LD_LIBRARY_PATH = "${lib.makeLibraryPath commonArgs.buildInputs}";
+            CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "lld";
 
             # Extra inputs can be added here; cargo and rustc are provided by default.
-            packages = [
-              #pkgs.ripgrep
+            packages = with pkgs; [
+                wasm-pack
+                cargo-binutils
+                lld
             ];
           };
       });
