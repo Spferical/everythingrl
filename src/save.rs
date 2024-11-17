@@ -34,6 +34,13 @@ pub fn load_defs() -> Vec<Defs> {
         .unwrap_or(vec![])
 }
 
+pub fn write_defs(defs: &[Defs]) {
+    STORAGE
+        .lock()
+        .unwrap()
+        .set("game_defs", &serde_json::to_string(defs).unwrap());
+}
+
 pub fn save_def(defs: &GameDefs) {
     let mut saved_defs = load_defs();
     saved_defs.push(Defs {
@@ -47,8 +54,5 @@ pub fn save_def(defs: &GameDefs) {
         },
         defs: serde_json::to_string(&defs).unwrap(),
     });
-    STORAGE
-        .lock()
-        .unwrap()
-        .set("game_defs", &serde_json::to_string(&saved_defs).unwrap());
+    write_defs(&saved_defs);
 }

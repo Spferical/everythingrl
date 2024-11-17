@@ -10,11 +10,19 @@ pub enum Choice {
 
 pub struct Menu {
     defs: Option<Vec<Defs>>,
+    import_tx: std::sync::mpsc::Sender<Defs>,
+    import_rx: std::sync::mpsc::Receiver<Defs>,
 }
 
 impl Menu {
     pub fn new() -> Menu {
-        Menu { defs: None }
+        let (import_tx, import_rx) = std::sync::mpsc::channel();
+
+        Menu {
+            defs: None,
+            import_tx,
+            import_rx,
+        }
     }
 
     pub fn load_popup(&mut self, ui: &mut egui::Ui) -> Option<Defs> {
@@ -26,6 +34,10 @@ impl Menu {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     ui.style_mut().wrap = Some(false);
                     let defs = self.defs.get_or_insert_with(crate::save::load_defs);
+                    while let Ok(def) = self.import_rx.try_recv() {
+                        defs.push(def);
+                        crate::save::write_defs(defs);
+                    }
                     if defs.is_empty() {
                         ui.label("No existing saved game definitions found");
                     } else {
@@ -48,7 +60,7 @@ impl Menu {
                                 });
                             })
                             .body(|mut body| {
-                                for def in defs {
+                                for def in defs.iter().rev() {
                                     body.row(20.0, |mut row| {
                                         row.col(|ui| {
                                             if ui.button("Play!").clicked() {
@@ -83,6 +95,22 @@ impl Menu {
                                     });
                                 }
                             });
+                    }
+                    if ui.button("Load game from file").clicked() {
+                        let tx = self.import_tx.clone();
+                        crate::util::spawn(async move {
+                            if let Some(handle) = rfd::AsyncFileDialog::new().pick_file().await {
+                                let data = handle.read().await;
+                                match serde_json::from_slice::<Defs>(&data) {
+                                    Ok(defs) => {
+                                        tx.send(defs).ok();
+                                    }
+                                    Err(e) => {
+                                        macroquad::miniquad::error!("{}", e);
+                                    }
+                                }
+                            }
+                        })
                     }
                     if ui.button("Close").clicked() {
                         ui.close_menu();
