@@ -91,7 +91,7 @@ pub struct IntroState {
 
 impl IntroState {
     pub fn new() -> IntroState {
-        let mut rng = ::rand::rngs::SmallRng::seed_from_u64(crate::random());
+        let mut rng = ::rand::rngs::SmallRng::seed_from_u64(::rand::random());
         IntroState {
             prompt_state: PromptState::Welcome(0),
             prompt_dt: 0.,

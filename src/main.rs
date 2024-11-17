@@ -42,15 +42,6 @@ const KEYS_WITH_REPEAT: &[KeyCode] = &[
 const INIT_KEY_REPEAT: f32 = 0.5;
 const KEY_REPEAT_DELAY: f32 = 1.0 / 30.0;
 
-#[cfg(target_family = "wasm")]
-pub fn random() -> u64 {
-    extern "C" {
-        pub fn rand() -> u32;
-    }
-
-    unsafe { rand() as u64 }
-}
-#[cfg(not(target_family = "wasm"))]
 pub fn random() -> u64 {
     ::rand::random()
 }
