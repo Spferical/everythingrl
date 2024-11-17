@@ -1,11 +1,11 @@
 use enum_map::Enum;
-#[cfg(not(target_family = "wasm"))]
-use std::time::Duration;
 use std::{
     collections::HashMap,
     fmt::Display,
     sync::mpsc::{self, Receiver},
 };
+
+use crate::util::spawn;
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -377,35 +377,19 @@ where
     Input: serde::Serialize + Send + 'static,
 {
     let (tx, rx) = mpsc::channel();
-    #[cfg(target_family = "wasm")]
-    {
-        wasm_bindgen_futures::spawn_local(async move {
-            let resp = reqwest::Client::new().post(url).json(&input).send().await;
-            tx.send(match resp {
-                Ok(r) => Ok(Response {
-                    status: r.status().as_u16().into(),
-                    data: r.text().await.unwrap_or_default(),
-                }),
-                Err(e) => Err(e.to_string()),
-            })
-            .ok();
-        });
-    }
-
-    #[cfg(not(target_family = "wasm"))]
-    std::thread::spawn(move || {
-        let client = reqwest::blocking::Client::new();
-        let resp = client
-            .post(url)
-            .json(&input)
-            .timeout(Duration::from_secs(60 * 3))
-            .send();
-        tx.send(resp.map_err(|e| e.to_string()).map(|r| Response {
-            status: r.status().as_u16().into(),
-            data: r.text().unwrap_or_default(),
-        }))
+    spawn(async move {
+        // NOTE: wasm reqwest doesn't support timeouts.
+        let resp = reqwest::Client::new().post(url).json(&input).send().await;
+        tx.send(match resp {
+            Ok(r) => Ok(Response {
+                status: r.status().as_u16().into(),
+                data: r.text().await.unwrap_or_default(),
+            }),
+            Err(e) => Err(e.to_string()),
+        })
         .ok();
     });
+
     BootlegFuture { rx, state: None }
 }
 
