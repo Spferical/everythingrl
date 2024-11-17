@@ -328,6 +328,13 @@ pub struct Area {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct Character {
+    pub name: String,
+    pub backstory: String,
+    pub starting_items: Vec<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MonstersArgs {
     theme: String,
     setting: String,
@@ -479,6 +486,7 @@ pub struct GameDefs {
     pub monsters: Vec<MonsterDefinition>,
     pub items: Vec<ItemDefinition>,
     pub boss: Option<BossDefinition>,
+    pub characters: Vec<Character>
 }
 
 /// Contains raw AI-generated content fetched from the server.
@@ -502,6 +510,7 @@ impl IdeaGuy {
                 monsters: vec![],
                 items: vec![],
                 boss: None,
+                characters: vec![],
             },
             outgoing: vec![],
             recipes: HashMap::new(),

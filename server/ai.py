@@ -233,27 +233,33 @@ def get_missing_requirements(state: game_types.GameState) -> list[str]:
         missing_requirements.append(
             "three areas i.e. levels for the player to explore on his way to the final boss"
         )
-    missing_monster_defs = set()
-    missing_item_defs = set()
-    for area in state.areas:
-        for monster_name in area.enemies:
-            if not any(m.name == monster_name for m in state.monsters):
-                missing_monster_defs.add(monster_name)
+    mentioned_monsters = set(name for area in state.areas for name in area.enemies)
+    defined_monsters = set(m.name for m in state.monsters)
+    for monster_name in mentioned_monsters - defined_monsters:
+        missing_requirements.append(f"a monster definition for {monster_name}")
+    mentioned_items = set(
+        name
+        for area in state.areas
         for item_list in [
             area.equipment,
             area.melee_weapons,
             area.ranged_weapons,
             area.food,
-        ]:
-            for item_name in item_list:
-                if not any(item.name == item_name for item in state.items):
-                    missing_item_defs.add(item_name)
-    for monster_name in missing_monster_defs:
-        missing_requirements.append(f"a monster definition for {monster_name}")
-    for item_name in missing_item_defs:
+        ]
+        for name in item_list
+    )
+    mentioned_items.update(
+        name for character in state.characters for name in character.starting_items
+    )
+    defined_items = set(item.name for item in state.items)
+    for item_name in mentioned_items - defined_items:
         missing_requirements.append(f"an item definition for {item_name}")
     if state.boss is None:
         missing_requirements.append("a final boss")
+    if len(state.characters) < 3:
+        missing_requirements.append(
+            "at least 3 characters or character classes available to the player"
+        )
     return missing_requirements
 
 
