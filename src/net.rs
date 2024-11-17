@@ -535,6 +535,18 @@ impl IdeaGuy {
         slf
     }
 
+    pub fn from_saved(game_defs: GameDefs) -> Self {
+        Self {
+            game_defs,
+            api_url: api_url(),
+            outgoing: vec![],
+            recipes: HashMap::new(),
+            next_craft_id: CraftId(0),
+            error: None,
+            error_count: 0,
+        }
+    }
+
     pub fn craft(&mut self, item1: usize, item2: usize) {
         let craft_id = self.next_craft_id;
         self.next_craft_id = CraftId(self.next_craft_id.0 + 1);

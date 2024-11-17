@@ -6,15 +6,18 @@ use world::PlayerAction;
 mod fov;
 mod grid;
 mod intro;
+mod main_menu;
 mod map_gen;
 mod net;
 mod render;
+mod save;
 mod util;
 mod world;
 
 use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
 enum GameState {
+    Menu(main_menu::Menu),
     Intro(intro::IntroState),
     Play(PlayState),
 }
@@ -333,10 +336,11 @@ async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_startup();
     egui_update_scaling(1.0);
+    quad_storage::STORAGE.lock().unwrap().set("test1", "test2");
 
     let mut last_size = (screen_width(), screen_height());
     let mut last_user_scale_factor = 1.0;
-    let mut gs = GameState::Intro(intro::IntroState::new());
+    let mut gs = GameState::Menu(main_menu::Menu::new());
     let mut ig: Option<IdeaGuy> = None;
 
     loop {
@@ -358,24 +362,34 @@ async fn main() {
 
         let mut restart = false;
         gs = match gs {
+            GameState::Menu(ref mut menu) => match menu.tick() {
+                None => gs,
+                Some(main_menu::Choice::Play) => GameState::Intro(intro::IntroState::new()),
+                Some(main_menu::Choice::Load(def)) => {
+                    ig = Some(IdeaGuy::from_saved(
+                        serde_json::from_str(&def.defs).unwrap(),
+                    ));
+                    GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap()))
+                }
+            },
             GameState::Intro(ref mut intro) => {
                 if intro.ready_for_generation && ig.is_none() {
                     ig = Some(IdeaGuy::new(&intro.theme));
                 }
                 let intro_waiting = intro::intro_loop(intro, &ig);
-                if !intro_waiting
-                    && ig
-                        .as_ref()
-                        .filter(|ig| ig.game_defs.boss.is_some())
-                        .is_some()
-                {
-                    GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap()))
-                } else {
-                    if intro.exit {
-                        return;
-                    }
-                    gs
+                if intro.exit {
+                    return;
                 }
+                let mut new_gs = gs;
+                if !intro_waiting {
+                    if let Some(ig) = ig.as_mut() {
+                        if ig.game_defs.boss.is_some() {
+                            crate::save::save_def(&ig.game_defs);
+                            new_gs = GameState::Play(PlayState::new(font.clone(), ig))
+                        }
+                    }
+                }
+                new_gs
             }
             GameState::Play(ref mut ps) => {
                 let ig = ig.as_mut().unwrap();
