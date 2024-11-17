@@ -63,6 +63,7 @@
             pkg-config
             stdenv.cc.cc
           ] ++ lib.optionals pkgs.stdenv.isLinux [
+            wayland
             libxkbcommon
             glew-egl
             egl-wayland

@@ -32,11 +32,13 @@ impl Menu {
                         egui_extras::TableBuilder::new(ui)
                             .striped(true)
                             .column(egui_extras::Column::auto())
+                            .column(egui_extras::Column::auto())
                             .column(egui_extras::Column::initial(target_width))
                             .column(egui_extras::Column::auto())
                             .resizable(true)
                             .auto_shrink([false, true])
                             .header(20.0, |mut header| {
+                                header.col(|_ui| {});
                                 header.col(|_ui| {});
                                 header.col(|ui| {
                                     ui.strong("Theme");
@@ -51,6 +53,14 @@ impl Menu {
                                         row.col(|ui| {
                                             if ui.button("Play!").clicked() {
                                                 ret = Some(def.clone());
+                                            }
+                                        });
+                                        row.col(|ui| {
+                                            if ui.button("Download!").clicked() {
+                                                crate::util::download_file(
+                                                    "game.json".into(),
+                                                    serde_json::to_string_pretty(def).unwrap(),
+                                                );
                                             }
                                         });
                                         row.col(|ui| {

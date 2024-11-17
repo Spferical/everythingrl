@@ -15,9 +15,13 @@ macroquad = "0.4.4"
 egui-macroquad = { git = "https://github.com/optozorax/egui-macroquad.git" }
 egui = "0.25.0"
 egui_extras = "0.25"
-rand = { version = "0.8", default-features=false, features=["small_rng"] }
+rand = { version = "0.8", default-features = false, features = ["small_rng"] }
 textwrap = "0.16.1"
-reqwest = { version = "0.12.9", default-features = false, features = ["blocking", "rustls-tls", "json"] }
+reqwest = { version = "0.12.9", default-features = false, features = [
+    "blocking",
+    "rustls-tls",
+    "json",
+] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 sapp-jsutils = "0.1.5"
@@ -26,11 +30,22 @@ line_drawing = "1.0.0"
 quad-url = "0.1.0"
 rand_distr = "0.4.3"
 noise = "0.9.0"
-wasm-bindgen-futures = "0.4.45"
 quad-storage = "0.1.3"
-web-time = "1.1.0"
 chrono = "0.4.38"
-async-compat = "0.2.4"
+rfd = "0.15.1"
+web-time = "1.1.0"
+
+[target.'cfg(target_family="wasm")'.dependencies]
+wasm-bindgen = "0.2.95"
+web-sys = { version = "0.3.72", features = [
+    "Blob",
+    "Url",
+    "HtmlAnchorElement",
+    "Window",
+] }
+js-sys = "0.3.72"
+wasm-bindgen-futures = "0.4.45"
 
 [target.'cfg(not(target_family="wasm"))'.dependencies]
 smol = "2.0.2"
+async-compat = "0.2.4"
