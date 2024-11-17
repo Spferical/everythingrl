@@ -37,7 +37,7 @@
 
         inherit (pkgs) lib;
 
-        craneLib = (crane.mkLib pkgs);
+        craneLib = (crane.mkLib pkgs).overrideToolchain pkgs.rust-bin.stable.latest.default;
         src = lib.cleanSourceWith {
           src = craneLib.path ./.;
           filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/assets/.*$" path != null);
