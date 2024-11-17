@@ -29,8 +29,7 @@ function build_windows() {
 build_windows
 
 function build_wasm() {
-    nix develop --command 'cargo build --release --target wasm32-unknown-unknown'
-    cp -f "${target_dir}/wasm32-unknown-unknown/release/${project_name}.wasm" dist/
+    nix develop --command './build_wasm.sh'
     rm -rf dist/assets/
     rsync -a assets/ dist/assets/
 }

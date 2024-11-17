@@ -164,7 +164,7 @@
           drv = my-crate;
         };
 
-        devShells.default = craneLib.devShell
+        devShells.default = craneLibWasm.devShell
           {
             # Inherit inputs from checks.
             checks = self.checks.${system};
@@ -176,8 +176,6 @@
 
             # Extra inputs can be added here; cargo and rustc are provided by default.
             packages = with pkgs; [
-                wasm-pack
-                cargo-binutils
                 lld
             ];
           };
