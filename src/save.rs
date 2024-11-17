@@ -22,7 +22,8 @@ pub struct DefsMetadata {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Defs {
     pub metadata: DefsMetadata,
-    pub defs: String,
+    /// Deliberately not parsing this here to allow old game data.
+    pub defs: serde_json::Value,
 }
 
 pub fn load_defs() -> Vec<Defs> {
@@ -31,7 +32,7 @@ pub fn load_defs() -> Vec<Defs> {
         .unwrap()
         .get("game_defs")
         .and_then(|defs| serde_json::from_str(&defs).ok())
-        .unwrap_or(vec![])
+        .unwrap_or_default()
 }
 
 pub fn write_defs(defs: &[Defs]) {
@@ -52,7 +53,7 @@ pub fn save_def(defs: &GameDefs) {
                 .unwrap()
                 .as_secs() as i64,
         },
-        defs: serde_json::to_string(&defs).unwrap(),
+        defs: serde_json::to_value(defs).unwrap(),
     });
     write_defs(&saved_defs);
 }

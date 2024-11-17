@@ -367,7 +367,7 @@ async fn main() {
                 Some(main_menu::Choice::Play) => GameState::Intro(intro::IntroState::new()),
                 Some(main_menu::Choice::Load(def)) => {
                     ig = Some(IdeaGuy::from_saved(
-                        serde_json::from_str(&def.defs).unwrap(),
+                        serde_json::from_value(def.defs).unwrap(),
                     ));
                     GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap()))
                 }
