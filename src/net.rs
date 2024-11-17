@@ -484,7 +484,6 @@ pub struct GameDefs {
 /// Contains raw AI-generated content fetched from the server.
 pub struct IdeaGuy {
     pub game_defs: GameDefs,
-    pub api_url: String,
     // keys/vals are indices into items.
     pub recipes: HashMap<(usize, usize), usize>,
     outgoing: Vec<PendingRequest>,
@@ -495,7 +494,6 @@ pub struct IdeaGuy {
 
 impl IdeaGuy {
     pub fn new(theme: &str) -> Self {
-        let api_url = api_url();
         let mut slf = Self {
             game_defs: GameDefs {
                 theme: theme.into(),
@@ -505,7 +503,6 @@ impl IdeaGuy {
                 items: vec![],
                 boss: None,
             },
-            api_url,
             outgoing: vec![],
             recipes: HashMap::new(),
             next_craft_id: CraftId(0),
@@ -522,7 +519,6 @@ impl IdeaGuy {
     pub fn from_saved(game_defs: GameDefs) -> Self {
         Self {
             game_defs,
-            api_url: api_url(),
             outgoing: vec![],
             recipes: HashMap::new(),
             next_craft_id: CraftId(0),
