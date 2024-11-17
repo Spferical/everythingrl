@@ -406,14 +406,11 @@ async fn main() {
                 for (k, v) in ps.pressed_keys.iter_mut() {
                     let old_v = *v;
                     *v += get_frame_time();
-                    if *v >= INIT_KEY_REPEAT {
-                        if old_v < INIT_KEY_REPEAT {
-                            keys_to_repeat.push(*k);
-                        } else if ((old_v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
-                            != ((*v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
-                        {
-                            keys_to_repeat.push(*k);
-                        }
+                    if *v >= INIT_KEY_REPEAT
+                        && (((old_v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
+                            != ((*v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor())
+                    {
+                        keys_to_repeat.push(*k);
                     }
                 }
                 for k in keys_to_repeat {
