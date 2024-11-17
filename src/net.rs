@@ -1,9 +1,10 @@
 use enum_map::Enum;
+#[cfg(not(target_family = "wasm"))]
+use std::time::Duration;
 use std::{
     collections::HashMap,
     fmt::Display,
     sync::mpsc::{self, Receiver},
-    time::Duration,
 };
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -377,7 +378,19 @@ where
 {
     let (tx, rx) = mpsc::channel();
     #[cfg(target_family = "wasm")]
-    crate::wasm::post(url, serde_json::to_string(&input).unwrap(), tx);
+    {
+        wasm_bindgen_futures::spawn_local(async move {
+            let resp = reqwest::Client::new().post(url).json(&input).send().await;
+            tx.send(match resp {
+                Ok(r) => Ok(Response {
+                    status: r.status().as_u16().into(),
+                    data: r.text().await.unwrap_or_default(),
+                }),
+                Err(e) => Err(e.to_string()),
+            })
+            .ok();
+        });
+    }
 
     #[cfg(not(target_family = "wasm"))]
     std::thread::spawn(move || {
