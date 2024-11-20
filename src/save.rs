@@ -3,18 +3,18 @@
 //! - saving all generated games to localstorage (or a fixed local file)
 //! - listing ^
 //! - being able to save and load these to local files
-//! - properly supporting saves from an older version
+//! - properly supporting saves from an older save_format
 use quad_storage::STORAGE;
 
 use crate::net::GameDefs;
 
 /// Rev of the game definitions used by the running game.
-pub const DEFS_VERSION: u64 = 1;
+pub const CURRENT_SAVE_FORMAT: u64 = 1;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct DefsMetadata {
     pub theme: String,
-    pub version: u64,
+    pub save_format: u64,
     /// unix time
     pub created: i64,
 }
@@ -47,7 +47,7 @@ pub fn save_def(defs: &GameDefs) {
     saved_defs.push(Defs {
         metadata: DefsMetadata {
             theme: defs.theme.clone(),
-            version: DEFS_VERSION,
+            save_format: CURRENT_SAVE_FORMAT,
             created: web_time::SystemTime::now()
                 .duration_since(web_time::UNIX_EPOCH)
                 .unwrap()
