@@ -8,7 +8,7 @@ use rand::{seq::SliceRandom, SeedableRng};
 
 use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
 use crate::net::{ItemKind, MapGen};
-use crate::world::{self, Item, ItemInfo, ItemInstance, Mob, MobKind, TileKind, World, FOV_RANGE};
+use crate::world::{Item, ItemInfo, ItemInstance, Mob, MobKind, TileKind, World, FOV_RANGE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -553,10 +553,7 @@ fn sprinkle_items(
             None => return i,
         };
         if let Some(ii) = items.choose(rng).cloned() {
-            world[pos].item = Some(Item::Instance(ItemInstance::new(
-                ii,
-                world::STARTING_DURABILITY,
-            )));
+            world[pos].item = Some(Item::Instance(ItemInstance::new(ii)));
         } else {
             return i;
         }
@@ -567,7 +564,6 @@ fn sprinkle_items(
 fn sprinkle_enemies_and_items(
     world: &mut World,
     rect: Rect,
-    level_idx: usize,
     lgr: &LevelgenResult,
     sprinkle: &SprinkleOpts,
     rng: &mut impl Rng,
@@ -645,24 +641,6 @@ fn sprinkle_enemies_and_items(
         macroquad::miniquad::info!("{}", format!("Placed {placed}/{num} {name}"));
     }
 
-    // sprinkle some starting items around the player if this is level 1
-    if level_idx == 0 {
-        let mut free_poses_near_player: Vec<Pos> = fov
-            .iter()
-            .cloned()
-            .filter(|p| world[*p].kind.is_walkable())
-            .collect();
-        free_poses_near_player.sort_by_key(|p| (*p - lgr.start).mhn_dist());
-        free_poses_near_player.reverse();
-        for (num, items, name) in &[
-            (2, &armor, "starting armor"),
-            (2, &weapons, "starting weapons"),
-            (3, &food, "starting food"),
-        ] {
-            let placed = sprinkle_items(world, &mut free_poses_near_player, *num, items, rng);
-            macroquad::miniquad::info!("{}", format!("Placed {placed}/{num} {name}"));
-        }
-    }
     // make some tiles bloody just for fun
     for p in walkable_poses {
         let gen = rng.gen::<f32>();
@@ -743,7 +721,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         fill_rect(world, rect, TileKind::Wall);
         return Err("Too small".into());
     }
-    sprinkle_enemies_and_items(world, rect, i, &lgr, &sprinkle, rng).map(|_| lgr)
+    sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, rng).map(|_| lgr)
 }
 
 pub fn generate_world(world: &mut World, seed: u64) {

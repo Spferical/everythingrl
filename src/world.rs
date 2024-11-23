@@ -54,10 +54,10 @@ pub struct ItemInstance {
 }
 
 impl ItemInstance {
-    pub fn new(info: Rc<ItemInfo>, item_durability: usize) -> ItemInstance {
+    pub fn new(info: Rc<ItemInfo>) -> ItemInstance {
         ItemInstance {
             info,
-            item_durability,
+            item_durability: STARTING_DURABILITY,
         }
     }
 }
@@ -766,13 +766,34 @@ impl World {
         ]
     }
 
+    pub fn apply_character(&mut self, character: crate::net::Character) {
+        for item_name in character.starting_items.iter() {
+            if let Some(item_info) = self
+                .world_info
+                .item_kinds
+                .iter()
+                .find(|k| &k.name == item_name)
+            {
+                self.inventory
+                    .add(Item::Instance(ItemInstance::new(item_info.clone())));
+                use ItemKind::*;
+                if matches!(item_info.kind, MeleeWeapon | RangedWeapon | Armor) {
+                    self.inventory.toggle_equip(self.inventory.items.len() - 1);
+                }
+            } else {
+                macroquad::miniquad::error!("Invalid starting item {}", item_name);
+            }
+        }
+        self.inventory.sort();
+    }
+
     pub fn update_defs(&mut self, ig: &mut IdeaGuy) {
         self.world_info.update(ig);
         let mut msgs = vec![];
         for item in &mut self.inventory.items {
             if let Item::PendingCraft(a, b) = item.item.clone() {
                 if let Some(c) = self.world_info.recipes.get(&(a.clone(), b.clone())) {
-                    item.item = Item::Instance(ItemInstance::new(c.clone(), STARTING_DURABILITY));
+                    item.item = Item::Instance(ItemInstance::new(c.clone()));
                     msgs.push(Self::get_craft_msg(a.clone(), b.clone(), c.clone()));
                 }
             }

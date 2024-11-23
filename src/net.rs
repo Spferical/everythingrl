@@ -486,7 +486,7 @@ pub struct GameDefs {
     pub monsters: Vec<MonsterDefinition>,
     pub items: Vec<ItemDefinition>,
     pub boss: Option<BossDefinition>,
-    pub characters: Vec<Character>
+    pub characters: Vec<Character>,
 }
 
 /// Contains raw AI-generated content fetched from the server.

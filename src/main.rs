@@ -52,10 +52,10 @@ pub fn random() -> u64 {
 
 impl PlayState {
     pub fn new(font: Font, ig: &mut IdeaGuy, ch: net::Character) -> Self {
-        // TODO: apply character
         let mut sim = world::World::new();
         sim.update_defs(ig);
         map_gen::generate_world(&mut sim, random());
+        sim.apply_character(ch);
         let memory = world::Memory::new();
         let ui = render::Ui::new(None, font);
         sim.post_init();
