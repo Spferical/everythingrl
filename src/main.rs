@@ -1,8 +1,10 @@
+use chargen::Chargen;
 use macroquad::prelude::*;
-use net::IdeaGuy;
+use net::{GameDefs, IdeaGuy};
 use std::collections::HashMap;
 use world::PlayerAction;
 
+mod chargen;
 mod fov;
 mod grid;
 mod intro;
@@ -19,6 +21,7 @@ use crate::grid::{EAST, NORTH, SOUTH, WEST};
 enum GameState {
     Menu(main_menu::Menu),
     Intro(intro::IntroState),
+    Chargen(chargen::Chargen),
     Play(PlayState),
 }
 
@@ -48,7 +51,8 @@ pub fn random() -> u64 {
 }
 
 impl PlayState {
-    pub fn new(font: Font, ig: &mut IdeaGuy) -> Self {
+    pub fn new(font: Font, ig: &mut IdeaGuy, ch: net::Character) -> Self {
+        // TODO: apply character
         let mut sim = world::World::new();
         sim.update_defs(ig);
         map_gen::generate_world(&mut sim, random());
@@ -362,14 +366,20 @@ async fn main() {
 
         let mut restart = false;
         gs = match gs {
+            GameState::Chargen(ref mut chargen) => {
+                if let Some(c) = chargen.tick() {
+                    GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap(), c))
+                } else {
+                    gs
+                }
+            }
             GameState::Menu(ref mut menu) => match menu.tick() {
                 None => gs,
                 Some(main_menu::Choice::Play) => GameState::Intro(intro::IntroState::new()),
                 Some(main_menu::Choice::Load(def)) => {
-                    ig = Some(IdeaGuy::from_saved(
-                        serde_json::from_value(def.defs).unwrap(),
-                    ));
-                    GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap()))
+                    let defs: GameDefs = serde_json::from_value(def.defs).unwrap();
+                    ig = Some(IdeaGuy::from_saved(defs.clone()));
+                    GameState::Chargen(crate::chargen::Chargen::new(defs))
                 }
             },
             GameState::Intro(ref mut intro) => {
@@ -385,7 +395,9 @@ async fn main() {
                     if let Some(ig) = ig.as_mut() {
                         if ig.game_defs.boss.is_some() {
                             crate::save::save_def(&ig.game_defs);
-                            new_gs = GameState::Play(PlayState::new(font.clone(), ig))
+                            new_gs = GameState::Chargen(crate::chargen::Chargen::new(
+                                ig.game_defs.clone(),
+                            ));
                         }
                     }
                 }
@@ -428,7 +440,7 @@ async fn main() {
                 ps.ui.render(&ps.sim, &ps.memory);
 
                 if restart {
-                    GameState::Play(PlayState::new(font.clone(), ig))
+                    GameState::Chargen(Chargen::new(ig.game_defs.clone()))
                 } else {
                     gs
                 }
