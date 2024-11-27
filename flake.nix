@@ -44,6 +44,7 @@
         };
         craneLibWasm = craneLib.overrideToolchain (pkgs.rust-bin.stable.latest.default.override {
           targets = [ "wasm32-unknown-unknown" ];
+            extensions = [ "rust-src" ];
         });
 
         # Common arguments can be set here to avoid repeating them later
