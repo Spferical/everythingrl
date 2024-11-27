@@ -1,0 +1,14 @@
+[project]
+name = "everythingrl-server"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1.7",
+    "flask-sqlalchemy>=3.1.1",
+    "flask>=3.1.0",
+    "google-cloud-aiplatform>=1.73.0",
+    "gunicorn>=23.0.0",
+    "pydantic>=2.10.2",
+    "requests>=2.32.3",
+    "sqlalchemy>=2.0.36",
+]
