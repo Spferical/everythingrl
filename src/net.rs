@@ -317,6 +317,8 @@ pub struct ItemDefinition {
     pub ty: PokemonType,
     pub description: String,
     pub kind: ItemKind,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub craft_id: Option<CraftId>,
 }
 
