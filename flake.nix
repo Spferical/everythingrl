@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
 
     crane = {
       url = "github:ipetkov/crane";
@@ -65,14 +65,14 @@
           ] ++ lib.optionals pkgs.stdenv.isLinux [
             wayland
             libxkbcommon
-            glew-egl
+            glew
             egl-wayland
             xorg.libX11
             xorg.libXcursor
             xorg.libXi
             xorg.libXrandr
             xorg.libxcb
-            alsaLib
+            alsa-lib
           ] ++ lib.optionals pkgs.stdenv.isDarwin [
             # Additional darwin specific inputs can be set here
             pkgs.libiconv
