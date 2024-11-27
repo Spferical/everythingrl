@@ -146,11 +146,11 @@ class SettingDesc(pydantic.BaseModel):
 
 class AiAction(pydantic.BaseModel):
     set_setting_desc: str | None = None
-    add_areas: list[Area] = []
-    add_monster_defs: list[Monster] = []
-    add_item_defs: list[Item] = []
+    add_area: Area | None = None
+    add_monster_def: Monster | None = None
+    add_item_def: Item | None = None
     set_boss: Boss | None = None
-    add_characters: list[Character] = []
+    add_character: Character | None = None
 
 
 class GameState(pydantic.BaseModel):
@@ -165,9 +165,13 @@ class GameState(pydantic.BaseModel):
     def apply_action(self, action: AiAction):
         if action.set_setting_desc:
             self.setting_desc = action.set_setting_desc
-        self.areas.extend(action.add_areas)
-        self.monsters.extend(action.add_monster_defs)
-        self.items.extend(action.add_item_defs)
+        if action.add_area is not None:
+            self.areas.append(action.add_area)
+        if action.add_monster_def is not None:
+            self.monsters.append(action.add_monster_def)
+        if action.add_item_def is not None:
+            self.items.append(action.add_item_def)
         if action.set_boss is not None:
             self.boss = action.set_boss
-        self.characters.extend(action.add_characters)
+        if action.add_character is not None:
+            self.characters.append(action.add_character)

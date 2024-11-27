@@ -171,10 +171,10 @@ def ask_google_big_prompt(
     instructions: str,
     examples: list[tuple[dict, dict]],
     input: game_types.GameState,
-) -> game_types.AiAction:
+) -> list[game_types.AiAction]:
     system_prompt = """You are the game master for a difficult permadeath roguelike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
 
-You will be given a JSON object describing the current content definitions for a game. Produce JSON describing the _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below.
+You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. DO NOT output markdown ```json or ``` backticks.
 
 The game mechanics are fixed and are as follows. The player explores three randomly-generated dungeon levels (areas) and aims to defeat the boss on a small fourth final level. The player may equip up to two pieces of armor (equipment) and one melee weapon and one ranged weapon. They may store extra equipment in their inventory and eat food items to regain health. Weapons, armor, food, and enemies all have Pokemon types that influence their effectiveness. All also have levels, which make them directly more effective.
 
@@ -189,12 +189,21 @@ The player may choose between 5 varied starting characters. These may be named p
     logging.debug(f"ASKING: {prompt}")
     response_text = ask_google([prompt], system_instruction=system_prompt)
     logging.info(f"RECEIVED: {response_text}")
-    try:
-        response_json = json.loads(response_text)
-        return game_types.AiAction(**response_json)
-    except Exception as e:
-        logging.error(f"Bad response: {response_text}: {e}")
-        raise
+    actions = []
+    last_exc = None
+    for line in response_text.splitlines():
+        try:
+            response_json = json.loads(line)
+            actions.append(game_types.AiAction(**response_json))
+        except Exception as e:
+            logging.error(f"Bad response: {response_text}: {e}")
+            last_exc = e
+    if len(actions) == 0:
+        if last_exc is not None:
+            raise last_exc
+        else:
+            raise RuntimeError("Failed to generate any actions")
+    return actions
 
 
 def ask_google_json_merge(
@@ -202,8 +211,9 @@ def ask_google_json_merge(
 ):
     """Mutates and returns the game state."""
     output = ask_google_big_prompt(instructions, examples, state)
-    logging.info(f"AI Action: {output}")
-    state.apply_action(output)
+    for action in output:
+        logging.info(f"AI Action: {output}")
+        state.apply_action(action)
 
 
 def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: dict):
