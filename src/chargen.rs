@@ -1,3 +1,4 @@
+use egui::Label;
 use macroquad::prelude::*;
 
 use crate::net::{Character, GameDefs};
@@ -23,7 +24,7 @@ impl Chargen {
             egui::Window::new("Choose your character")
                 .resizable(false)
                 .collapsible(false)
-                .min_width(width / 2.0)
+                .default_width(400.0)
                 .max_width(width)
                 .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
                 .show(egui_ctx, |ui| {
@@ -31,7 +32,7 @@ impl Chargen {
                         .inner_margin(egui::style::Margin::symmetric(padding, padding))
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
-                                ui.vertical_centered(|ui| {
+                                ui.vertical(|ui| {
                                     egui_extras::TableBuilder::new(ui)
                                         .striped(true)
                                         .column(egui_extras::Column::auto())
@@ -44,7 +45,13 @@ impl Chargen {
                                                 body.row(20.0, |mut row| {
                                                     row.set_selected(self.selected == Some(i));
                                                     row.col(|ui| {
-                                                        ui.label(&c.name);
+                                                        ui.add(
+                                                            Label::new(
+                                                                egui::RichText::new(&c.name)
+                                                                    .heading(),
+                                                            )
+                                                            .wrap(false),
+                                                        );
                                                     });
                                                     if row.response().clicked() {
                                                         self.selected = Some(i)
@@ -54,13 +61,24 @@ impl Chargen {
                                         });
                                 });
                                 ui.separator();
-                                ui.vertical_centered(|ui| {
+                                ui.vertical(|ui| {
                                     if let Some(i) = self.selected {
                                         if let Some(c) = self.defs.characters.get(i) {
-                                            ui.label(&c.name);
+                                            ui.add(Label::new(
+                                                egui::RichText::new(&c.name).heading(),
+                                            ));
+                                            ui.separator();
+
                                             ui.label(&c.backstory);
-                                            for it in &c.starting_items {
-                                                ui.label(it);
+                                            for name in &c.starting_items {
+                                                if let Some(item_def) =
+                                                    self.defs.items.iter().find(|i| &i.name == name)
+                                                {
+                                                    ui.label(
+                                                        egui::RichText::new(name)
+                                                            .color(item_def.ty.get_color()),
+                                                    );
+                                                }
                                             }
                                             if ui.button("Play").clicked() {
                                                 choice = Some(c.clone());

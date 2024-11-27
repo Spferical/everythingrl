@@ -105,12 +105,6 @@ fn get_item_condition(durability: usize) -> ItemCondition {
     }
 }
 
-fn to_egui(c: &Color) -> egui::Color32 {
-    let color = macroquad::color::Color::from(*c);
-    let [r, g, b, _a] = color.into();
-    Color32::from_rgb(r, g, b)
-}
-
 fn normpdf(x: f32, mean: f32, std: f32) -> f32 {
     let var = std * std;
     let denom = f32::sqrt(2. * std::f32::consts::PI * var);
@@ -175,7 +169,7 @@ impl Ui {
                                 0.0,
                                 egui::TextFormat {
                                     font_id: self.get_base_font(),
-                                    color: to_egui(&Color::Gold),
+                                    color: Color::Gold.into(),
                                     italics: true,
                                     ..Default::default()
                                 },
@@ -186,7 +180,7 @@ impl Ui {
                                 0.0,
                                 egui::TextFormat {
                                     font_id: self.get_base_font(),
-                                    color: to_egui(&Color::White),
+                                    color: Color::White.into(),
                                     ..Default::default()
                                 },
                             );
@@ -308,7 +302,7 @@ impl Ui {
                                 });
                                 row.col(|ui| {
                                     for ty in types {
-                                        ui.colored_label(to_egui(&ty.get_color()), ty.to_string());
+                                        ui.colored_label(ty.get_color(), ty.to_string());
                                     }
                                 });
                                 row.col(|ui| {
@@ -323,7 +317,7 @@ impl Ui {
                                 row.col(|ui| {
                                     ui.label(
                                         egui::RichText::new(format!("{:?}", cond))
-                                            .color(to_egui(&condition_color(cond))),
+                                            .color(condition_color(cond)),
                                     );
                                 });
 
@@ -478,14 +472,14 @@ impl Ui {
                             egui::Layout::left_to_right(egui::Align::Center)
                                 .with_cross_align(egui::Align::Center),
                             |ui| {
-                                let white = to_egui(&Color::White);
+                                let white = &Color::White;
                                 let font = self.get_base_font();
                                 ui.label(RichText::new("HEALTH:").color(white).font(font.clone()));
                                 let player_hp = usize::saturating_sub(
                                     crate::world::PLAYER_MAX_HEALTH,
                                     sim.player_damage,
                                 );
-                                let red = to_egui(&Color::Red);
+                                let red = &Color::Red;
                                 ui.label(
                                     RichText::new(format!("{player_hp}"))
                                         .color(red)
@@ -585,7 +579,7 @@ impl Ui {
                                         0.0,
                                         egui::TextFormat {
                                             font_id: self.get_base_font(),
-                                            color: to_egui(color),
+                                            color: color.into(),
                                             ..Default::default()
                                         },
                                     );
@@ -594,7 +588,7 @@ impl Ui {
                                         0.0,
                                         egui::TextFormat {
                                             font_id: self.get_base_font(),
-                                            color: to_egui(color),
+                                            color: color.into(),
                                             ..Default::default()
                                         },
                                     );
@@ -603,7 +597,7 @@ impl Ui {
                                         0.0,
                                         egui::TextFormat {
                                             font_id: self.get_base_font(),
-                                            color: to_egui(&type1.get_color()),
+                                            color: type1.get_color().into(),
                                             ..Default::default()
                                         },
                                     );
@@ -613,7 +607,7 @@ impl Ui {
                                             0.0,
                                             egui::TextFormat {
                                                 font_id: self.get_details_font(),
-                                                color: to_egui(&type2.get_color()),
+                                                color: type2.get_color().into(),
                                                 ..Default::default()
                                             },
                                         );
@@ -634,7 +628,7 @@ impl Ui {
                                         0.0,
                                         egui::TextFormat {
                                             font_id: self.get_details_font(),
-                                            color: to_egui(&attack_type.get_color()),
+                                            color: attack_type.get_color().into(),
                                             ..Default::default()
                                         },
                                     );
@@ -734,7 +728,7 @@ impl Ui {
                                     };
                                     let mut job = egui::text::LayoutJob::default();
                                     for (log_entry_str, log_entry_color) in log_entry {
-                                        let mut color = to_egui(log_entry_color);
+                                        let mut color = egui::Color32::from(log_entry_color);
                                         if !is_new {
                                             color = color.gamma_multiply(0.5);
                                         }

@@ -263,6 +263,20 @@ impl From<Color> for macroquad::color::Color {
     }
 }
 
+impl From<Color> for egui::Color32 {
+    fn from(value: Color) -> Self {
+        let color = macroquad::color::Color::from(value);
+        let [r, g, b, _a] = color.into();
+        egui::Color32::from_rgb(r, g, b)
+    }
+}
+
+impl From<&Color> for egui::Color32 {
+    fn from(value: &Color) -> Self {
+        egui::Color32::from(*value)
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct MonsterDefinition {
     pub name: String,
