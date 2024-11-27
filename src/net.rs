@@ -542,11 +542,18 @@ impl IdeaGuy {
     }
 
     pub fn from_saved(game_defs: GameDefs) -> Self {
+        let next_craft_id = game_defs
+            .items
+            .iter()
+            .flat_map(|item| item.craft_id)
+            .max_by_key(|id| id.0)
+            .map(|CraftId(n)| CraftId(n + 1))
+            .unwrap_or(CraftId(0));
         Self {
             game_defs,
             outgoing: vec![],
             recipes: HashMap::new(),
-            next_craft_id: CraftId(0),
+            next_craft_id,
             error: None,
             error_count: 0,
         }
