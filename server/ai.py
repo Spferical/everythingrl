@@ -174,13 +174,14 @@ def ask_google_big_prompt(
 ) -> list[game_types.AiAction]:
     system_prompt = """You are the game master for a difficult permadeath roguelike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
 
-You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. DO NOT output markdown ```json or ``` backticks.
-
 The game mechanics are fixed and are as follows. The player explores three randomly-generated dungeon levels (areas) and aims to defeat the boss on a small fourth final level. The player may equip up to two pieces of armor (equipment) and one melee weapon and one ranged weapon. They may store extra equipment in their inventory and eat food items to regain health. Weapons, armor, food, and enemies all have Pokemon types that influence their effectiveness. All also have levels, which make them directly more effective.
 
 There are three levels (areas) in the game. Each should have at least 5 possible monsters found in that level, 5 pieces of armor, 3 melee weapons, 2 ranged weapons, and 3 food items. Try to avoid common or generic roguelike items.
 
-The player may choose between 5 varied starting characters. These may be named people or classes. Each should include a name, a paragraph-long backstory that includes their motivation, and 5 starting items that include at least 1 piece of armor and a melee weapon."""
+The player may choose between 5 varied starting characters. These may be named people or classes. Each should include a name, a paragraph-long backstory that includes their motivation, and 5 starting items that include at least 1 piece of armor and a melee weapon.
+
+You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown ```json or ``` backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced.
+"""
     for example_input, example_output in examples:
         system_prompt += (
             f"\n\nExample input: {example_input}\nExample output: {example_output}"
@@ -212,7 +213,7 @@ def ask_google_json_merge(
     """Mutates and returns the game state."""
     output = ask_google_big_prompt(instructions, examples, state)
     for action in output:
-        logging.info(f"AI Action: {output}")
+        logging.info(f"AI Action: {action.model_dump_json()}")
         state.apply_action(action)
 
 
@@ -274,7 +275,24 @@ def get_missing_requirements(state: game_types.GameState) -> list[str]:
 
 
 def gen_anything(instructions: str, state: game_types.GameState):
-    ask_google_json_merge(instructions, [], state)
+    examples = []
+    if instructions == "Generate everything":
+        hk_input = game_types.GameState(theme="Hollow Knight").model_dump_json()
+        hk_state = game_types.GameState(**get_test_json("hk.json"))
+        hk_output = []
+        hk_output.append(game_types.AiAction(set_setting_desc=hk_state.setting_desc))
+        for area in hk_state.areas:
+            hk_output.append(game_types.AiAction(add_area=area))
+        for monster_def in hk_state.monsters:
+            hk_output.append(game_types.AiAction(add_monster_def=monster_def))
+        for item_def in hk_state.items:
+            hk_output.append(game_types.AiAction(add_item_def=item_def))
+        hk_output.append(game_types.AiAction(set_boss=hk_state.boss))
+        for character in hk_state.characters:
+            hk_output.append(game_types.AiAction(add_character=character))
+        hk_output = '\n'.join(x.model_dump_json() for x in hk_output)
+        examples.append((hk_input, hk_output))
+    ask_google_json_merge(instructions, examples, state)
     generations = 1
     while True:
         missing_requirements = get_missing_requirements(state)
