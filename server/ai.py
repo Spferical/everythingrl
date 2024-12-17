@@ -15,10 +15,6 @@ from vertexai.preview.generative_models import GenerativeModel, GenerationRespon
 import vertexai.preview.generative_models as generative_models
 import game_types
 
-MISTRAL_API_URL = "https://api.mistral.ai"
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
-
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 USE_VERTEX_AI = True
@@ -180,14 +176,14 @@ There are three levels (areas) in the game. Each should have at least 5 possible
 
 The player may choose between 5 varied starting characters. These may be named people or classes. Each should include a name, a paragraph-long backstory that includes their motivation, and 5 starting items that include at least 1 piece of armor and a melee weapon.
 
-You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown ```json or ``` backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced.
+You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced.
 """
     for example_input, example_output in examples:
         system_prompt += (
             f"\n\nExample input: {example_input}\nExample output: {example_output}"
         )
     prompt = f"Game JSON: {input.model_dump_json()}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
-    logging.debug(f"ASKING: {prompt}")
+    logging.debug(f"ASKING: {system_prompt}\n{prompt}")
     response_text = ask_google([prompt], system_instruction=system_prompt)
     logging.info(f"RECEIVED: {response_text}")
     actions = []

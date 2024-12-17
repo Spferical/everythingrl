@@ -145,7 +145,7 @@ class SettingDesc(pydantic.BaseModel):
 
 
 class AiAction(pydantic.BaseModel):
-    set_setting_desc: str | None = None
+    set_setting_desc: str | None = pydantic.Field(description='Several player-facing paragraphs to introduce the setting and tone of the game.', default=None)
     add_area: Area | None = None
     add_monster_def: Monster | None = None
     add_item_def: Item | None = None
