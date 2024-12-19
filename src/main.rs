@@ -11,6 +11,7 @@ mod intro;
 mod main_menu;
 mod map_gen;
 mod net;
+mod ratelimit;
 mod render;
 mod save;
 mod util;

@@ -1,3 +1,7 @@
+#[cfg(not(target_family = "wasm"))]
+pub use async_std::task::sleep;
+#[cfg(target_family = "wasm")]
+pub use gloo_timers::future::sleep;
 use std::future::Future;
 
 pub fn trim(text: &str, max_chars: usize) -> &str {

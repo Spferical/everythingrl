@@ -3,8 +3,10 @@ use std::{
     collections::HashMap,
     fmt::Display,
     sync::mpsc::{self, Receiver},
+    time::Duration,
 };
 
+use crate::ratelimit::Ratelimiter;
 use crate::util::spawn;
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -395,25 +397,42 @@ pub struct Response {
     pub data: String,
 }
 
-pub fn request<Input>(url: String, input: Input) -> BootlegFuture<Result<Response, String>>
-where
-    Input: serde::Serialize + Send + 'static,
-{
-    let (tx, rx) = mpsc::channel();
-    spawn(async move {
-        // NOTE: wasm reqwest doesn't support timeouts.
-        let resp = reqwest::Client::new().post(url).json(&input).send().await;
-        tx.send(match resp {
-            Ok(r) => Ok(Response {
-                status: r.status().as_u16().into(),
-                data: r.text().await.unwrap_or_default(),
-            }),
-            Err(e) => Err(e.to_string()),
-        })
-        .ok();
-    });
+/// API client that ratelimits requests.
+pub struct ApiClient {
+    ratelimit: Ratelimiter,
+}
+impl ApiClient {
+    pub fn new() -> Self {
+        Self {
+            ratelimit: Ratelimiter::new(Duration::from_secs(1)),
+        }
+    }
+    pub fn request<Input>(
+        &self,
+        url: String,
+        input: Input,
+    ) -> BootlegFuture<Result<Response, String>>
+    where
+        Input: serde::Serialize + Send + 'static,
+    {
+        let (tx, rx) = mpsc::channel();
+        let _rl = self.ratelimit.clone();
+        spawn(async move {
+            _rl.wait().await;
+            // NOTE: wasm reqwest doesn't support timeouts.
+            let resp = reqwest::Client::new().post(url).json(&input).send().await;
+            tx.send(match resp {
+                Ok(r) => Ok(Response {
+                    status: r.status().as_u16().into(),
+                    data: r.text().await.unwrap_or_default(),
+                }),
+                Err(e) => Err(e.to_string()),
+            })
+            .ok();
+        });
 
-    BootlegFuture { rx, state: None }
+        BootlegFuture { rx, state: None }
+    }
 }
 
 pub fn api_url() -> String {
@@ -514,6 +533,7 @@ pub struct IdeaGuy {
     pub next_craft_id: CraftId,
     pub error: Option<String>,
     pub error_count: usize,
+    pub api: ApiClient,
 }
 
 impl IdeaGuy {
@@ -533,6 +553,7 @@ impl IdeaGuy {
             next_craft_id: CraftId(0),
             error: None,
             error_count: 0,
+            api: ApiClient::new(),
         };
         slf.request(Request::Anything(AnythingRequest {
             ask: "Generate everything".into(),
@@ -556,6 +577,7 @@ impl IdeaGuy {
             next_craft_id,
             error: None,
             error_count: 0,
+            api: ApiClient::new(),
         }
     }
 
@@ -573,8 +595,10 @@ impl IdeaGuy {
         macroquad::miniquad::info!("Requesting {:?}", req);
         let api_url = api_url();
         let fut = match req {
-            Request::Anything(ref req) => request(format!("{api_url}/v1/anything"), req.clone()),
-            Request::Craft { item1, item2, .. } => request(
+            Request::Anything(ref req) => self
+                .api
+                .request(format!("{api_url}/v1/anything"), req.clone()),
+            Request::Craft { item1, item2, .. } => self.api.request(
                 format!("{api_url}/v1/craft"),
                 CraftArgs {
                     theme: self.game_defs.theme.clone(),
