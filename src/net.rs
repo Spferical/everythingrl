@@ -426,13 +426,24 @@ impl ApiClient {
                     status: r.status().as_u16().into(),
                     data: r.text().await.unwrap_or_default(),
                 }),
-                Err(e) => Err(e.to_string()),
+                Err(err) => Err(format_full_error_chain(err)),
             })
             .ok();
         });
 
         BootlegFuture { rx, state: None }
     }
+}
+
+fn format_full_error_chain(err: impl std::error::Error) -> String {
+    let mut err_string = err.to_string();
+    let mut err: &dyn std::error::Error = &err as _;
+    while let Some(source) = err.source() {
+        err_string += "\n";
+        err_string += &source.to_string();
+        err = source;
+    }
+    err_string
 }
 
 pub fn api_url() -> String {
