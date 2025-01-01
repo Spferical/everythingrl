@@ -193,7 +193,7 @@ There are three levels (areas) in the game. Each should have at least 5 possible
 
 The player may choose between 5 varied starting characters. These may be named people or classes. Each should include a name, a paragraph-long backstory that includes their motivation, and 5 starting items that include at least 1 piece of armor and a melee weapon.
 
-You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced.
+You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced. AVOID bland or generic descriptions; prefer short and poignant quips.
 """
     for example_input, example_output in examples:
         system_prompt += (
@@ -290,25 +290,25 @@ def get_missing_requirements(state: game_types.GameState) -> list[str]:
 def gen_anything(instructions: str, state: game_types.GameState):
     examples = []
     if instructions == "Generate everything":
-        hk_input = game_types.GameState(theme="Hollow Knight").model_dump_json(
+        pirates_input = game_types.GameState(theme="Pirates").model_dump_json(
             exclude_defaults=True
         )
-        hk_state = game_types.GameState(**get_test_json("hk.json"))
-        hk_output = []
-        hk_output.append(game_types.AiAction(set_setting_desc=hk_state.setting_desc))
-        for area in hk_state.areas:
-            hk_output.append(game_types.AiAction(add_area=area))
-        for monster_def in hk_state.monsters:
-            hk_output.append(game_types.AiAction(add_monster_def=monster_def))
-        for item_def in hk_state.items:
-            hk_output.append(game_types.AiAction(add_item_def=item_def))
-        hk_output.append(game_types.AiAction(set_boss=hk_state.boss))
-        for character in hk_state.characters:
-            hk_output.append(game_types.AiAction(add_character=character))
-        hk_output = "\n".join(
-            x.model_dump_json(exclude_defaults=True) for x in hk_output
+        pirates_state = game_types.GameState(**get_test_json("pirates.json"))
+        pirates_output = []
+        pirates_output.append(game_types.AiAction(set_setting_desc=pirates_state.setting_desc))
+        for area in pirates_state.areas:
+            pirates_output.append(game_types.AiAction(add_area=area))
+        for monster_def in pirates_state.monsters:
+            pirates_output.append(game_types.AiAction(add_monster_def=monster_def))
+        for item_def in pirates_state.items:
+            pirates_output.append(game_types.AiAction(add_item_def=item_def))
+        pirates_output.append(game_types.AiAction(set_boss=pirates_state.boss))
+        for character in pirates_state.characters:
+            pirates_output.append(game_types.AiAction(add_character=character))
+        pirates_output = "\n".join(
+            x.model_dump_json(exclude_defaults=True) for x in pirates_output
         )
-        examples.append((hk_input, hk_output))
+        examples.append((pirates_input, pirates_output))
     ask_google_json_merge(instructions, examples, state)
     generations = 1
     while True:
