@@ -7,6 +7,7 @@ use macroquad::prelude::*;
 
 pub const CHARS_PER_SECOND: f32 = 70.;
 pub const CHARS_PER_SECOND_LOADING: f32 = 80.;
+pub const BLURB_TIME: f32 = 5.;
 
 pub const SETTINGS: [&str; 11] = [
     "Richard Adams's Watership Down",
@@ -26,6 +27,23 @@ pub const TIPS: [&str; 3] = [
     "think carefully about the type of your weapon, armor and the enemy type before you attack. Some monsters are resistant or completely immune to certain damage types.",
     "most food that you'll find in the world is not particularly nutritious unless cooked.",
     "narrow corridors are your friend. Try luring enemies into a narrow chokepoint to benefit from Lanchester's linear law :)"
+];
+
+pub const LOADING_BLURBS: &[&str] = &[
+    "Figuring out what Pokemon types to use",
+    "Simulating erosion",
+    "Laying out the world",
+    "Populating the world with monsters",
+    "Scattering items all over the place",
+    "Giving the boss his lines",
+    "Testing the crafting bench",
+    "Position in queue: 1234",
+    "Letting the AI rest a bit",
+    "Throwing everything out and starting over",
+    "Putting in staircases",
+    "Designing costumes for each enemy",
+    "Contacting the admin to make sure this setting is allowed",
+    "Planting misinformation"
 ];
 
 pub struct LoadingTypewriter {
@@ -87,11 +105,14 @@ pub struct IntroState {
     pub ready_for_generation: bool,
     chosen_tip: String,
     chosen_settings: Vec<String>,
+    blurbs: Vec<&'static str>,
 }
 
 impl IntroState {
     pub fn new() -> IntroState {
         let mut rng = ::rand::rngs::SmallRng::seed_from_u64(::rand::random());
+        let mut blurbs = Vec::from(LOADING_BLURBS);
+        blurbs.shuffle(&mut rng);
         IntroState {
             prompt_state: PromptState::Welcome(0),
             prompt_dt: 0.,
@@ -104,6 +125,7 @@ impl IntroState {
                 .iter()
                 .map(|i| (*SETTINGS[i]).into())
                 .collect(),
+            blurbs,
         }
     }
 }
@@ -276,6 +298,18 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                         if let Some(KeyCode::Enter) = get_last_key_pressed() {
                             state.prompt_state = PromptState::Done;
                         }
+                    } else {
+                        let blurb_idx =
+                            (state.prompt_dt / BLURB_TIME) as usize % state.blurbs.len();
+                        let max_dots = 3;
+                        let num_dots = (((state.prompt_dt % BLURB_TIME) / BLURB_TIME)
+                            * (max_dots + 1) as f32)
+                            as usize;
+                        ui.label(format!(
+                            "{}{}",
+                            state.blurbs[blurb_idx],
+                            ".".repeat(num_dots)
+                        ));
                     }
                 }
                 PromptState::Done => {}
