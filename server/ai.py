@@ -3,21 +3,26 @@ import logging
 import os
 import time
 from functools import cache
-from typing import cast, Type
+from typing import Type
 
 import pydantic
-import requests
-from requests.adapters import Retry, HTTPAdapter
+from google import genai
+from google.genai import types as genai_types
+from google.genai.errors import APIError as GenaiError
+from google.auth import default
 
-import google.api_core.exceptions
-import vertexai
-from vertexai.preview.generative_models import GenerativeModel, GenerationResponse
-import vertexai.preview.generative_models as generative_models
 import game_types
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
-USE_VERTEX_AI = True
+
+credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+CLIENT = genai.Client(
+    vertexai=True,
+    project=os.getenv("GCLOUD_PROJECT"),
+    location="us-central1",
+    credentials=credentials,
+)
 
 
 @cache
@@ -32,87 +37,92 @@ def get_test_json(fname):
         return json.load(f)
 
 
-retry_strategy = Retry(
-    total=4,
-    status_forcelist=[429, 500],
-    backoff_factor=2,
-    allowed_methods=frozenset(
-        {"DELETE", "GET", "HEAD", "OPTIONS", "PUT", "TRACE", "POST"}
-    ),
-)
-adapter = HTTPAdapter(max_retries=retry_strategy)
-
-session = requests.Session()
-session.mount("http://", adapter)
-session.mount("https://", adapter)
-
-
 class AiError(Exception):
     pass
 
 
-def get_safety_error(safety_ratings) -> AiError:
+def get_safety_error(
+    safety_ratings: list[genai_types.SafetyRating],
+) -> AiError:
     safety_issues = []
     for rating in safety_ratings:
-        if rating.probability > 1:  # can't find this protobuf enum anywhere
+        if rating.probability != "NEGLIGIBLE":
             match rating.category:
-                case generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH:
+                case "HARM_CATEGORY_HATE_SPEECH":
                     safety_issues.append("hateful")
-                case generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
+                case "HARM_CATEGORY_DANGEROUS_CONTENT":
                     safety_issues.append("dangerous")
-                case generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT:
+                case "HARM_CATEGORY_HARASSMENT":
                     safety_issues.append("harrassment")
-                case generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
+                case "HARM_CATEGORY_SEXUALLY_EXPLICIT":
                     safety_issues.append("too horny")
-    raise AiError(", ".join(safety_issues))
+    return AiError(", ".join(safety_issues))
 
 
 def ask_google_vertex_ai(prompt_parts: list[str], system_instruction=None) -> str:
-    model = GenerativeModel(
-        "gemini-1.5-flash-001", system_instruction=system_instruction
-    )
     try:
-        responses = cast(
-            GenerationResponse,
-            model.generate_content(
-                "".join(prompt_parts),
-                generation_config={
-                    "max_output_tokens": 8192,
-                    "temperature": 0.9,
-                    "top_p": 1,
-                    "stop_sequences": ["--"],
-                },
-                safety_settings={
-                    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-                    generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                    generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-                    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-                },
-                stream=False,
+        response = CLIENT.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents="".join(prompt_parts),
+            config=genai_types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                stop_sequences=["--"],
+                safety_settings=[
+                    genai_types.SafetySetting(
+                        category="HARM_CATEGORY_HATE_SPEECH",
+                        threshold="BLOCK_LOW_AND_ABOVE",
+                    ),
+                    genai_types.SafetySetting(
+                        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                        threshold="BLOCK_MEDIUM_AND_ABOVE",
+                    ),
+                    genai_types.SafetySetting(
+                        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                        threshold="BLOCK_LOW_AND_ABOVE",
+                    ),
+                    genai_types.SafetySetting(
+                        category="HARM_CATEGORY_HARASSMENT",
+                        threshold="BLOCK_MEDIUM_AND_ABOVE",
+                    ),
+                ],
             ),
         )
-    except google.api_core.exceptions.ResourceExhausted as e:
-        logging.error(e)
-        time.sleep(1)
-        return ask_google_vertex_ai(prompt_parts)
-    try:
-        input_tokens = responses.usage_metadata.prompt_token_count
-        output_tokens = responses.usage_metadata.candidates_token_count
+    except GenaiError as e:
+        if e.code == 429:
+            logging.error("Got 429. Retrying...")
+            time.sleep(1)
+            return ask_google_vertex_ai(prompt_parts)
+        else:
+            raise
+
+    if response.usage_metadata is not None:
+        input_tokens = response.usage_metadata.prompt_token_count or 0
+        output_tokens = response.usage_metadata.candidates_token_count or 0
+        # TODO: these are 1.5 numbers, adjust this when 2.0 is GA
         price_est = 0.0000003125 * input_tokens + 0.00000125 * output_tokens
-        candidate = responses.candidates[0]
-        if candidate.finish_reason == generative_models.FinishReason.SAFETY:
-            logging.error(candidate)
-            raise get_safety_error(candidate.safety_ratings)
-        text = candidate.content.parts[0].text
-        text = text.strip("--").strip("```json").strip("```").strip("\n")
         logging.info(f"generated {output_tokens} tokens for ${price_est:.4f}")
-        return text
-    except KeyError:
-        logging.error(responses)
-        raise
-    except IndexError:
-        logging.error(responses)
-        raise
+    if response.prompt_feedback is not None:
+        logging.error(
+            f"Response blocked: {response.prompt_feedback.block_reason}: {response.prompt_feedback.block_reason_message}"
+        )
+        if response.prompt_feedback.safety_ratings:
+            raise get_safety_error(response.prompt_feedback.safety_ratings)
+        else:
+            raise RuntimeError("blocked: {response.prompt_feedback.block_reason}")
+    if response.candidates is not None:
+        for candidate in response.candidates:
+            if (
+                candidate.finish_reason == "SAFETY"
+                and candidate.safety_ratings is not None
+            ):
+                raise get_safety_error(candidate.safety_ratings)
+    if response.text is None:
+        logging.error(
+            f"bad response: {response.model_dump_json(exclude_defaults=True)}"
+        )
+        raise RuntimeError("bad AI API response")
+    text = response.text.strip("--").strip("```json").strip("```").strip("\n")
+    return text
 
 
 def ask_google(prompt_parts: list[str], system_instruction: str | None = None):
@@ -182,7 +192,7 @@ You will be given a JSON object describing the current content definitions for a
         system_prompt += (
             f"\n\nExample input: {example_input}\nExample output: {example_output}"
         )
-    prompt = f"Game JSON: {input.model_dump_json()}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
+    prompt = f"Game JSON: {input.model_dump_json(exclude_defaults=True)}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
     logging.debug(f"ASKING: {system_prompt}\n{prompt}")
     response_text = ask_google([prompt], system_instruction=system_prompt)
     logging.info(f"RECEIVED: {response_text}")
@@ -209,12 +219,12 @@ def ask_google_json_merge(
     """Mutates and returns the game state."""
     output = ask_google_big_prompt(instructions, examples, state)
     for action in output:
-        logging.info(f"AI Action: {action.model_dump_json()}")
+        logging.info(f"AI Action: {action.model_dump_json(exclude_defaults=True)}")
         state.apply_action(action)
 
 
 def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: dict):
-    instructions = f"You are the game master for a difficult permadeath roguelike with a crafting system. The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. As input, you will be given a theme, a long-form description of the setting, descriptions of each item, and a list of items already in the game (do not copy any of these). Output a JSON item definition for each weapon and equipment in the given game description. Valid types are pokemon types, i.e. one of: normal fire water electric grass ice fighting poison ground flying psychic bug rock ghost dragon dark steel fairy. DO NOT output multiple types. Output fields include name, the name of the item; level, a number indicating how powerful the weapon or equipment is; type, the pokemon type of the equipment or weapon; kind, the kind of item it is, one of: melee_weapon ranged_weapon armor food; and description, a two sentence description of the item. Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore. The two input items must be the same level; assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc."
+    instructions = f"You are the game master for a difficult permadeath roguelike with a crafting system. The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. As input, you will be given a theme, a long-form description of the setting, descriptions of each item, and a list of items already in the game (do not copy any of these). Output each item JSON on its own line. DO NOT reference gameplay mechanics that aren't in the game; instead, focus on appearance and lore. The two input items must be the same level; assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc."
     return ask_google_structured(
         instructions,
         [],
@@ -273,7 +283,9 @@ def get_missing_requirements(state: game_types.GameState) -> list[str]:
 def gen_anything(instructions: str, state: game_types.GameState):
     examples = []
     if instructions == "Generate everything":
-        hk_input = game_types.GameState(theme="Hollow Knight").model_dump_json()
+        hk_input = game_types.GameState(theme="Hollow Knight").model_dump_json(
+            exclude_defaults=True
+        )
         hk_state = game_types.GameState(**get_test_json("hk.json"))
         hk_output = []
         hk_output.append(game_types.AiAction(set_setting_desc=hk_state.setting_desc))
@@ -286,7 +298,9 @@ def gen_anything(instructions: str, state: game_types.GameState):
         hk_output.append(game_types.AiAction(set_boss=hk_state.boss))
         for character in hk_state.characters:
             hk_output.append(game_types.AiAction(add_character=character))
-        hk_output = '\n'.join(x.model_dump_json() for x in hk_output)
+        hk_output = "\n".join(
+            x.model_dump_json(exclude_defaults=True) for x in hk_output
+        )
         examples.append((hk_input, hk_output))
     ask_google_json_merge(instructions, examples, state)
     generations = 1
@@ -300,6 +314,3 @@ def gen_anything(instructions: str, state: game_types.GameState):
         generations += 1
     print(f"done after {generations} generations")
     print(state)
-
-
-vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")
