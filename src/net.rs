@@ -56,11 +56,11 @@ impl PokemonType {
             PokemonType::Flying => Color::Skyblue,
             PokemonType::Psychic => Color::Magenta,
             PokemonType::Bug => Color::Lime,
-            PokemonType::Rock => Color::Brown,
+            PokemonType::Rock => Color::Orange,
             PokemonType::Ghost => Color::Purple,
             PokemonType::Dragon => Color::Orange,
             PokemonType::Dark => Color::Black,
-            PokemonType::Steel => Color::Lightgray,
+            PokemonType::Steel => Color::White,
             PokemonType::Fairy => Color::Pink,
         }
     }
