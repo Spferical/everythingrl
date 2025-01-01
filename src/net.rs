@@ -447,6 +447,14 @@ fn format_full_error_chain(err: impl std::error::Error) -> String {
 }
 
 pub fn api_url() -> String {
+    #[cfg(target_family = "wasm")]
+    {
+        use web_sys::window;
+        if window().unwrap().location().href().unwrap().contains("localhost:5000") {
+            return "http://localhost:5000".into()
+        }
+    }
+
     std::env::var("SERVER_URL").unwrap_or("https://7drl24.pfe.io".into())
 }
 

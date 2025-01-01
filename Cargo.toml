@@ -43,6 +43,7 @@ web-sys = { version = "0.3.72", features = [
     "Url",
     "HtmlAnchorElement",
     "Window",
+    "Location",
 ] }
 js-sys = "0.3.72"
 wasm-bindgen-futures = "0.4.45"
