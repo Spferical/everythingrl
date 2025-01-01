@@ -14,11 +14,9 @@ dist_linux/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
-
-# Added by cargo
-
 /target
 dist/*.wasm
+dist/everythingrl.js
 
 # nix and wasm build script
 result
