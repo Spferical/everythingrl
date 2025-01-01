@@ -23,6 +23,24 @@ CLIENT = genai.Client(
     location="us-central1",
     credentials=credentials,
 )
+SAFETY_SETTINGS = [
+    genai_types.SafetySetting(
+        category="HARM_CATEGORY_HATE_SPEECH",
+        threshold="BLOCK_LOW_AND_ABOVE",
+    ),
+    genai_types.SafetySetting(
+        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold="BLOCK_MEDIUM_AND_ABOVE",
+    ),
+    genai_types.SafetySetting(
+        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold="BLOCK_LOW_AND_ABOVE",
+    ),
+    genai_types.SafetySetting(
+        category="HARM_CATEGORY_HARASSMENT",
+        threshold="BLOCK_MEDIUM_AND_ABOVE",
+    ),
+]
 
 
 @cache
@@ -59,48 +77,41 @@ def get_safety_error(
     return AiError(", ".join(safety_issues))
 
 
-def ask_google_vertex_ai(prompt_parts: list[str], system_instruction=None) -> str:
+def ask_google_vertex_ai(
+    prompt_parts: list[str], system_instruction=None, model="gemini-2.0-flash-exp"
+) -> str:
     try:
+        full_prompt_contents = "".join(prompt_parts)
         response = CLIENT.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents="".join(prompt_parts),
+            model=model,
+            contents=full_prompt_contents,
             config=genai_types.GenerateContentConfig(
                 system_instruction=system_instruction,
                 stop_sequences=["--"],
-                safety_settings=[
-                    genai_types.SafetySetting(
-                        category="HARM_CATEGORY_HATE_SPEECH",
-                        threshold="BLOCK_LOW_AND_ABOVE",
-                    ),
-                    genai_types.SafetySetting(
-                        category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                        threshold="BLOCK_MEDIUM_AND_ABOVE",
-                    ),
-                    genai_types.SafetySetting(
-                        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        threshold="BLOCK_LOW_AND_ABOVE",
-                    ),
-                    genai_types.SafetySetting(
-                        category="HARM_CATEGORY_HARASSMENT",
-                        threshold="BLOCK_MEDIUM_AND_ABOVE",
-                    ),
-                ],
+                safety_settings=SAFETY_SETTINGS,
             ),
         )
     except GenaiError as e:
         if e.code == 429:
             logging.error("Got 429. Retrying...")
             time.sleep(1)
-            return ask_google_vertex_ai(prompt_parts)
+            if model == "gemini-2.0-flash-exp":
+                # experimental model has tight rate limits, fall back to 1.5
+                model = "gemini-1.5-flash-002"
+            return ask_google_vertex_ai(
+                prompt_parts, system_instruction=system_instruction, model=model
+            )
         else:
             raise
 
-    if response.usage_metadata is not None:
-        input_tokens = response.usage_metadata.prompt_token_count or 0
-        output_tokens = response.usage_metadata.candidates_token_count or 0
-        # TODO: these are 1.5 numbers, adjust this when 2.0 is GA
-        price_est = 0.0000003125 * input_tokens + 0.00000125 * output_tokens
-        logging.info(f"generated {output_tokens} tokens for ${price_est:.4f}")
+    # TODO: these are 1.5 numbers, adjust this when 2.0 is GA
+    characters_in = len(full_prompt_contents) + len(system_instruction or "")
+    characters_out = len(response.text or "")
+    price_est = 0.00000001875 * characters_in + 0.000000075 * characters_out
+    logging.info(
+        f"generated {characters_out} characters from {characters_in} for ${price_est:.4f}"
+    )
+
     if response.prompt_feedback is not None:
         logging.error(
             f"Response blocked: {response.prompt_feedback.block_reason}: {response.prompt_feedback.block_reason_message}"
