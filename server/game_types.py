@@ -166,11 +166,24 @@ class GameState(pydantic.BaseModel):
         if action.set_setting_desc:
             self.setting_desc = action.set_setting_desc
         if action.add_area is not None:
-            self.areas.append(action.add_area)
+            for (i, area) in enumerate(self.areas):
+                if area.name == action.add_area.name:
+                    self.areas[i] = action.add_area
+                    break
+            else:
+                self.areas.append(action.add_area)
         if action.add_monster_def is not None:
-            self.monsters.append(action.add_monster_def)
+            for (i, monster) in enumerate(self.monsters):
+                if monster.name == action.add_monster_def.name:
+                    self.monsters[i] = action.add_monster_def
+            else:
+                self.monsters.append(action.add_monster_def)
         if action.add_item_def is not None:
-            self.items.append(action.add_item_def)
+            for (i, item_def) in enumerate(self.items):
+                if item_def.name == action.add_item_def.name:
+                    self.items[i] = action.add_item_def
+            else:
+                self.items.append(action.add_item_def)
         if action.set_boss is not None:
             self.boss = action.set_boss
         if action.add_character is not None:
