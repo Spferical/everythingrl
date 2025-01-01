@@ -731,7 +731,7 @@ impl World {
             }),
             world_info: WorldInfo::new(),
             mobs: HashMap::new(),
-            rng: rand::rngs::SmallRng::seed_from_u64(72),
+            rng: rand::rngs::SmallRng::seed_from_u64(::rand::random()),
             inventory: Inventory::new(),
             victory: false,
             log: VecDeque::new(),
