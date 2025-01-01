@@ -77,7 +77,7 @@ def get_safety_error(
     return AiError(", ".join(safety_issues))
 
 
-def ask_google_vertex_ai(
+def ask_google(
     prompt_parts: list[str], system_instruction=None, model="gemini-2.0-flash-exp"
 ) -> str:
     try:
@@ -98,7 +98,7 @@ def ask_google_vertex_ai(
             if model == "gemini-2.0-flash-exp":
                 # experimental model has tight rate limits, fall back to 1.5
                 model = "gemini-1.5-flash-002"
-            return ask_google_vertex_ai(
+            return ask_google(
                 prompt_parts, system_instruction=system_instruction, model=model
             )
         else:
@@ -136,10 +136,6 @@ def ask_google_vertex_ai(
     return text
 
 
-def ask_google(prompt_parts: list[str], system_instruction: str | None = None):
-    return ask_google_vertex_ai(prompt_parts, system_instruction=system_instruction)
-
-
 def ask_google_structured(
     instructions: str,
     examples: list[tuple[dict, list[dict]]],
@@ -171,7 +167,7 @@ def ask_google_structured(
     prompt = "".join(prompt_parts)
     logging.debug(f"ASKING: {prompt}")
     response_text = ask_google([prompt])
-    logging.info(f"RECEIVED: {response_text}")
+    logging.debug(f"RECEIVED: {response_text}")
     responses = response_text.split("\n")
     output = []
     for response in responses:
@@ -180,7 +176,7 @@ def ask_google_structured(
             output.append(model(**response_json).model_dump())
             prompt_parts.append(response_text)
         except Exception as e:
-            logging.error(f"Bad response: {response}: {e}")
+            logging.debug(f"Bad response: {response}: {e}")
     return output
 
 
@@ -206,7 +202,7 @@ You will be given a JSON object describing the current content definitions for a
     prompt = f"Game JSON: {input.model_dump_json(exclude_defaults=True)}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
     logging.debug(f"ASKING: {system_prompt}\n{prompt}")
     response_text = ask_google([prompt], system_instruction=system_prompt)
-    logging.info(f"RECEIVED: {response_text}")
+    logging.debug(f"RECEIVED: {response_text}")
     actions = []
     last_exc = None
     for line in response_text.splitlines():
@@ -214,7 +210,7 @@ You will be given a JSON object describing the current content definitions for a
             response_json = json.loads(line)
             actions.append(game_types.AiAction(**response_json))
         except Exception as e:
-            logging.error(f"Bad response: {response_text}: {e}")
+            logging.debug(f"Bad response: {response_text}: {e}")
             last_exc = e
     if len(actions) == 0:
         if last_exc is not None:
@@ -230,7 +226,7 @@ def ask_google_json_merge(
     """Mutates and returns the game state."""
     output = ask_google_big_prompt(instructions, examples, state)
     for action in output:
-        logging.info(f"AI Action: {action.model_dump_json(exclude_defaults=True)}")
+        logging.debug(f"AI Action: {action.model_dump_json(exclude_defaults=True)}")
         state.apply_action(action)
 
 
