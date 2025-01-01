@@ -450,8 +450,14 @@ pub fn api_url() -> String {
     #[cfg(target_family = "wasm")]
     {
         use web_sys::window;
-        if window().unwrap().location().href().unwrap().contains("localhost:5000") {
-            return "http://localhost:5000".into()
+        if window()
+            .unwrap()
+            .location()
+            .href()
+            .unwrap()
+            .contains("localhost:5000")
+        {
+            return "http://localhost:5000".into();
         }
     }
 
