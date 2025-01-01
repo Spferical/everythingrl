@@ -224,12 +224,14 @@ impl Ui {
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
+                        .column(egui_extras::Column::auto())
                         .sense(egui::Sense::click());
                     table
                         .header(text_height, |mut header| {
                             header.col(|ui| {
                                 ui.strong("Key");
                             });
+                            header.col(|_| {});
                             header.col(|ui| {
                                 ui.strong("Name");
                             });
@@ -296,6 +298,10 @@ impl Ui {
 
                                 row.col(|ui| {
                                     ui.label(row_index.to_string());
+                                });
+                                row.col(|ui| {
+                                    let (ch, color) = get_item_glyph(&slot.item);
+                                    ui.colored_label(color, ch.to_string());
                                 });
                                 row.col(|ui| {
                                     ui.label(name);
@@ -408,22 +414,10 @@ impl Ui {
                         layer: 0,
                     });
                     if let Some(ref item) = tile.item {
-                        let (character, color) = match item {
-                            Item::PendingCraft(..) => ('?', PINK),
-                            Item::Instance(ii) => {
-                                let char = match ii.info.kind {
-                                    ItemKind::MeleeWeapon => ')',
-                                    ItemKind::RangedWeapon => '/',
-                                    ItemKind::Armor => '[',
-                                    ItemKind::Food => '%',
-                                };
-                                let color = ii.info.ty.get_color().into();
-                                (char, color)
-                            }
-                        };
+                        let (character, color) = get_item_glyph(item);
                         glyphs.push(Glyph {
                             character,
-                            color,
+                            color: color.into(),
                             bg,
                             location: (pos.x as usize, pos.y as usize),
                             layer: 1,
@@ -905,5 +899,21 @@ impl Ui {
             animation.time_elapsed += get_frame_time();
         }
         self.animations.retain(|a| a.time_elapsed < a.duration);
+    }
+}
+
+fn get_item_glyph(item: &Item) -> (char, Color) {
+    match item {
+        Item::PendingCraft(..) => ('?', Color::Pink),
+        Item::Instance(ii) => {
+            let char = match ii.info.kind {
+                ItemKind::MeleeWeapon => ')',
+                ItemKind::RangedWeapon => '/',
+                ItemKind::Armor => '[',
+                ItemKind::Food => '%',
+            };
+            let color = ii.info.ty.get_color();
+            (char, color)
+        }
     }
 }
