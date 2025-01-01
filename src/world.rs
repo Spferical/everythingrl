@@ -610,7 +610,7 @@ impl Inventory {
             InventoryItem {
                 item: Item::PendingCraft(..),
                 ..
-            } => 5,
+            } => 999,
         });
     }
     fn add(&mut self, item: Item) -> Option<Item> {
