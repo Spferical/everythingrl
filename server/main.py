@@ -11,7 +11,8 @@ import game_types
 
 @click.group()
 def cli():
-    logging.basicConfig(level=logging.DEBUG)
+    loglevel = os.environ.get('LOGLEVEL', 'INFO').upper()
+    logging.basicConfig(level=loglevel)
 
 
 @cli.command()
@@ -44,11 +45,11 @@ def gen_all(theme: str, initial_state_path: str | None, output_dir: str | None):
         "Generate everything" if not initial_state_path else "Generate everything else"
     )
     ai.gen_anything(instruction, state)
-    print(state)
+    print(state.model_dump_json(exclude_defaults=True))
     if output_dir is not None:
         os.makedirs(output_dir, exist_ok=True)
         with open(os.path.join(output_dir, "game.json"), "w") as f:
-            f.write(state.model_dump_json())
+            f.write(state.model_dump_json(exclude_defaults=True))
 
 
 def main():

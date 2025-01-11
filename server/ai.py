@@ -288,6 +288,9 @@ def get_missing_requirements(state: game_types.GameState) -> list[str]:
 
 
 def gen_anything(instructions: str, state: game_types.GameState):
+    logging.info(
+        f"Generating: {instructions}: {state.model_dump_json(exclude_defaults=True)}"
+    )
     examples = []
     if instructions == "Generate everything":
         pirates_input = game_types.GameState(theme="Pirates").model_dump_json(
@@ -295,7 +298,9 @@ def gen_anything(instructions: str, state: game_types.GameState):
         )
         pirates_state = game_types.GameState(**get_test_json("pirates.json"))
         pirates_output = []
-        pirates_output.append(game_types.AiAction(set_setting_desc=pirates_state.setting_desc))
+        pirates_output.append(
+            game_types.AiAction(set_setting_desc=pirates_state.setting_desc)
+        )
         for area in pirates_state.areas:
             pirates_output.append(game_types.AiAction(add_area=area))
         for monster_def in pirates_state.monsters:
@@ -319,5 +324,4 @@ def gen_anything(instructions: str, state: game_types.GameState):
         instructions += "\n".join(f"- {req}" for req in missing_requirements)
         ask_google_json_merge(instructions, [], state)
         generations += 1
-    print(f"done after {generations} generations")
-    print(state)
+    logging.debug(f"done after {generations} generations")
