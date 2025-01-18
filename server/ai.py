@@ -3,7 +3,7 @@ import logging
 import os
 import time
 from functools import cache
-from typing import Type
+from typing import Type, Iterator
 
 import pydantic
 from google import genai
@@ -77,6 +77,75 @@ def get_safety_error(
     return AiError(", ".join(safety_issues))
 
 
+def get_response_text(response: genai_types.GenerateContentResponse) -> str:
+    if response.prompt_feedback is not None:
+        if response.prompt_feedback is not None:
+            logging.error(
+                f"Response blocked: {response.prompt_feedback.block_reason}: {response.prompt_feedback.block_reason_message}"
+            )
+            if response.prompt_feedback.safety_ratings:
+                raise get_safety_error(response.prompt_feedback.safety_ratings)
+            else:
+                raise RuntimeError("blocked: {response.prompt_feedback.block_reason}")
+    if response.candidates is not None:
+        for candidate in response.candidates:
+            if (
+                candidate.finish_reason == "SAFETY"
+                and candidate.safety_ratings is not None
+            ):
+                raise get_safety_error(candidate.safety_ratings)
+    if response.text is None:
+        logging.error(
+            f"bad response: {response.model_dump_json(exclude_defaults=True)}"
+        )
+        raise RuntimeError("bad AI API response")
+    return response.text
+
+
+def log_spend(chars_in: int, chars_out: int):
+    # TODO: these are 1.5 numbers, adjust this when 2.0 is GA
+    price_est = 0.00000001875 * chars_in + 0.000000075 * chars_out
+    logging.info(
+        f"generated {chars_out} characters from {chars_in} for ${price_est:.4f}"
+    )
+
+
+def ask_google_streaming(
+    prompt: str, system_prompt: str | None = None, model="gemini-2.0-flash-exp"
+) -> Iterator[str]:
+    total_response_length = 0
+    try:
+        response_iter = CLIENT.models.generate_content_stream(
+            model=model,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                safety_settings=SAFETY_SETTINGS,
+            ),
+        )
+        for response in response_iter:
+            text = get_response_text(response)
+            total_response_length += len(text)
+            yield text
+
+    except GenaiError as e:
+        if e.code == 429:
+            logging.error("Got 429. Retrying...")
+            time.sleep(1)
+            if model == "gemini-2.0-flash-exp":
+                # experimental model has tight rate limits, fall back to 1.5
+                model = "gemini-1.5-flash-002"
+            return ask_google_streaming(
+                prompt, system_prompt=system_prompt, model=model
+            )
+        else:
+            raise
+    finally:
+        if total_response_length != 0:
+            characters_in = len(prompt) + len(system_prompt or "")
+            log_spend(characters_in, total_response_length)
+
+
 def ask_google(
     prompt_parts: list[str], system_instruction=None, model="gemini-2.0-flash-exp"
 ) -> str:
@@ -104,35 +173,12 @@ def ask_google(
         else:
             raise
 
-    # TODO: these are 1.5 numbers, adjust this when 2.0 is GA
     characters_in = len(full_prompt_contents) + len(system_instruction or "")
     characters_out = len(response.text or "")
-    price_est = 0.00000001875 * characters_in + 0.000000075 * characters_out
-    logging.info(
-        f"generated {characters_out} characters from {characters_in} for ${price_est:.4f}"
-    )
+    log_spend(characters_in, characters_out)
 
-    if response.prompt_feedback is not None:
-        logging.error(
-            f"Response blocked: {response.prompt_feedback.block_reason}: {response.prompt_feedback.block_reason_message}"
-        )
-        if response.prompt_feedback.safety_ratings:
-            raise get_safety_error(response.prompt_feedback.safety_ratings)
-        else:
-            raise RuntimeError("blocked: {response.prompt_feedback.block_reason}")
-    if response.candidates is not None:
-        for candidate in response.candidates:
-            if (
-                candidate.finish_reason == "SAFETY"
-                and candidate.safety_ratings is not None
-            ):
-                raise get_safety_error(candidate.safety_ratings)
-    if response.text is None:
-        logging.error(
-            f"bad response: {response.model_dump_json(exclude_defaults=True)}"
-        )
-        raise RuntimeError("bad AI API response")
-    text = response.text.strip("--").strip("```json").strip("```").strip("\n")
+    text = get_response_text(response)
+    text = text.strip("--").strip("```json").strip("```").strip("\n")
     return text
 
 
@@ -228,6 +274,80 @@ def ask_google_json_merge(
     for action in output:
         logging.debug(f"AI Action: {action.model_dump_json(exclude_defaults=True)}")
         state.apply_action(action)
+
+
+def ask_google_stream_actions(
+    instructions: str,
+    examples: list[tuple[dict, dict]],
+    input: game_types.GameState,
+) -> Iterator[game_types.AiAction]:
+    system_prompt = """You are the game master for a difficult permadeath roguelike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
+
+The game mechanics are fixed and are as follows. The player explores three randomly-generated dungeon levels (areas) and aims to defeat the boss on a small fourth final level. The player may equip up to two pieces of armor (equipment) and one melee weapon and one ranged weapon. They may store extra equipment in their inventory and eat food items to regain health. Weapons, armor, food, and enemies all have Pokemon types that influence their effectiveness. All also have levels, which make them directly more effective.
+
+There are three levels (areas) in the game. Each should have at least 5 possible monsters found in that level, 5 pieces of armor, 3 melee weapons, 2 ranged weapons, and 3 food items. Try to avoid common or generic roguelike items.
+
+The player may choose between 5 varied starting characters. These may be named people or classes. Each should include a name, a paragraph-long backstory that includes their motivation, and 5 starting items that include at least 1 piece of armor and a melee weapon.
+
+You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced. AVOID bland or generic descriptions; prefer short and poignant quips.
+"""
+    for example_input, example_output in examples:
+        system_prompt += (
+            f"\n\nExample input: {example_input}\nExample output: {example_output}"
+        )
+    prompt = f"Game JSON: {input.model_dump_json(exclude_defaults=True)}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
+    logging.debug(f"ASKING: {system_prompt}\n{prompt}")
+    response_text = ""
+    actions_emitted = 0
+    last_exc = None
+    for text_chunk in ask_google_streaming(prompt, system_prompt=system_prompt):
+        response_text += text_chunk
+        [*complete_lines, response_text] = response_text.split("\n")
+        for complete_line in complete_lines:
+            try:
+                print(f"RECEIVED: {complete_line}")
+                yield game_types.AiAction(**json.loads(complete_line))
+                actions_emitted += 1
+            except Exception as e:
+                logging.debug(f"Bad response: {complete_line}: {e}")
+                last_exc = e
+    if actions_emitted == 0:
+        if last_exc is not None:
+            raise last_exc
+        else:
+            raise RuntimeError("Failed to generate any actions")
+
+
+def gen_actions(
+    instructions: str, state: game_types.GameState
+) -> Iterator[game_types.AiAction]:
+    logging.info(
+        f"Generating: {instructions}: {state.model_dump_json(exclude_defaults=True)}"
+    )
+    examples = []
+    if instructions == "Generate everything":
+        pirates_input = game_types.GameState(theme="Pirates").model_dump_json(
+            exclude_defaults=True
+        )
+        pirates_state = game_types.GameState(**get_test_json("pirates.json"))
+        pirates_output = []
+        pirates_output.append(
+            game_types.AiAction(set_setting_desc=pirates_state.setting_desc)
+        )
+        for area in pirates_state.areas:
+            pirates_output.append(game_types.AiAction(add_area=area))
+        for monster_def in pirates_state.monsters:
+            pirates_output.append(game_types.AiAction(add_monster_def=monster_def))
+        for item_def in pirates_state.items:
+            pirates_output.append(game_types.AiAction(add_item_def=item_def))
+        pirates_output.append(game_types.AiAction(set_boss=pirates_state.boss))
+        for character in pirates_state.characters:
+            pirates_output.append(game_types.AiAction(add_character=character))
+        pirates_output = "\n".join(
+            x.model_dump_json(exclude_defaults=True) for x in pirates_output
+        )
+        examples.append((pirates_input, pirates_output))
+    yield from ask_google_stream_actions(instructions, examples, state)
 
 
 def craft(theme: str, setting_desc: str, items: list[str], item1: dict, item2: dict):

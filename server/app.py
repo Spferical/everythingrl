@@ -68,6 +68,19 @@ def v1_anything():
         return game_state.model_dump_json()
 
 
+@app.post("/v1/actions")
+def v1_actions():
+    game_state = flask.request.get_json()["state"]
+    game_state = game_types.GameState(**game_state)
+    ask = flask.request.get_json()["ask"]
+    logging.info("/v1/actions: theme=\"%s\", ask=\"%s\"", ask, game_state.theme)
+    def generate():
+        for action in ai.gen_actions(ask, game_state):
+            yield action.model_dump_json(exclude_defaults=True)
+            yield "\n"
+    return generate(), {"Content-Type": "text/jsonl"}
+
+
 @app.route("/")
 def root():
     return send_from_directory("../dist", "index.html")
