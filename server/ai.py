@@ -176,7 +176,7 @@ You will be given a JSON object describing the current content definitions for a
         [*complete_lines, response_text] = response_text.split("\n")
         for complete_line in complete_lines:
             try:
-                print(f"RECEIVED: {complete_line}")
+                logging.debug(f"RECEIVED: {complete_line}")
                 yield game_types.AiAction(**json.loads(complete_line))
                 actions_emitted += 1
             except Exception as e:

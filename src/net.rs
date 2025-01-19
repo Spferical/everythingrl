@@ -556,16 +556,22 @@ fn stream_actions(ask: String, game_defs: GameDefs) -> mpsc::Receiver<Result<AiA
                         Some(Ok(chunk)) => {
                             response_bytes.extend_from_slice(&chunk);
                             while let Some(i) = response_bytes.iter().position(|x| *x == b'\n') {
-                                match serde_json::from_slice(&response_bytes[..i]) {
-                                    Ok(action) => {
-                                        tx.send(Ok(action)).ok();
-                                    }
-                                    Err(err) => {
-                                        macroquad::miniquad::error!(
-                                            "Error deserializing AI action: {}: {}",
-                                            err,
-                                            String::from_utf8_lossy(&response_bytes[..i])
-                                        );
+                                if let Ok(ServerError { error }) =
+                                    serde_json::from_slice(&response_bytes[..i])
+                                {
+                                    tx.send(Err(error)).ok();
+                                } else {
+                                    match serde_json::from_slice(&response_bytes[..i]) {
+                                        Ok(action) => {
+                                            tx.send(Ok(action)).ok();
+                                        }
+                                        Err(err) => {
+                                            macroquad::miniquad::error!(
+                                                "Error deserializing AI action: {}: {}",
+                                                err,
+                                                String::from_utf8_lossy(&response_bytes[..i])
+                                            );
+                                        }
                                     }
                                 }
                                 response_bytes.drain(..=i);

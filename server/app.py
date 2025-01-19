@@ -65,15 +65,19 @@ def v1_actions():
     game_state = flask.request.get_json()["state"]
     game_state = game_types.GameState(**game_state)
     ask = flask.request.get_json()["ask"]
-    logging.info('/v1/actions: theme="%s", ask="%s"', ask, game_state.theme)
+    logging.info('/v1/actions: theme="%s", ask="%s"', repr(ask), repr(game_state.theme))
 
     actions = ai.gen_actions(ask, game_state)
     # Get the first action to catch any exceptions from status errors
     first_action = next(actions)
 
     def generate():
-        for action in itertools.chain([first_action], actions):
-            yield action.model_dump_json(exclude_defaults=True)
+        try:
+            for action in itertools.chain([first_action], actions):
+                yield action.model_dump_json(exclude_defaults=True)
+                yield "\n"
+        except Exception as e:
+            yield json.dumps({"error": str(e)})
             yield "\n"
 
     return generate(), {"Content-Type": "text/jsonl"}
