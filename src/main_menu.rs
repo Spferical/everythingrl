@@ -8,10 +8,16 @@ pub enum Choice {
     Load(Defs),
 }
 
+pub enum MenuState {
+    Main,
+    Load,
+}
+
 pub struct Menu {
     defs: Option<Vec<Defs>>,
     import_tx: std::sync::mpsc::Sender<Defs>,
     import_rx: std::sync::mpsc::Receiver<Defs>,
+    state: MenuState,
 }
 
 impl Menu {
@@ -22,101 +28,99 @@ impl Menu {
             defs: None,
             import_tx,
             import_rx,
+            state: MenuState::Main,
         }
     }
 
-    pub fn load_popup(&mut self, ui: &mut egui::Ui) -> Option<Defs> {
-        let target_width = screen_width() * miniquad::window::dpi_scale() / 3.0;
+    pub fn show_load_menu(&mut self, ui: &mut egui::Ui) -> Option<Defs> {
+        let width = screen_width() * miniquad::window::dpi_scale() / 2.0;
         let mut ret = None;
 
-        egui::Frame::popup(ui.style()).show(ui, |ui| {
-            ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.style_mut().wrap = Some(false);
-                    let defs = self.defs.get_or_insert_with(crate::save::load_defs);
-                    while let Ok(def) = self.import_rx.try_recv() {
-                        defs.push(def);
-                        crate::save::write_defs(defs);
-                    }
-                    if defs.is_empty() {
-                        ui.label("No existing saved game definitions found");
-                    } else {
-                        egui_extras::TableBuilder::new(ui)
-                            .striped(true)
-                            .column(egui_extras::Column::auto())
-                            .column(egui_extras::Column::auto())
-                            .column(egui_extras::Column::initial(target_width))
-                            .column(egui_extras::Column::auto())
-                            .resizable(true)
-                            .auto_shrink([false, true])
-                            .header(20.0, |mut header| {
-                                header.col(|_ui| {});
-                                header.col(|_ui| {});
-                                header.col(|ui| {
-                                    ui.strong("Theme");
-                                });
-                                header.col(|ui| {
-                                    ui.strong("Created");
-                                });
-                            })
-                            .body(|mut body| {
-                                for def in defs.iter().rev() {
-                                    body.row(20.0, |mut row| {
-                                        row.col(|ui| {
-                                            if ui.button("Play!").clicked() {
-                                                ret = Some(def.clone());
-                                            }
-                                        });
-                                        row.col(|ui| {
-                                            if ui.button("Download!").clicked() {
-                                                crate::util::download_file(
-                                                    "game.json".into(),
-                                                    serde_json::to_string_pretty(def).unwrap(),
-                                                );
-                                            }
-                                        });
-                                        row.col(|ui| {
-                                            ui.add(
-                                                egui::Label::new(&def.metadata.theme)
-                                                    .truncate(true),
-                                            );
-                                        });
-                                        row.col(|ui| {
-                                            ui.label(
-                                                chrono::Local
-                                                    .timestamp_opt(def.metadata.created, 0)
-                                                    .single()
-                                                    .map(|t| {
-                                                        t.format("%Y-%m-%d %H:%M:%S").to_string()
-                                                    })
-                                                    .unwrap_or("".into()),
-                                            );
-                                        });
-                                    });
-                                }
+        ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                ui.style_mut().wrap = Some(false);
+                let defs = self.defs.get_or_insert_with(crate::save::load_defs);
+                while let Ok(def) = self.import_rx.try_recv() {
+                    defs.push(def);
+                    crate::save::write_defs(defs);
+                }
+                if defs.is_empty() {
+                    ui.label("No existing saved game definitions found");
+                } else {
+                    egui_extras::TableBuilder::new(ui)
+                        .striped(true)
+                        .column(egui_extras::Column::auto())
+                        .column(egui_extras::Column::auto())
+                        .column(egui_extras::Column::initial(width))
+                        .column(egui_extras::Column::auto())
+                        .resizable(true)
+                        .auto_shrink([false, true])
+                        .header(20.0, |mut header| {
+                            header.col(|_ui| {});
+                            header.col(|_ui| {});
+                            header.col(|ui| {
+                                ui.strong("Theme");
                             });
-                    }
-                    if ui.button("Load game from file").clicked() {
-                        let tx = self.import_tx.clone();
-                        crate::util::spawn(async move {
-                            if let Some(handle) = rfd::AsyncFileDialog::new().pick_file().await {
-                                let data = handle.read().await;
-                                match serde_json::from_slice::<Defs>(&data) {
-                                    Ok(defs) => {
-                                        tx.send(defs).ok();
-                                    }
-                                    Err(e) => {
-                                        macroquad::miniquad::error!("{}", e);
-                                    }
+                            header.col(|ui| {
+                                ui.strong("Created");
+                            });
+                        })
+                        .body(|mut body| {
+                            for def in defs.iter().rev() {
+                                body.row(20.0, |mut row| {
+                                    row.col(|ui| {
+                                        if ui.button("Play!").clicked() {
+                                            ret = Some(def.clone());
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        if ui.button("Download!").clicked() {
+                                            crate::util::download_file(
+                                                "game.json".into(),
+                                                serde_json::to_string_pretty(def).unwrap(),
+                                            );
+                                        }
+                                    });
+                                    row.col(|ui| {
+                                        ui.add(
+                                            egui::Label::new(&def.metadata.theme).truncate(true),
+                                        );
+                                    });
+                                    row.col(|ui| {
+                                        ui.label(
+                                            chrono::Local
+                                                .timestamp_opt(def.metadata.created, 0)
+                                                .single()
+                                                .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+                                                .unwrap_or("".into()),
+                                        );
+                                    });
+                                });
+                            }
+                        });
+                }
+                if ui.button("Load game from file").clicked() {
+                    let tx = self.import_tx.clone();
+                    crate::util::spawn(async move {
+                        if let Some(handle) = rfd::AsyncFileDialog::new().pick_file().await {
+                            let data = handle.read().await;
+                            match serde_json::from_slice::<Defs>(&data) {
+                                Ok(defs) => {
+                                    tx.send(defs).ok();
+                                }
+                                Err(e) => {
+                                    // TODO: when we rev the game data format,
+                                    // we'll need to indicate/fail somewhere.
+                                    macroquad::miniquad::error!("{}", e);
                                 }
                             }
-                        })
-                    }
-                    if ui.button("Close").clicked() {
-                        ui.close_menu();
-                    }
-                })
-            });
+                        }
+                    })
+                }
+                if ui.button("Close").clicked() {
+                    self.state = MenuState::Main;
+                }
+            })
         });
         ret
     }
@@ -126,7 +130,11 @@ impl Menu {
         egui_macroquad::ui(|egui_ctx| {
             let width = screen_width() * miniquad::window::dpi_scale();
             let padding = 3.0 * miniquad::window::dpi_scale();
-            egui::Window::new("EverythingRL")
+            let title = match self.state {
+                MenuState::Main => "EverythingRL",
+                MenuState::Load => "Load an existing EverythingRL world",
+            };
+            egui::Window::new(title)
                 .resizable(false)
                 .collapsible(false)
                 .min_width(width / 2.0)
@@ -135,19 +143,22 @@ impl Menu {
                 .show(egui_ctx, |ui| {
                     egui::Frame::none()
                         .inner_margin(egui::style::Margin::symmetric(padding, padding))
-                        .show(ui, |ui| {
-                            ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                                if ui.button("Play in a new world").clicked() {
-                                    choice = Some(Choice::Play);
-                                }
-                                ui.menu_button("Load an existing world", |ui| {
-                                    // TODO: when we rev the game data format,
-                                    // we'll need to indicate/fail somewhere.
-                                    if let Some(def) = self.load_popup(ui) {
-                                        choice = Some(Choice::Load(def));
+                        .show(ui, |ui| match self.state {
+                            MenuState::Main => {
+                                ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                                    if ui.button("Play in a new world").clicked() {
+                                        choice = Some(Choice::Play);
                                     }
+                                    if ui.button("Load an existing world").clicked() {
+                                        self.state = MenuState::Load;
+                                    };
                                 });
-                            });
+                            }
+                            MenuState::Load => {
+                                if let Some(def) = self.show_load_menu(ui) {
+                                    choice = Some(Choice::Load(def));
+                                }
+                            }
                         });
                 });
         });

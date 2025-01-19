@@ -165,7 +165,7 @@ impl Ui {
                         let mut basic_label = |start_text: &str, end_text: &str| {
                             let mut job = egui::text::LayoutJob::default();
                             job.append(
-                                start_text.into(),
+                                start_text,
                                 0.0,
                                 egui::TextFormat {
                                     font_id: self.get_base_font(),
