@@ -402,7 +402,7 @@ impl WorldInfo {
             .map(|area| format!("{}: {}", area.name, area.blurb.clone()))
             .collect();
 
-        for (&(a, b), &c) in ig.recipes.iter() {
+        for recipe in ig.game_defs.recipes.iter() {
             let ek_by_name = |name: &str| {
                 self.item_kinds
                     .iter()
@@ -410,13 +410,10 @@ impl WorldInfo {
                     .cloned()
                     .unwrap()
             };
-            let ig_item_a = &ig.game_defs.items[a];
-            let ig_item_b = &ig.game_defs.items[b];
-            let ig_item_c = &ig.game_defs.items[c];
-            let ek_a = ek_by_name(&ig_item_a.name);
-            let ek_b = ek_by_name(&ig_item_b.name);
-            let ek_c = ek_by_name(&ig_item_c.name);
-            self.recipes.insert((ek_a, ek_b), ek_c);
+            let ek1 = ek_by_name(&recipe.item1);
+            let ek2 = ek_by_name(&recipe.item2);
+            let eko = ek_by_name(&recipe.output);
+            self.recipes.insert((ek1, ek2), eko);
         }
         if let Some((a, b)) = self.pending_recipes.iter().next().cloned() {
             let ig_equip_by_name = |name: &str| {

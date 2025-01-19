@@ -144,6 +144,12 @@ class SettingDesc(pydantic.BaseModel):
     setting_desc: str
 
 
+class Recipe(pydantic.BaseModel):
+    item1: str
+    item2: str
+    output: str
+
+
 class AiAction(pydantic.BaseModel):
     set_setting_desc: str | None = pydantic.Field(description='Several player-facing paragraphs to introduce the setting and tone of the game.', default=None)
     add_area: Area | None = None
@@ -151,6 +157,7 @@ class AiAction(pydantic.BaseModel):
     add_item_def: Item | None = None
     set_boss: Boss | None = None
     add_character: Character | None = None
+    set_recipe: Recipe | None = None
 
 
 class GameState(pydantic.BaseModel):
@@ -161,6 +168,7 @@ class GameState(pydantic.BaseModel):
     items: list[Item] = []
     boss: Boss | None = None
     characters: list[Character] = []
+    recipes: list[Recipe] = []
 
     def apply_action(self, action: AiAction):
         if action.set_setting_desc:

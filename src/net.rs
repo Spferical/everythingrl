@@ -1,13 +1,17 @@
+use async_std::stream::StreamExt;
 use enum_map::Enum;
+use once_cell::sync::Lazy;
 use std::{
-    collections::HashMap,
+    collections::{HashSet, VecDeque},
     fmt::Display,
-    sync::mpsc::{self, Receiver},
+    sync::{mpsc, Arc, Mutex},
     time::Duration,
 };
 
-use crate::ratelimit::Ratelimiter;
+use crate::ratelimit::Ratelimit;
 use crate::util::spawn;
+
+pub static RATELIMIT: Ratelimit = Ratelimit::new(Duration::from_secs(1));
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -319,9 +323,6 @@ pub struct ItemDefinition {
     pub ty: PokemonType,
     pub description: String,
     pub kind: ItemKind,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(default)]
-    pub craft_id: Option<CraftId>,
 }
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -353,11 +354,10 @@ pub struct Character {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct MonstersArgs {
-    theme: String,
-    setting: String,
-    // names we are requesting
-    names: Vec<String>,
+pub struct Recipe {
+    pub item1: String,
+    pub item2: String,
+    pub output: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -369,69 +369,37 @@ pub struct CraftArgs {
     item2: ItemDefinition,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AreasArgs {
-    theme: String,
-    setting: String,
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ActionsArgs {
+    state: GameDefs,
+    ask: String,
 }
 
-pub struct BootlegFuture<T> {
-    rx: Receiver<T>,
-    state: Option<T>,
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AiAction {
+    SetSettingDesc(String),
+    AddArea(Area),
+    AddMonsterDef(MonsterDefinition),
+    AddItemDef(ItemDefinition),
+    SetBoss(BossDefinition),
+    AddCharacter(Character),
+    SetRecipe(Recipe),
 }
 
-impl<T> BootlegFuture<T> {
-    fn get(&mut self) -> &Option<T> {
-        if self.state.is_none() {
-            if let Ok(result) = self.rx.try_recv() {
-                self.state = Some(result);
+impl AiAction {
+    fn get_loading_message(&self) -> String {
+        match self {
+            AiAction::SetSettingDesc(_) => "Describing the setting...".into(),
+            AiAction::AddArea(area) => format!("Mapping the {}", area.name),
+            AiAction::AddMonsterDef(monster_definition) => {
+                format!("Raising a {}", monster_definition.name)
             }
+            AiAction::AddItemDef(item_definition) => format!("Placing a {}", item_definition.name),
+            AiAction::SetBoss(boss_definition) => format!("Creating the {}", boss_definition.name),
+            AiAction::AddCharacter(character) => format!("Designing the {}", character.name),
+            AiAction::SetRecipe(recipe) => format!("Writing a recipe for {}", recipe.output),
         }
-        &self.state
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Response {
-    pub status: u32,
-    pub data: String,
-}
-
-/// API client that ratelimits requests.
-pub struct ApiClient {
-    ratelimit: Ratelimiter,
-}
-impl ApiClient {
-    pub fn new() -> Self {
-        Self {
-            ratelimit: Ratelimiter::new(Duration::from_secs(1)),
-        }
-    }
-    pub fn request<Input>(
-        &self,
-        url: String,
-        input: Input,
-    ) -> BootlegFuture<Result<Response, String>>
-    where
-        Input: serde::Serialize + Send + 'static,
-    {
-        let (tx, rx) = mpsc::channel();
-        let _rl = self.ratelimit.clone();
-        spawn(async move {
-            _rl.wait().await;
-            // NOTE: wasm reqwest doesn't support timeouts.
-            let resp = reqwest::Client::new().post(url).json(&input).send().await;
-            tx.send(match resp {
-                Ok(r) => Ok(Response {
-                    status: r.status().as_u16().into(),
-                    data: r.text().await.unwrap_or_default(),
-                }),
-                Err(err) => Err(format_full_error_chain(err)),
-            })
-            .ok();
-        });
-
-        BootlegFuture { rx, state: None }
     }
 }
 
@@ -446,7 +414,7 @@ fn format_full_error_chain(err: impl std::error::Error) -> String {
     err_string
 }
 
-pub fn api_url() -> String {
+static API_URL: Lazy<String> = Lazy::new(|| {
     #[cfg(target_family = "wasm")]
     {
         use web_sys::window;
@@ -462,80 +430,18 @@ pub fn api_url() -> String {
     }
 
     std::env::var("SERVER_URL").unwrap_or("https://7drl24.pfe.io".into())
-}
+});
 
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct AnythingRequest {
-    state: GameDefs,
-    ask: String,
-}
+static ACTIONS_URL: Lazy<String> = Lazy::new(|| {
+    let api_url = &*API_URL;
+    format!("{api_url}/v1/actions")
+});
 
-#[derive(Debug, Clone)]
-pub enum Request {
-    Craft {
-        item1: usize,
-        item2: usize,
-        craft_id: CraftId,
-    },
-    Anything(AnythingRequest),
-}
-
-impl Request {}
-
-pub struct PendingRequest {
-    req: Request,
-    fut: BootlegFuture<Result<Response, String>>,
-}
-
-enum RequestResult {
-    Craft(ItemDefinition),
-    Anything(GameDefs),
-    Pending,
-    Error(String),
-}
+static CLIENT: Lazy<reqwest::Client> = Lazy::new(reqwest::Client::new);
 
 #[derive(serde::Deserialize)]
 struct ServerError {
     error: String,
-}
-
-impl PendingRequest {
-    fn get(&mut self) -> RequestResult {
-        use RequestResult::*;
-        let resp = self.fut.get();
-        match resp {
-            None => Pending,
-            Some(Err(s)) => Error(s.clone()),
-            Some(Ok(resp)) => {
-                macroquad::miniquad::info!("{:?}", resp);
-                if resp.status >= 400 {
-                    // try decoding full server error
-                    return Error(
-                        serde_json::from_str::<ServerError>(&resp.data)
-                            .map(|e| e.error)
-                            .unwrap_or(crate::util::trim(&resp.data, 100).into()),
-                    );
-                }
-                match self.req {
-                    Request::Anything { .. } => serde_json::from_str(&resp.data)
-                        .map(Anything)
-                        .unwrap_or_else(|e| Error(e.to_string())),
-                    Request::Craft { .. } => serde_json::from_str(&resp.data)
-                        .map(Craft)
-                        .unwrap_or_else(|e| Error(e.to_string())),
-                }
-            }
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct CraftId(usize);
-
-pub enum IgState {
-    Generating(&'static str),
-    Idle,
-    Error { msg: String, count: usize },
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -547,155 +453,306 @@ pub struct GameDefs {
     pub items: Vec<ItemDefinition>,
     pub boss: Option<BossDefinition>,
     pub characters: Vec<Character>,
+    pub recipes: Vec<Recipe>,
+}
+
+impl GameDefs {
+    fn new(theme: String) -> Self {
+        Self {
+            theme,
+            setting_desc: None,
+            areas: vec![],
+            monsters: vec![],
+            items: vec![],
+            boss: None,
+            characters: vec![],
+            recipes: vec![],
+        }
+    }
+
+    fn apply_action(&mut self, action: AiAction) {
+        match action {
+            AiAction::SetSettingDesc(s) => self.setting_desc = Some(s),
+            AiAction::AddArea(new_area) => {
+                if let Some(area) = self.areas.iter_mut().find(|a| a.name == new_area.name) {
+                    *area = new_area;
+                } else {
+                    self.areas.push(new_area)
+                }
+            }
+            AiAction::AddMonsterDef(new_mon) => {
+                if let Some(m) = self.monsters.iter_mut().find(|m| m.name == new_mon.name) {
+                    *m = new_mon;
+                } else {
+                    self.monsters.push(new_mon)
+                }
+            }
+            AiAction::AddItemDef(new_item) => {
+                if let Some(item) = self.items.iter_mut().find(|i| i.name == new_item.name) {
+                    *item = new_item;
+                } else {
+                    self.items.push(new_item);
+                }
+            }
+            AiAction::SetBoss(boss_definition) => {
+                self.boss = Some(boss_definition);
+            }
+            AiAction::AddCharacter(new_char) => {
+                if let Some(c) = self.characters.iter_mut().find(|c| c.name == new_char.name) {
+                    *c = new_char;
+                } else {
+                    self.characters.push(new_char);
+                }
+            }
+            AiAction::SetRecipe(recipe) => {
+                if let Some(r) = self
+                    .recipes
+                    .iter_mut()
+                    .find(|r| (&r.item1, &r.item2) == (&recipe.item1, &recipe.item2))
+                {
+                    *r = recipe;
+                } else {
+                    self.recipes.push(recipe);
+                }
+            }
+        }
+    }
+}
+
+enum WorkItem {
+    Craft(usize, usize),
+}
+
+struct IdeaGuyState {
+    game_defs: GameDefs,
+    message: String,
+    error_count: u64,
+    done: bool,
+    work: VecDeque<WorkItem>,
+}
+
+fn stream_actions(ask: String, game_defs: GameDefs) -> mpsc::Receiver<Result<AiAction, String>> {
+    let (tx, rx) = mpsc::channel();
+    spawn(async move {
+        let actions_args = ActionsArgs {
+            state: game_defs.clone(),
+            ask,
+        };
+        RATELIMIT.wait().await;
+        match CLIENT.post(&*ACTIONS_URL).json(&actions_args).send().await {
+            Ok(r) if r.status().as_u16() >= 400 => {
+                // try decoding full server error
+                let err_payload = r.text().await.unwrap_or_default();
+                tx.send(Err(serde_json::from_str::<ServerError>(&err_payload)
+                    .map(|e| e.error)
+                    .unwrap_or(crate::util::trim(&err_payload, 100).into())))
+                    .ok();
+            }
+            Ok(resp) => {
+                let mut response_bytes = Vec::new();
+                let mut stream = resp.bytes_stream();
+                loop {
+                    match stream.next().await {
+                        Some(Ok(chunk)) => {
+                            response_bytes.extend_from_slice(&chunk);
+                            while let Some(i) = response_bytes.iter().position(|x| *x == b'\n') {
+                                match serde_json::from_slice(&response_bytes[..i]) {
+                                    Ok(action) => {
+                                        tx.send(Ok(action)).ok();
+                                    }
+                                    Err(err) => {
+                                        macroquad::miniquad::error!(
+                                            "Error deserializing AI action: {}: {}",
+                                            err,
+                                            String::from_utf8_lossy(&response_bytes[..i])
+                                        );
+                                    }
+                                }
+                                response_bytes.drain(..=i);
+                            }
+                        }
+                        None => break,
+                        Some(Err(err)) => {
+                            macroquad::miniquad::error!("Error streaming request: {err}");
+                            break;
+                        }
+                    }
+                }
+            }
+            Err(err) => {
+                let err = format_full_error_chain(err);
+                macroquad::miniquad::error!("Request error: {err}");
+                tx.send(Err(err)).ok();
+            }
+        }
+    });
+    rx
+}
+
+fn get_missing_requirements(defs: &GameDefs) -> String {
+    let mut reqs = String::new();
+    if defs.setting_desc.is_none() {
+        reqs += "- a setting_desc string describing the style, mood, substance, and high-level ideas to inform the artistic direction and content for the game.\n";
+    }
+    if defs.areas.len() < 3 {
+        reqs +=
+            "- three areas i.e. levels for the player to explore on his way to the final boss.\n";
+    }
+    let mentioned_monsters = defs
+        .areas
+        .iter()
+        .flat_map(|area| area.enemies.iter())
+        .cloned()
+        .collect::<HashSet<String>>();
+    let defined_monsters = defs
+        .monsters
+        .iter()
+        .map(|mon| mon.name.clone())
+        .collect::<HashSet<String>>();
+    for monster_name in mentioned_monsters.difference(&defined_monsters) {
+        reqs += &format!("- a monster definition for {monster_name}.\n");
+    }
+    let mentioned_items = defs
+        .areas
+        .iter()
+        .flat_map(|area| {
+            area.equipment
+                .iter()
+                .chain(area.melee_weapons.iter())
+                .chain(area.ranged_weapons.iter())
+                .chain(area.food.iter())
+        })
+        .chain(defs.characters.iter().flat_map(|c| c.starting_items.iter()))
+        .cloned()
+        .collect::<HashSet<String>>();
+    let defined_items = defs
+        .items
+        .iter()
+        .map(|i| i.name.clone())
+        .collect::<HashSet<String>>();
+    for item_name in mentioned_items.difference(&defined_items) {
+        reqs += &format!("- an item definition for {item_name}.\n");
+    }
+    if defs.boss.is_none() {
+        reqs += "- a final boss.\n"
+    }
+    if defs.characters.len() < 3 {
+        reqs += "- at least 3 characters or character classes available to the player.\n";
+    }
+    reqs
+}
+
+async fn gen_and_apply_actions(state: Arc<Mutex<IdeaGuyState>>, instructions: String) {
+    let tmp_defs = state.lock().unwrap().game_defs.clone();
+    let actions = stream_actions(instructions, tmp_defs);
+    loop {
+        match actions.try_recv() {
+            Ok(result) => {
+                let mut state = state.lock().unwrap();
+                match result {
+                    Ok(action) => {
+                        state.message = action.get_loading_message();
+                        state.game_defs.apply_action(action);
+                    }
+                    Err(err) => {
+                        state.message = err;
+                    }
+                }
+            }
+            Err(mpsc::TryRecvError::Empty) => {
+                crate::util::sleep(Duration::from_millis(100)).await;
+            }
+            Err(mpsc::TryRecvError::Disconnected) => break,
+        };
+    }
+}
+
+async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
+    loop {
+        let tmp_defs = state.lock().unwrap().game_defs.clone();
+        let reqs = get_missing_requirements(&tmp_defs);
+        if reqs.is_empty() {
+            break;
+        }
+        let instructions = format!("Generate everything missing. Namely, we need:\n{reqs}");
+        gen_and_apply_actions(state.clone(), instructions).await;
+    }
+    state.lock().unwrap().done = true;
+    loop {
+        crate::util::sleep(Duration::from_millis(100)).await;
+        let work = state.lock().unwrap().work.pop_front();
+        if let Some(work) = work {
+            let tmp_defs = state.lock().unwrap().game_defs.clone();
+            match work {
+                WorkItem::Craft(item1, item2) => {
+                    gen_and_apply_actions(
+                        state.clone(),
+                        format!("Create a crafting recipe for {} and {} and any required item definitions.",
+                        tmp_defs.items[item1].name,
+                        tmp_defs.items[item2].name)
+                    )
+                    .await;
+                }
+            }
+        }
+    }
+}
+
+fn generate_everything(theme: String) -> Arc<Mutex<IdeaGuyState>> {
+    let state = Arc::new(Mutex::new(IdeaGuyState {
+        game_defs: GameDefs::new(theme),
+        message: "Generating everything".into(),
+        done: false,
+        work: [].into(),
+        error_count: 0,
+    }));
+    spawn(generate_work(state.clone()));
+    state
 }
 
 /// Contains raw AI-generated content fetched from the server.
 pub struct IdeaGuy {
+    generation_state: Arc<Mutex<IdeaGuyState>>,
     pub game_defs: GameDefs,
-    // keys/vals are indices into items.
-    pub recipes: HashMap<(usize, usize), usize>,
-    outgoing: Vec<PendingRequest>,
-    pub next_craft_id: CraftId,
-    pub error: Option<String>,
-    pub error_count: usize,
-    pub api: ApiClient,
 }
 
 impl IdeaGuy {
     pub fn new(theme: &str) -> Self {
-        let mut slf = Self {
-            game_defs: GameDefs {
-                theme: theme.into(),
-                setting_desc: None,
-                areas: vec![],
-                monsters: vec![],
-                items: vec![],
-                boss: None,
-                characters: vec![],
-            },
-            outgoing: vec![],
-            recipes: HashMap::new(),
-            next_craft_id: CraftId(0),
-            error: None,
-            error_count: 0,
-            api: ApiClient::new(),
-        };
-        slf.request(Request::Anything(AnythingRequest {
-            ask: "Generate everything".into(),
-            state: slf.game_defs.clone(),
-        }));
-        slf
+        Self {
+            generation_state: generate_everything(theme.into()),
+            game_defs: GameDefs::new(theme.into()),
+        }
     }
 
     pub fn from_saved(game_defs: GameDefs) -> Self {
-        let next_craft_id = game_defs
-            .items
-            .iter()
-            .flat_map(|item| item.craft_id)
-            .max_by_key(|id| id.0)
-            .map(|CraftId(n)| CraftId(n + 1))
-            .unwrap_or(CraftId(0));
         Self {
+            generation_state: Arc::new(Mutex::new(IdeaGuyState {
+                game_defs: game_defs.clone(),
+                message: "".into(),
+                done: true,
+                work: [].into(),
+                error_count: 0,
+            })),
             game_defs,
-            outgoing: vec![],
-            recipes: HashMap::new(),
-            next_craft_id,
-            error: None,
-            error_count: 0,
-            api: ApiClient::new(),
         }
     }
 
     pub fn craft(&mut self, item1: usize, item2: usize) {
-        let craft_id = self.next_craft_id;
-        self.next_craft_id = CraftId(self.next_craft_id.0 + 1);
-        self.request(Request::Craft {
-            item1,
-            item2,
-            craft_id,
-        });
-    }
-
-    fn request_inner(&mut self, req: Request) -> PendingRequest {
-        macroquad::miniquad::info!("Requesting {:?}", req);
-        let api_url = api_url();
-        let fut = match req {
-            Request::Anything(ref req) => self
-                .api
-                .request(format!("{api_url}/v1/anything"), req.clone()),
-            Request::Craft { item1, item2, .. } => self.api.request(
-                format!("{api_url}/v1/craft"),
-                CraftArgs {
-                    theme: self.game_defs.theme.clone(),
-                    setting: self.game_defs.setting_desc.clone().unwrap(),
-                    items: self.game_defs.items.clone(),
-                    item1: self.game_defs.items[item1].clone(),
-                    item2: self.game_defs.items[item2].clone(),
-                },
-            ),
-        };
-        PendingRequest { req, fut }
-    }
-
-    pub fn request(&mut self, req: Request) {
-        let pending_req = self.request_inner(req);
-        self.outgoing.push(pending_req);
+        self.generation_state
+            .lock()
+            .unwrap()
+            .work
+            .push_back(WorkItem::Craft(item1, item2));
     }
 
     pub fn tick(&mut self) {
-        let mut queue = self.outgoing.drain(..).rev().collect::<Vec<_>>();
-        while let Some(mut req) = queue.pop() {
-            let result = req.get();
-            if !matches!(result, RequestResult::Error(_) | RequestResult::Pending) {
-                self.error = None;
-                self.error_count = 0;
-            }
-            match result {
-                RequestResult::Error(e) => {
-                    macroquad::miniquad::error!("{}", e);
-                    self.error = Some(e);
-                    self.error_count += 1;
-                    // Retry
-                    self.request(req.req);
-                }
-                RequestResult::Pending => {
-                    self.outgoing.push(req);
-                }
-                RequestResult::Anything(new_defs) => {
-                    self.game_defs = new_defs;
-                }
-                RequestResult::Craft(mut item) => {
-                    if let Request::Craft {
-                        item1,
-                        item2,
-                        craft_id,
-                    } = req.req
-                    {
-                        item.craft_id = Some(craft_id);
-                        self.recipes
-                            .insert((item1, item2), self.game_defs.items.len());
-                    }
-                    self.game_defs.items.push(item);
-                }
-            }
-        }
+        self.game_defs = self.generation_state.lock().unwrap().game_defs.clone();
     }
-    pub fn get_state(&self) -> IgState {
-        if let Some(err) = self.error.as_ref() {
-            IgState::Error {
-                msg: err.clone(),
-                count: self.error_count,
-            }
-        } else if self.game_defs.setting_desc.is_none() {
-            IgState::Generating("everything")
-        } else if !self.outgoing.is_empty() {
-            IgState::Generating("crafted item")
-        } else {
-            IgState::Idle
-        }
+    pub fn get_state(&self) -> String {
+        self.generation_state.lock().unwrap().message.clone()
     }
 
     pub fn initial_generation_done(&self) -> bool {
-        self.game_defs.boss.is_some()
+        self.generation_state.lock().unwrap().done
     }
 }

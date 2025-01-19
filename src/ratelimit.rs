@@ -1,25 +1,21 @@
-use std::{
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::{sync::Mutex, time::Duration};
 use web_time::Instant;
 
 use crate::util::sleep;
 
-/// Ratelimiter that enforces a minimum delay between initiating requests.
+/// Ratelimit that enforces a minimum delay between initiating requests.
 ///
 /// Works in wasm and desktop environments.
-#[derive(Clone)]
-pub struct Ratelimiter {
+pub struct Ratelimit {
     delay: Duration,
-    next_available: Arc<Mutex<Instant>>,
+    next_available: Mutex<Option<Instant>>,
 }
 
-impl Ratelimiter {
-    pub fn new(delay: Duration) -> Self {
+impl Ratelimit {
+    pub const fn new(delay: Duration) -> Self {
         Self {
             delay,
-            next_available: Arc::new(Mutex::new(Instant::now())),
+            next_available: Mutex::new(None),
         }
     }
     pub async fn wait(&self) {
@@ -27,6 +23,7 @@ impl Ratelimiter {
             let sleep_time;
             {
                 let mut next_available = self.next_available.lock().unwrap();
+                let next_available = next_available.get_or_insert_with(Instant::now);
                 let now = Instant::now();
                 if now >= *next_available {
                     *next_available = now + self.delay;

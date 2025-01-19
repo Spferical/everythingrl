@@ -1,4 +1,4 @@
-use crate::net::{IdeaGuy, IgState};
+use crate::net::IdeaGuy;
 use ::rand::{
     seq::{index, SliceRandom},
     SeedableRng,
@@ -43,7 +43,7 @@ pub const LOADING_BLURBS: &[&str] = &[
     "Putting in staircases",
     "Designing costumes for each enemy",
     "Contacting the admin to make sure this setting is allowed",
-    "Planting misinformation"
+    "Planting misinformation",
 ];
 
 pub struct LoadingTypewriter {
@@ -231,12 +231,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
         let setting1 = &state.chosen_settings[0];
         let setting2 = &state.chosen_settings[1];
         let tip = &state.chosen_tip;
-        let gen_status = match ig.as_ref().map(|ig| ig.get_state()) {
-            Some(IgState::Generating(s)) => format!("Generating {s}..."),
-            Some(IgState::Idle) => "".into(),
-            Some(IgState::Error { msg, count }) => format!("ERROR: {msg} (x{count}). Retrying..."),
-            None => "".into(),
-        };
+        let gen_status = ig.as_ref().map(|ig| ig.get_state()).unwrap_or("".into());
 
         let text = match state.prompt_state {
         PromptState::Welcome(0) => "Welcome, traveler. I am the Storyteller of this roguelike game.".into(),
