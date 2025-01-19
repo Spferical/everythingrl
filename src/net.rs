@@ -457,7 +457,7 @@ pub struct GameDefs {
 }
 
 impl GameDefs {
-    fn new(theme: String) -> Self {
+    pub fn new(theme: String) -> Self {
         Self {
             theme,
             setting_desc: None,
@@ -700,9 +700,9 @@ async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
     }
 }
 
-fn generate_everything(theme: String) -> Arc<Mutex<IdeaGuyState>> {
+fn start_background_generation_worker(game_defs: GameDefs) -> Arc<Mutex<IdeaGuyState>> {
     let state = Arc::new(Mutex::new(IdeaGuyState {
-        game_defs: GameDefs::new(theme),
+        game_defs,
         message: "Generating everything".into(),
         done: false,
         work: [].into(),
@@ -719,22 +719,9 @@ pub struct IdeaGuy {
 }
 
 impl IdeaGuy {
-    pub fn new(theme: &str) -> Self {
+    pub fn new(game_defs: GameDefs) -> Self {
         Self {
-            generation_state: generate_everything(theme.into()),
-            game_defs: GameDefs::new(theme.into()),
-        }
-    }
-
-    pub fn from_saved(game_defs: GameDefs) -> Self {
-        Self {
-            generation_state: Arc::new(Mutex::new(IdeaGuyState {
-                game_defs: game_defs.clone(),
-                message: "".into(),
-                done: true,
-                work: [].into(),
-                error_count: 0,
-            })),
+            generation_state: start_background_generation_worker(game_defs.clone()),
             game_defs,
         }
     }

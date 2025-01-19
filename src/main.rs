@@ -379,13 +379,13 @@ async fn main() {
                 Some(main_menu::Choice::Play) => GameState::Intro(intro::IntroState::new()),
                 Some(main_menu::Choice::Load(def)) => {
                     let defs: GameDefs = serde_json::from_value(def.defs).unwrap();
-                    ig = Some(IdeaGuy::from_saved(defs.clone()));
+                    ig = Some(IdeaGuy::new(defs.clone()));
                     GameState::Chargen(crate::chargen::Chargen::new(defs))
                 }
             },
             GameState::Intro(ref mut intro) => {
                 if intro.ready_for_generation && ig.is_none() {
-                    ig = Some(IdeaGuy::new(&intro.theme));
+                    ig = Some(IdeaGuy::new(GameDefs::new(intro.theme.clone())));
                 }
                 let intro_waiting = intro::intro_loop(intro, &ig);
                 if intro.exit {
