@@ -59,18 +59,6 @@ app.add_url_rule("/v1/monsters", view_func=v1.app.v1_monsters, methods=["POST"])
 app.add_url_rule("/v1/items", view_func=v1.app.v1_items, methods=["POST"])
 
 
-@app.post("/v1/anything")
-def v1_anything():
-    game_state = flask.request.get_json()["state"]
-    game_state = game_types.GameState(**game_state)
-    ask = flask.request.get_json()["ask"]
-    if game_state.theme == PREGEN_THEME:
-        return ai.get_test_json("hk.json")
-    else:
-        ai.gen_anything(ask, game_state)
-        return game_state.model_dump_json()
-
-
 @app.post("/v1/actions")
 def v1_actions():
     game_state = flask.request.get_json()["state"]
