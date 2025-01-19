@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import logging
 import os
+import itertools
 
 import flask
 from flask import Flask, send_from_directory, jsonify
@@ -66,8 +67,12 @@ def v1_actions():
     ask = flask.request.get_json()["ask"]
     logging.info('/v1/actions: theme="%s", ask="%s"', ask, game_state.theme)
 
+    actions = ai.gen_actions(ask, game_state)
+    # Get the first action to catch any exceptions from status errors
+    first_action = next(actions)
+
     def generate():
-        for action in ai.gen_actions(ask, game_state):
+        for action in itertools.chain([first_action], actions):
             yield action.model_dump_json(exclude_defaults=True)
             yield "\n"
 
