@@ -354,4 +354,5 @@ def gen_characters(
     ]
     return ask_google_structured(instructions, examples, args, 5, game_types.Character)
 
+
 vertexai.init(project=os.getenv("GCLOUD_PROJECT"), location="us-east4")

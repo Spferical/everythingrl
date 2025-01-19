@@ -161,6 +161,8 @@ The player may choose between 5 varied starting characters. These may be named p
 The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. The two input items must be the same level; when asked to generate a crafting recipe, assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc. DO NOT output crafting recipes unless specifically requested.
 
 You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced. AVOID bland or generic descriptions; prefer short and poignant quips.
+
+At any time, you may ABORT generation if the user-provided theme is truly heinous.
 """
     for example_input, example_output in examples:
         system_prompt += (
