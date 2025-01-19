@@ -653,9 +653,11 @@ async fn gen_and_apply_actions(state: Arc<Mutex<IdeaGuyState>>, instructions: St
                     Ok(action) => {
                         state.message = action.get_loading_message();
                         state.game_defs.apply_action(action);
+                        state.error_count = 0;
                     }
                     Err(err) => {
-                        state.message = err;
+                        state.error_count += 1;
+                        state.message = format!("{err}. Retrying (x{})...", state.error_count);
                     }
                 }
             }
