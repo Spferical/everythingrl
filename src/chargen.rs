@@ -12,7 +12,7 @@ impl Chargen {
     pub fn new(defs: GameDefs) -> Chargen {
         Chargen {
             defs,
-            selected: None,
+            selected: Some(0),
         }
     }
 
