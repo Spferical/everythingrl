@@ -7,7 +7,6 @@ use macroquad::prelude::*;
 
 pub const CHARS_PER_SECOND: f32 = 70.;
 pub const CHARS_PER_SECOND_LOADING: f32 = 80.;
-pub const BLURB_TIME: f32 = 5.;
 
 pub const SETTINGS: [&str; 11] = [
     "Richard Adams's Watership Down",
@@ -27,23 +26,6 @@ pub const TIPS: [&str; 3] = [
     "think carefully about the type of your weapon, armor and the enemy type before you attack. Some monsters are resistant or completely immune to certain damage types.",
     "most food that you'll find in the world is not particularly nutritious unless cooked.",
     "narrow corridors are your friend. Try luring enemies into a narrow chokepoint to benefit from Lanchester's linear law :)"
-];
-
-pub const LOADING_BLURBS: &[&str] = &[
-    "Figuring out what Pokemon types to use",
-    "Simulating erosion",
-    "Laying out the world",
-    "Populating the world with monsters",
-    "Scattering items all over the place",
-    "Giving the boss his lines",
-    "Testing the crafting bench",
-    "Position in queue: 1234",
-    "Letting the AI rest a bit",
-    "Throwing everything out and starting over",
-    "Putting in staircases",
-    "Designing costumes for each enemy",
-    "Contacting the admin to make sure this setting is allowed",
-    "Planting misinformation",
 ];
 
 pub struct LoadingTypewriter {
@@ -105,14 +87,11 @@ pub struct IntroState {
     pub ready_for_generation: bool,
     chosen_tip: String,
     chosen_settings: Vec<String>,
-    blurbs: Vec<&'static str>,
 }
 
 impl IntroState {
     pub fn new() -> IntroState {
         let mut rng = ::rand::rngs::SmallRng::seed_from_u64(::rand::random());
-        let mut blurbs = Vec::from(LOADING_BLURBS);
-        blurbs.shuffle(&mut rng);
         IntroState {
             prompt_state: PromptState::Welcome(0),
             prompt_dt: 0.,
@@ -125,7 +104,6 @@ impl IntroState {
                 .iter()
                 .map(|i| (*SETTINGS[i]).into())
                 .collect(),
-            blurbs,
         }
     }
 }
@@ -239,7 +217,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
         PromptState::Welcome(_) => "... they will be invented by yours truly. With a bit of help from you of course.".into(),
         PromptState::Understand => "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.".into(),
         PromptState::EnterTheme{..} => format!("Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings."),
-        PromptState::Generating => format!("Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.\n\nCONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.\n\nSome other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.\n\nIf this is a lot to remember, press \'q\' for a quick summary.\n\nIf the fonts are rendering too small or large, there is a font scale slider on the bottom left.\n\nA quick tip -- {tip}\n\nThank you for listening to me. Please wait a moment as the game world is generated.\n\n{gen_status}"),
+        PromptState::Generating => format!("Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.\n\nCONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.\n\nSome other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.\n\nIf this is a lot to remember, press \'q\' for a quick summary.\n\nIf the fonts are rendering too small or large, there is a font scale slider on the bottom left.\n\nA quick tip -- {tip}\n\nThank you for listening to me. Please wait a moment as the game world is generated."),
         PromptState::Done => "Starting the game!".into(),
         };
 
@@ -253,7 +231,6 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                             .color(egui::Color32::from_rgb(100, 100, 100)),
                     );
                     if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                        state.prompt_dt = 1000.;
                         state.prompt_state = PromptState::Welcome(n + 1);
                         if n >= 2 {
                             state.prompt_state = PromptState::Understand;
@@ -294,17 +271,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                             state.prompt_state = PromptState::Done;
                         }
                     } else {
-                        let blurb_idx =
-                            (state.prompt_dt / BLURB_TIME) as usize % state.blurbs.len();
-                        let max_dots = 3;
-                        let num_dots = (((state.prompt_dt % BLURB_TIME) / BLURB_TIME)
-                            * (max_dots + 1) as f32)
-                            as usize;
-                        ui.label(format!(
-                            "{}{}",
-                            state.blurbs[blurb_idx],
-                            ".".repeat(num_dots)
-                        ));
+                        ui.label(gen_status);
                     }
                 }
                 PromptState::Done => {}
@@ -312,7 +279,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
             if state.prompt_state != old_prompt_state {
                 state.prompt_dt = 0.0;
             } else if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                state.prompt_dt = f32::INFINITY;
+                state.prompt_dt += 1000.0;
             }
         });
     });

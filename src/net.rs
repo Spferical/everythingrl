@@ -657,7 +657,8 @@ async fn gen_and_apply_actions(state: Arc<Mutex<IdeaGuyState>>, instructions: St
                     }
                     Err(err) => {
                         state.error_count += 1;
-                        state.message = format!("{err}. Retrying (x{})...", state.error_count);
+                        state.message =
+                            format!("Error: {err}. Retrying (x{})...", state.error_count);
                     }
                 }
             }
