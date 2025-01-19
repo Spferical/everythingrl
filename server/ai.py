@@ -134,7 +134,7 @@ def ask_google_streaming(
             if model == "gemini-2.0-flash-exp":
                 # experimental model has tight rate limits, fall back to 1.5
                 model = "gemini-1.5-flash-002"
-            return ask_google_streaming(
+            yield from ask_google_streaming(
                 prompt, system_prompt=system_prompt, model=model
             )
         else:
