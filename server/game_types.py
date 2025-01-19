@@ -151,7 +151,10 @@ class Recipe(pydantic.BaseModel):
 
 
 class AiAction(pydantic.BaseModel):
-    set_setting_desc: str | None = pydantic.Field(description='Several player-facing paragraphs to introduce the setting and tone of the game.', default=None)
+    set_setting_desc: str | None = pydantic.Field(
+        description="Several player-facing paragraphs to introduce the setting and tone of the game.",
+        default=None,
+    )
     add_area: Area | None = None
     add_monster_def: Monster | None = None
     add_item_def: Item | None = None
@@ -174,20 +177,20 @@ class GameState(pydantic.BaseModel):
         if action.set_setting_desc:
             self.setting_desc = action.set_setting_desc
         if action.add_area is not None:
-            for (i, area) in enumerate(self.areas):
+            for i, area in enumerate(self.areas):
                 if area.name == action.add_area.name:
                     self.areas[i] = action.add_area
                     break
             else:
                 self.areas.append(action.add_area)
         if action.add_monster_def is not None:
-            for (i, monster) in enumerate(self.monsters):
+            for i, monster in enumerate(self.monsters):
                 if monster.name == action.add_monster_def.name:
                     self.monsters[i] = action.add_monster_def
             else:
                 self.monsters.append(action.add_monster_def)
         if action.add_item_def is not None:
-            for (i, item_def) in enumerate(self.items):
+            for i, item_def in enumerate(self.items):
                 if item_def.name == action.add_item_def.name:
                     self.items[i] = action.add_item_def
             else:

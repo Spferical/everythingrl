@@ -2,6 +2,7 @@
 import ai
 import game_types
 
+
 def test_generates_everything_from_scratch():
     theme = "Microcenter"
     state = game_types.GameState(theme=theme)

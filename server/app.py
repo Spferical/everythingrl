@@ -49,12 +49,15 @@ app.add_url_rule("/monsters", view_func=v0.app.monsters, methods=["POST"])
 app.add_url_rule("/items", view_func=v0.app.items, methods=["POST"])
 
 # Legacy v1 API
-app.add_url_rule("/v1/setting/<path:theme>", view_func=v1.app.v1_get_setting, methods=["POST"])
+app.add_url_rule(
+    "/v1/setting/<path:theme>", view_func=v1.app.v1_get_setting, methods=["POST"]
+)
 app.add_url_rule("/v1/craft", view_func=v1.app.v1_craft, methods=["POST"])
 app.add_url_rule("/v1/areas", view_func=v1.app.v1_get_areas, methods=["POST"])
 app.add_url_rule("/v1/boss", view_func=v1.app.v1_get_boss, methods=["POST"])
 app.add_url_rule("/v1/monsters", view_func=v1.app.v1_monsters, methods=["POST"])
 app.add_url_rule("/v1/items", view_func=v1.app.v1_items, methods=["POST"])
+
 
 @app.post("/v1/anything")
 def v1_anything():
@@ -73,11 +76,13 @@ def v1_actions():
     game_state = flask.request.get_json()["state"]
     game_state = game_types.GameState(**game_state)
     ask = flask.request.get_json()["ask"]
-    logging.info("/v1/actions: theme=\"%s\", ask=\"%s\"", ask, game_state.theme)
+    logging.info('/v1/actions: theme="%s", ask="%s"', ask, game_state.theme)
+
     def generate():
         for action in ai.gen_actions(ask, game_state):
             yield action.model_dump_json(exclude_defaults=True)
             yield "\n"
+
     return generate(), {"Content-Type": "text/jsonl"}
 
 
