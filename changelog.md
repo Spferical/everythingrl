@@ -1,10 +1,13 @@
 # 004 (unreleased)
 
-Press R to restart after death.
-Collapse a lot of intro messages.
-Open the inventory window by default.
-Switch to a more powerful LLM.
-Lots of LLM tweaks, faster overall generation.
+- Added save/load for worlds.
+- Added character choices (changes starting items).
+- Added the ability to restart after death.
+- Rewrote LLM generation and network code and switched to a newer and more powerful LLM.
+- Collapsed a lot of intro messages.
+- The inventory window is open by default.
+- Added item glyphs to inventory.
+- Added a difference between rock/dragon and steel/normal colors.
 
 # 003
 
