@@ -1,4 +1,4 @@
-# 004 (unreleased)
+# 004
 
 - Added save/load for worlds.
 - Added character choices (changes starting items).
