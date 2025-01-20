@@ -92,13 +92,12 @@ def v1_actions():
             yield "\n"
             raised_exception = True
         action_stats = dict(sorted(action_stats.items()))
-        status = 'success'
-        if raised_exception or list(action_stats.keys()) == 'error':
-            status = 'failed'
-        elif 'error' in action_stats:
-            status = 'partial_error'
+        status = "success"
+        if raised_exception or list(action_stats.keys()) == "error":
+            status = "failed"
+        elif "error" in action_stats:
+            status = "partial_error"
         LOG.info("/v1/actions done", status=status, **action_stats)
-
 
     return generate(), {"Content-Type": "text/jsonl"}
 
