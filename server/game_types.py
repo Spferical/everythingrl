@@ -150,12 +150,8 @@ class Recipe(pydantic.BaseModel):
     output: str
 
 
-class Abort(pydantic.BaseModel):
-    reason: str
-
-
 class AiAction(pydantic.BaseModel):
-    error: Abort | None = None
+    error: str | None = None
     set_setting_desc: str | None = pydantic.Field(
         description="Several player-facing paragraphs to introduce the setting and tone of the game.",
         default=None,
