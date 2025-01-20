@@ -1,6 +1,6 @@
 use chargen::Chargen;
 use macroquad::prelude::*;
-use net::{GameDefs, IdeaGuy};
+use net::{GameDefs, IdeaGuy, InitialGenerationStatus};
 use std::collections::HashMap;
 use world::PlayerAction;
 
@@ -341,7 +341,6 @@ async fn main() {
     let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
     egui_startup();
     egui_update_scaling(1.0);
-    quad_storage::STORAGE.lock().unwrap().set("test1", "test2");
 
     let mut last_size = (screen_width(), screen_height());
     let mut last_user_scale_factor = 1.0;
@@ -386,6 +385,13 @@ async fn main() {
             GameState::Intro(ref mut intro) => {
                 if intro.ready_for_generation && ig.is_none() {
                     ig = Some(IdeaGuy::new(GameDefs::new(intro.theme.clone())));
+                } else if let Some(ref ig_inner) = ig {
+                    if let InitialGenerationStatus::ErroredOut { msg, reason } =
+                        ig_inner.get_state()
+                    {
+                        intro.reset_from_error(msg, reason);
+                        ig = None;
+                    }
                 }
                 let intro_waiting = intro::intro_loop(intro, &ig);
                 if intro.exit {
@@ -394,7 +400,7 @@ async fn main() {
                 let mut new_gs = gs;
                 if !intro_waiting {
                     if let Some(ig) = ig.as_mut() {
-                        if ig.game_defs.boss.is_some() {
+                        if matches!(ig.get_state(), InitialGenerationStatus::Done) {
                             crate::save::save_def(&ig.game_defs);
                             new_gs = GameState::Chargen(crate::chargen::Chargen::new(
                                 ig.game_defs.clone(),

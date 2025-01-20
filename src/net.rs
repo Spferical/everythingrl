@@ -283,7 +283,7 @@ impl From<&Color> for egui::Color32 {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct MonsterDefinition {
     pub name: String,
     pub char: String,
@@ -300,7 +300,7 @@ pub struct MonsterDefinition {
     pub speed: u8,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct BossDefinition {
     pub name: String,
     pub char: String,
@@ -315,7 +315,7 @@ pub struct BossDefinition {
     pub game_victory_paragraph: String,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub struct ItemDefinition {
     pub name: String,
     pub level: usize,
@@ -334,7 +334,7 @@ pub enum MapGen {
     DenseRooms,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Area {
     pub name: String,
     pub blurb: String,
@@ -346,14 +346,14 @@ pub struct Area {
     pub food: Vec<String>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Character {
     pub name: String,
     pub backstory: String,
     pub starting_items: Vec<String>,
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Recipe {
     pub item1: String,
     pub item2: String,
@@ -444,7 +444,7 @@ struct ServerError {
     error: String,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct GameDefs {
     pub theme: String,
     pub setting_desc: Option<String>,
@@ -523,11 +523,28 @@ enum WorkItem {
     Craft(usize, usize),
 }
 
+#[derive(Debug, Clone)]
+pub enum GenerationAbortReason {
+    ServerError,
+    Loop,
+}
+
+#[derive(Debug, Clone)]
+pub enum InitialGenerationStatus {
+    Generating {
+        msg: String,
+        error_count: u64,
+    },
+    ErroredOut {
+        msg: String,
+        reason: GenerationAbortReason,
+    },
+    Done,
+}
+
 struct IdeaGuyState {
     game_defs: GameDefs,
-    message: String,
-    error_count: u64,
-    done: bool,
+    init_gen_status: InitialGenerationStatus,
     work: VecDeque<WorkItem>,
 }
 
@@ -657,14 +674,24 @@ async fn gen_and_apply_actions(state: Arc<Mutex<IdeaGuyState>>, instructions: St
                 let mut state = state.lock().unwrap();
                 match result {
                     Ok(action) => {
-                        state.message = action.get_loading_message();
+                        state.init_gen_status = InitialGenerationStatus::Generating {
+                            msg: action.get_loading_message(),
+                            error_count: 0,
+                        };
                         state.game_defs.apply_action(action);
-                        state.error_count = 0;
                     }
                     Err(err) => {
-                        state.error_count += 1;
-                        state.message =
-                            format!("Error: {err}. Retrying (x{})...", state.error_count);
+                        if let InitialGenerationStatus::Generating {
+                            msg: _,
+                            error_count,
+                        } = state.init_gen_status
+                        {
+                            let error_count = error_count + 1;
+                            state.init_gen_status = InitialGenerationStatus::Generating {
+                                msg: format!("Error: {err}. Retrying (x{})...", error_count),
+                                error_count,
+                            }
+                        }
                     }
                 }
             }
@@ -677,16 +704,45 @@ async fn gen_and_apply_actions(state: Arc<Mutex<IdeaGuyState>>, instructions: St
 }
 
 async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
-    loop {
-        let tmp_defs = state.lock().unwrap().game_defs.clone();
-        let reqs = get_missing_requirements(&tmp_defs);
+    // Initial generation loop.
+    let mut num_noop_generations = 0;
+    for initial_loop_idx in 0.. {
+        let start_defs = state.lock().unwrap().game_defs.clone();
+        let reqs = get_missing_requirements(&start_defs);
         if reqs.is_empty() {
             break;
         }
         let instructions = format!("Generate everything missing. Namely, we need:\n{reqs}");
         gen_and_apply_actions(state.clone(), instructions).await;
+
+        let state = &mut state.lock().unwrap();
+
+        if let InitialGenerationStatus::Generating { msg, error_count } =
+            state.init_gen_status.clone()
+        {
+            if error_count >= 3 {
+                state.init_gen_status = InitialGenerationStatus::ErroredOut {
+                    msg,
+                    reason: GenerationAbortReason::ServerError,
+                };
+                return;
+            } else {
+                if state.game_defs == start_defs {
+                    num_noop_generations += 1
+                }
+                if num_noop_generations >= 2 || initial_loop_idx >= 10 {
+                    state.init_gen_status = InitialGenerationStatus::ErroredOut {
+                        msg: "Detected that the AI got in a loop".into(),
+                        reason: GenerationAbortReason::Loop,
+                    };
+                    return;
+                }
+            }
+        }
     }
-    state.lock().unwrap().done = true;
+    state.lock().unwrap().init_gen_status = InitialGenerationStatus::Done;
+
+    // Work loop.
     loop {
         crate::util::sleep(Duration::from_millis(100)).await;
         let work = state.lock().unwrap().work.pop_front();
@@ -721,10 +777,11 @@ async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
 fn start_background_generation_worker(game_defs: GameDefs) -> Arc<Mutex<IdeaGuyState>> {
     let state = Arc::new(Mutex::new(IdeaGuyState {
         game_defs,
-        message: "Generating everything".into(),
-        done: false,
+        init_gen_status: InitialGenerationStatus::Generating {
+            msg: "".into(),
+            error_count: 0,
+        },
         work: [].into(),
-        error_count: 0,
     }));
     spawn(generate_work(state.clone()));
     state
@@ -755,11 +812,11 @@ impl IdeaGuy {
     pub fn tick(&mut self) {
         self.game_defs = self.generation_state.lock().unwrap().game_defs.clone();
     }
-    pub fn get_state(&self) -> String {
-        self.generation_state.lock().unwrap().message.clone()
-    }
-
-    pub fn initial_generation_done(&self) -> bool {
-        self.generation_state.lock().unwrap().done
+    pub fn get_state(&self) -> InitialGenerationStatus {
+        self.generation_state
+            .lock()
+            .unwrap()
+            .init_gen_status
+            .clone()
     }
 }

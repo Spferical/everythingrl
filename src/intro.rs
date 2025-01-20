@@ -1,4 +1,4 @@
-use crate::net::IdeaGuy;
+use crate::net::{GenerationAbortReason, IdeaGuy, InitialGenerationStatus};
 use ::rand::{
     seq::{index, SliceRandom},
     SeedableRng,
@@ -75,6 +75,7 @@ pub enum PromptState {
     Understand,
     EnterTheme,
     Generating,
+    Errored(String),
     Done,
 }
 
@@ -104,6 +105,14 @@ impl IntroState {
                 .iter()
                 .map(|i| (*SETTINGS[i]).into())
                 .collect(),
+        }
+    }
+
+    pub fn reset_from_error(&mut self, msg: String, reason: GenerationAbortReason) {
+        self.ready_for_generation = false;
+        self.prompt_state = PromptState::Errored(msg);
+        if matches!(reason, GenerationAbortReason::ServerError) {
+            self.theme = "".into();
         }
     }
 }
@@ -209,7 +218,6 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
         let setting1 = &state.chosen_settings[0];
         let setting2 = &state.chosen_settings[1];
         let tip = &state.chosen_tip;
-        let gen_status = ig.as_ref().map(|ig| ig.get_state()).unwrap_or("".into());
 
         let text = match state.prompt_state {
         PromptState::Welcome(0) => "Welcome, traveler. I am the Storyteller of this roguelike game.".into(),
@@ -218,6 +226,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
         PromptState::Understand => "As you might have guessed by this point, the game you are about to play includes AI-generated elements. Despite the implemented safety features, it is entirely possible for the underlying system to produce inaccurate or offensive content. Click \"I understand\" if you understand these risks and wish to continue, otherwise click Exit to exit the game.".into(),
         PromptState::EnterTheme{..} => format!("Very well. Please describe the setting of the game which you would like to play. It can be literally anything. For example, you could say \"{setting1}\" or \"{setting2}\" to generate fantasy/sci-fi worlds in those settings."),
         PromptState::Generating => format!("Good. It'll take around 60 seconds to generate your prompt. In the meantime, a couple small notes.\n\nCONTROLS\n\nPress 'q' at any time to see a summary of these controls.\nThe movement keys are hjkl/arrows.\nHold down shift and move to use your ranged weapon.\n\'i\' opens inventory\n\'.\' waits for a moment\n\',\' picks up an item\n\'0-9\' multi-selects inventory items\n\'e\' equips/eats an item.\n\'d\' drops selected items\n\'c\' combines/cooks items\n\';\' or \'/\' will inspect an item.\n\nSome other notes --\n\nCrafting improves the quality of items in your inventory, and makes food more nutritious.\nMake sure you have both items selected before crafting.\nYou can craft any two items together as long as they are the same level -- even if they have different purposes.\nAll items have a type which influences how they interact with other items.\nWeapons and equipment degrade over time, you can see their current condition in the inventory.\n\nIf this is a lot to remember, press \'q\' for a quick summary.\n\nIf the fonts are rendering too small or large, there is a font scale slider on the bottom left.\n\nA quick tip -- {tip}\n\nThank you for listening to me. Please wait a moment as the game world is generated."),
+        PromptState::Errored(ref msg) => format!("Error: {msg}. Please try again."),
         PromptState::Done => "Starting the game!".into(),
         };
 
@@ -245,7 +254,8 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                         state.exit = true;
                     }
                 }
-                PromptState::EnterTheme => {
+                PromptState::EnterTheme | PromptState::Errored(..) => {
+                    state.ready_for_generation = false;
                     ui.add(
                         egui::widgets::TextEdit::singleline(&mut state.theme)
                             .desired_width(f32::INFINITY),
@@ -258,20 +268,23 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
                 }
                 PromptState::Generating => {
                     state.ready_for_generation = true;
-                    let initial_gen_done = ig
-                        .as_ref()
-                        .map(|ig| ig.initial_generation_done())
-                        .unwrap_or(false);
-                    if initial_gen_done {
-                        ui.label(
-                            egui::RichText::new("Done! Press Enter to continue!")
-                                .color(egui::Color32::from_rgb(0, 255, 0)),
-                        );
-                        if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                            state.prompt_state = PromptState::Done;
+                    match ig.as_ref().map(|ig| ig.get_state()) {
+                        Some(InitialGenerationStatus::Done) => {
+                            ui.label(
+                                egui::RichText::new("Done! Press Enter to continue!")
+                                    .color(egui::Color32::from_rgb(0, 255, 0)),
+                            );
+                            if let Some(KeyCode::Enter) = get_last_key_pressed() {
+                                state.prompt_state = PromptState::Done;
+                            }
                         }
-                    } else {
-                        ui.label(gen_status);
+                        Some(InitialGenerationStatus::Generating { msg, .. }) => {
+                            ui.label(&msg);
+                        }
+                        Some(InitialGenerationStatus::ErroredOut { msg, .. }) => {
+                            ui.label(&msg);
+                        }
+                        None => {}
                     }
                 }
                 PromptState::Done => {}
