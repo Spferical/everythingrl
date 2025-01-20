@@ -6,7 +6,7 @@ import flask
 from sqlalchemy.orm import DeclarativeBase
 from flask import jsonify
 
-import ai
+from . import ai
 
 
 PREGEN_THEME = "pregen"
