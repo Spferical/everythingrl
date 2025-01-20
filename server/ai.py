@@ -1,5 +1,5 @@
 import json
-import logging
+import structlog
 import os
 import time
 from functools import cache
@@ -13,6 +13,7 @@ from google.auth import default
 import game_types
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+LOG = structlog.get_logger()
 
 
 credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
@@ -79,13 +80,15 @@ def get_safety_error(
 def get_response_text(response: genai_types.GenerateContentResponse) -> str:
     if response.prompt_feedback is not None:
         if response.prompt_feedback is not None:
-            logging.error(
-                f"Response blocked: {response.prompt_feedback.block_reason}: {response.prompt_feedback.block_reason_message}"
+            LOG.error(
+                "Response blocked",
+                block_reason=response.prompt_feedback.block_reason,
+                block_message=response.prompt_feedback.block_reason_message,
             )
             if response.prompt_feedback.safety_ratings:
                 raise get_safety_error(response.prompt_feedback.safety_ratings)
             else:
-                raise RuntimeError("blocked: {response.prompt_feedback.block_reason}")
+                raise AiError("blocked: {response.prompt_feedback.block_reason}")
     if response.candidates is not None:
         for candidate in response.candidates:
             if (
@@ -94,19 +97,15 @@ def get_response_text(response: genai_types.GenerateContentResponse) -> str:
             ):
                 raise get_safety_error(candidate.safety_ratings)
     if response.text is None:
-        logging.error(
-            f"bad response: {response.model_dump_json(exclude_defaults=True)}"
-        )
-        raise RuntimeError("bad AI API response")
+        LOG.debug(f"bad response: {response.model_dump_json(exclude_defaults=True)}")
+        raise AiError("bad AI API response")
     return response.text
 
 
 def log_spend(chars_in: int, chars_out: int):
     # TODO: these are 1.5 numbers, adjust this when 2.0 is GA
     price_est = 0.00000001875 * chars_in + 0.000000075 * chars_out
-    logging.info(
-        f"generated {chars_out} characters from {chars_in} for ${price_est:.4f}"
-    )
+    LOG.info(f"generated {chars_out} characters from {chars_in} for ${price_est:.4f}")
 
 
 def ask_google_streaming(
@@ -129,7 +128,7 @@ def ask_google_streaming(
 
     except GenaiError as e:
         if e.code == 429:
-            logging.error("Got 429. Retrying...")
+            LOG.error("Got 429. Retrying...")
             time.sleep(1)
             if model == "gemini-2.0-flash-exp":
                 # experimental model has tight rate limits, fall back to 1.5
@@ -169,7 +168,7 @@ At any time, you may ABORT generation if the user-provided theme is truly heinou
             f"\n\nExample input: {example_input}\nExample output: {example_output}"
         )
     prompt = f"Game JSON: {input.model_dump_json(exclude_defaults=True)}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
-    logging.debug(f"ASKING: {system_prompt}\n{prompt}")
+    LOG.debug(f"ASKING: {system_prompt}\n{prompt}")
     response_text = ""
     actions_emitted = 0
     last_exc = None
@@ -178,25 +177,25 @@ At any time, you may ABORT generation if the user-provided theme is truly heinou
         [*complete_lines, response_text] = response_text.split("\n")
         for complete_line in complete_lines:
             try:
-                logging.debug(f"RECEIVED: {complete_line}")
+                LOG.debug(f"RECEIVED: {complete_line}")
+                if complete_line.startswith("```"):
+                    # No use logging this junk
+                    continue
                 yield game_types.AiAction(**json.loads(complete_line))
                 actions_emitted += 1
             except Exception as e:
-                logging.debug(f"Bad response: {complete_line}: {e}")
+                LOG.debug("Bad response", line=complete_line, exc_info=e)
                 last_exc = e
     if actions_emitted == 0:
         if last_exc is not None:
             raise last_exc
         else:
-            raise RuntimeError("Failed to generate any actions")
+            raise AiError("Failed to generate any actions")
 
 
 def gen_actions(
     instructions: str, state: game_types.GameState
 ) -> Iterator[game_types.AiAction]:
-    logging.info(
-        f"Generating: {instructions}: {state.model_dump_json(exclude_defaults=True)}"
-    )
     examples = []
     if instructions == "Generate everything":
         pirates_input = game_types.GameState(theme="Pirates").model_dump_json(

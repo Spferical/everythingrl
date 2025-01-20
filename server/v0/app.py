@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import json
-import logging
+import structlog
 
 import flask
 from flask import jsonify
@@ -9,6 +9,7 @@ from . import ai
 
 
 PREGEN_THEME = "pregen"
+LOG = structlog.get_logger()
 
 
 def get_setting(theme):
@@ -35,7 +36,7 @@ def craft():
         }
     else:
         new_item = ai.craft(theme, setting_desc, items, item1, item2)
-        logging.info(json.dumps(new_item))
+        LOG.info(json.dumps(new_item))
         return new_item
 
 
@@ -46,7 +47,7 @@ def get_areas():
         areas = ai.get_test_json("hk_areas.json")
     else:
         areas = ai.gen_areas(theme, setting_desc)
-    logging.info(json.dumps(areas))
+    LOG.info(json.dumps(areas))
     return areas
 
 
@@ -57,7 +58,7 @@ def get_boss():
         boss = ai.get_test_json("hk_boss.json")
     else:
         boss = ai.gen_boss(theme, setting_desc)
-    logging.info(json.dumps(boss))
+    LOG.info(json.dumps(boss))
     return boss
 
 
@@ -69,7 +70,7 @@ def monsters():
         monsters = ai.get_test_json("hk_monsters.json")
     else:
         monsters = ai.gen_monsters(theme, setting_desc, names)
-    logging.info(json.dumps(monsters))
+    LOG.info(json.dumps(monsters))
     return monsters
 
 
@@ -81,5 +82,5 @@ def items():
         items = ai.get_test_json("hk_items.json")
     else:
         items = ai.gen_items(theme, setting_desc, names)
-    logging.info(json.dumps(items))
+    LOG.info(json.dumps(items))
     return items

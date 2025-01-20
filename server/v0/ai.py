@@ -1,6 +1,6 @@
 from enum import Enum
 import json
-import logging
+import structlog
 import os
 from functools import cache
 from typing import Annotated
@@ -20,6 +20,8 @@ AISTUDIO_API_KEY = os.getenv("AISTUDIO_API_KEY")
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 
 USE_VERTEX_AI = True
+
+LOG = structlog.get_logger()
 
 
 @cache
@@ -221,13 +223,13 @@ def ask_google_vertex_ai(prompt_parts: list[str]) -> str:
     try:
         text = responses.candidates[0].content.parts[0].text
         text = text.strip("--")
-        logging.info(text)
+        LOG.info(text)
         return text
     except KeyError:
-        logging.error(responses)
+        LOG.error(responses)
         raise
     except IndexError:
-        logging.error(responses)
+        LOG.error(responses)
         raise
 
 
@@ -253,10 +255,10 @@ def ask_google_ai_studio(prompt_parts: list[str]) -> str:
     try:
         text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
         text = text.strip("--")
-        logging.info(text)
+        LOG.info(text)
         return text
     except (IndexError, KeyError):
-        logging.error(response.json())
+        LOG.error(response.json())
         raise
 
 
@@ -294,9 +296,9 @@ def ask_google_structured(
     prompt_parts.append("\n")
 
     prompt = "".join(prompt_parts)
-    logging.debug(f"ASKING: {prompt}")
+    LOG.debug(f"ASKING: {prompt}")
     response_text = ask_google([prompt])
-    logging.info(f"RECEIVED: {response_text}")
+    LOG.info(f"RECEIVED: {response_text}")
     responses = response_text.split("\n")
     output = []
     for response in responses:
@@ -305,7 +307,7 @@ def ask_google_structured(
             output.append(model(**response_json).model_dump())
             prompt_parts.append(response_text)
         except Exception as e:
-            logging.error(f"Bad response: {response}: {e}")
+            LOG.error(f"Bad response: {response}: {e}")
     return output
 
 

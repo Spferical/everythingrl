@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 import json
-import logging
-import os
 import sys
 
 import click
@@ -12,8 +10,7 @@ import game_types
 
 @click.group()
 def cli():
-    loglevel = os.environ.get("LOGLEVEL", "INFO").upper()
-    logging.basicConfig(level=loglevel)
+    pass
 
 
 @cli.command()

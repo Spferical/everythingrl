@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-import logging
 import os
-import itertools
+import json
+import structlog
+from typing import Any
+import collections
 
 import flask
 from flask import Flask, send_from_directory, jsonify
@@ -15,9 +17,9 @@ import v1
 import ai
 import game_types
 
-
-logging.basicConfig(level=logging.DEBUG)
-
+LOGLEVEL = os.environ.get("EVERYTHINGRL_LOGLEVEL", "debug")
+structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(LOGLEVEL))
+LOG = structlog.get_logger()
 app = Flask(__name__)
 
 # needed for running under reverse proxy
@@ -28,6 +30,10 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
 )
 
 PREGEN_THEME = "pregen"
+
+
+def bind_request_details(_sender: Flask, **extras: dict[str, Any]) -> None:
+    structlog.contextvars.clear_contextvars()
 
 
 class Base(DeclarativeBase):
@@ -65,20 +71,34 @@ def v1_actions():
     game_state = flask.request.get_json()["state"]
     game_state = game_types.GameState(**game_state)
     ask = flask.request.get_json()["ask"]
-    logging.info('/v1/actions: theme="%s", ask="%s"', repr(ask), repr(game_state.theme))
+    structlog.contextvars.bind_contextvars(theme=game_state.theme)
+    LOG.info("/v1/actions generating from state", game_state=game_state)
 
     actions = ai.gen_actions(ask, game_state)
-    # Get the first action to catch any exceptions from status errors
-    first_action = next(actions)
 
     def generate():
+        raised_exception = False
+        action_stats = collections.defaultdict(int)
         try:
-            for action in itertools.chain([first_action], actions):
+            for action in actions:
+                for key in action.model_dump(exclude_defaults=True):
+                    action_stats[key] += 1
                 yield action.model_dump_json(exclude_defaults=True)
                 yield "\n"
         except Exception as e:
+            # We may fail at any point during streaming, so we can't rely on
+            # setting HTTP status.
             yield json.dumps({"error": str(e)})
             yield "\n"
+            raised_exception = True
+        action_stats = dict(sorted(action_stats.items()))
+        status = 'success'
+        if raised_exception or list(action_stats.keys()) == 'error':
+            status = 'failed'
+        elif 'error' in action_stats:
+            status = 'partial_error'
+        LOG.info("/v1/actions done", status=status, **action_stats)
+
 
     return generate(), {"Content-Type": "text/jsonl"}
 
@@ -109,4 +129,5 @@ class Game(db.Model):
 
 if __name__ == "__main__":
     db.init_app(app)
+    flask.request_started.connect(bind_request_details, app)
     app.run(debug=True)
