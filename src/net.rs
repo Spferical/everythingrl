@@ -616,7 +616,7 @@ fn get_missing_requirements(defs: &GameDefs) -> String {
         .map(|mon| mon.name.clone())
         .collect::<HashSet<String>>();
     for monster_name in mentioned_monsters.difference(&defined_monsters) {
-        reqs += &format!("- a monster definition for {monster_name}.\n");
+        reqs += &format!("- a monster definition for \"{monster_name}\".\n");
     }
     let mentioned_items = defs
         .areas
@@ -637,7 +637,7 @@ fn get_missing_requirements(defs: &GameDefs) -> String {
         .map(|i| i.name.clone())
         .collect::<HashSet<String>>();
     for item_name in mentioned_items.difference(&defined_items) {
-        reqs += &format!("- an item definition for {item_name}.\n");
+        reqs += &format!("- an item definition for \"{item_name}\".\n");
     }
     if defs.boss.is_none() {
         reqs += "- a final boss.\n"
@@ -694,13 +694,24 @@ async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
             let tmp_defs = state.lock().unwrap().game_defs.clone();
             match work {
                 WorkItem::Craft(item1, item2) => {
-                    gen_and_apply_actions(
-                        state.clone(),
-                        format!("Create a crafting recipe for {} and {} and any required item definitions.",
-                        tmp_defs.items[item1].name,
-                        tmp_defs.items[item2].name)
-                    )
-                    .await;
+                    let item1_name = tmp_defs.items[item1].name.clone();
+                    let item2_name = tmp_defs.items[item2].name.clone();
+                    while !state
+                        .lock()
+                        .unwrap()
+                        .game_defs
+                        .recipes
+                        .iter()
+                        .any(|r| r.item1 == item1_name && r.item2 == item2_name)
+                    {
+                        gen_and_apply_actions(
+                            state.clone(),
+                            format!("Create a recipe for combining \"{}\" and \"{}\" and any item definition for the output, if required.",
+                            item1_name,
+                            item2_name)
+                        )
+                        .await;
+                    }
                 }
             }
         }
