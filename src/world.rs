@@ -403,17 +403,15 @@ impl WorldInfo {
             .collect();
 
         for recipe in ig.game_defs.recipes.iter() {
-            let ek_by_name = |name: &str| {
-                self.item_kinds
-                    .iter()
-                    .find(|ek| ek.name == name)
-                    .cloned()
-                    .unwrap()
-            };
-            let ek1 = ek_by_name(&recipe.item1);
-            let ek2 = ek_by_name(&recipe.item2);
-            let eko = ek_by_name(&recipe.output);
-            self.recipes.insert((ek1, ek2), eko);
+            let ek_by_name =
+                |name: &str| self.item_kinds.iter().find(|ek| ek.name == name).cloned();
+            if let Some(ek1) = ek_by_name(&recipe.item1) {
+                if let Some(ek2) = ek_by_name(&recipe.item2) {
+                    if let Some(eko) = ek_by_name(&recipe.output) {
+                        self.recipes.insert((ek1, ek2), eko);
+                    }
+                }
+            }
         }
         if let Some((a, b)) = self.pending_recipes.iter().next().cloned() {
             let ig_equip_by_name = |name: &str| {
