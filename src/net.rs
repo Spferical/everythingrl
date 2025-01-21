@@ -727,8 +727,10 @@ async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
                 };
                 return;
             } else {
-                if state.game_defs == start_defs {
-                    num_noop_generations += 1
+                if error_count == 0 && state.game_defs == start_defs {
+                    num_noop_generations += 1;
+                } else {
+                    num_noop_generations = 0;
                 }
                 if num_noop_generations >= 2 || initial_loop_idx >= 10 {
                     state.init_gen_status = InitialGenerationStatus::ErroredOut {
