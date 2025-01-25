@@ -19,7 +19,7 @@ import game_types
 
 LOGLEVEL = os.environ.get("EVERYTHINGRL_LOGLEVEL", "debug")
 structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(LOGLEVEL))
-LOG = structlog.get_logger()
+LOG = structlog.stdlib.get_logger()
 app = Flask(__name__)
 
 # needed for running under reverse proxy
@@ -41,7 +41,7 @@ class Base(DeclarativeBase):
 
 
 @app.errorhandler(ai.AiError)
-def ai_error(e):
+def ai_error(e: ai.AiError):
     return jsonify({"error": str(e)}), 500
 
 
@@ -72,13 +72,16 @@ def v1_actions():
     game_state = game_types.GameState(**game_state)
     ask = flask.request.get_json()["ask"]
     structlog.contextvars.bind_contextvars(theme=game_state.theme)
-    LOG.info("/v1/actions generating from state", game_state=game_state)
+    LOG.info(
+        "/v1/actions generating from state",
+        game_state=json.loads(game_state.model_dump_json()),
+    )
 
     actions = ai.gen_actions(ask, game_state)
 
     def generate():
         raised_exception = False
-        action_stats = collections.defaultdict(int)
+        action_stats: dict[str, int] = collections.defaultdict(int)
         try:
             for action in actions:
                 for key in action.model_dump(exclude_defaults=True):
@@ -93,7 +96,7 @@ def v1_actions():
             raised_exception = True
         action_stats = dict(sorted(action_stats.items()))
         status = "success"
-        if raised_exception or list(action_stats.keys()) == "error":
+        if raised_exception or list(action_stats.keys()) == ["error"]:
             status = "failed"
         elif "error" in action_stats:
             status = "partial_error"
@@ -108,7 +111,7 @@ def root():
 
 
 @app.route("/<path:path>")
-def serve_static(path):
+def serve_static(path: os.PathLike[str]):
     return send_from_directory("../dist", path)
 
 

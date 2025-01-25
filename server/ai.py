@@ -1,9 +1,10 @@
 import json
+from typing import Any
 import structlog
 import os
 import time
 from functools import cache
-from typing import Iterator
+from collections.abc import Iterator
 
 from google import genai
 from google.genai import types as genai_types
@@ -13,7 +14,7 @@ from google.auth import default
 import game_types
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
-LOG = structlog.get_logger()
+LOG = structlog.stdlib.get_logger()
 
 
 credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
@@ -25,32 +26,32 @@ CLIENT = genai.Client(
 )
 SAFETY_SETTINGS = [
     genai_types.SafetySetting(
-        category="HARM_CATEGORY_HATE_SPEECH",
-        threshold="BLOCK_LOW_AND_ABOVE",
+        category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold=genai_types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
     ),
     genai_types.SafetySetting(
-        category="HARM_CATEGORY_DANGEROUS_CONTENT",
-        threshold="BLOCK_MEDIUM_AND_ABOVE",
+        category=genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=genai_types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
     ),
     genai_types.SafetySetting(
-        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-        threshold="BLOCK_LOW_AND_ABOVE",
+        category=genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=genai_types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
     ),
     genai_types.SafetySetting(
-        category="HARM_CATEGORY_HARASSMENT",
-        threshold="BLOCK_MEDIUM_AND_ABOVE",
+        category=genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold=genai_types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
     ),
 ]
 
 
 @cache
-def get_test_str(fname):
+def get_test_str(fname: str) -> str:
     with open(os.path.join(DIR_PATH, "data", fname)) as f:
         return f.read()
 
 
 @cache
-def get_test_json(fname):
+def get_test_json(fname: str) -> Any:
     with open(os.path.join(DIR_PATH, "data", fname)) as f:
         return json.load(f)
 
@@ -62,33 +63,38 @@ class AiError(Exception):
 def get_safety_error(
     safety_ratings: list[genai_types.SafetyRating],
 ) -> AiError:
-    safety_issues = []
+    safety_issues: list[str] = []
     for rating in safety_ratings:
         if rating.probability != "NEGLIGIBLE":
             match rating.category:
-                case "HARM_CATEGORY_HATE_SPEECH":
+                case genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH:
                     safety_issues.append("hateful")
-                case "HARM_CATEGORY_DANGEROUS_CONTENT":
+                case genai_types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:
                     safety_issues.append("dangerous")
-                case "HARM_CATEGORY_HARASSMENT":
+                case genai_types.HarmCategory.HARM_CATEGORY_HARASSMENT:
                     safety_issues.append("harrassment")
-                case "HARM_CATEGORY_SEXUALLY_EXPLICIT":
+                case genai_types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:
                     safety_issues.append("too horny")
+                case genai_types.HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY:
+                    safety_issues.append("politics")
+                case genai_types.HarmCategory.HARM_CATEGORY_UNSPECIFIED:
+                    safety_issues.append("idk")
+                case None:
+                    safety_issues.append("idk")
     return AiError(", ".join(safety_issues))
 
 
 def get_response_text(response: genai_types.GenerateContentResponse) -> str:
     if response.prompt_feedback is not None:
-        if response.prompt_feedback is not None:
-            LOG.error(
-                "Response blocked",
-                block_reason=response.prompt_feedback.block_reason,
-                block_message=response.prompt_feedback.block_reason_message,
-            )
-            if response.prompt_feedback.safety_ratings:
-                raise get_safety_error(response.prompt_feedback.safety_ratings)
-            else:
-                raise AiError("blocked: {response.prompt_feedback.block_reason}")
+        LOG.error(
+            "Response blocked",
+            block_reason=response.prompt_feedback.block_reason,
+            block_message=response.prompt_feedback.block_reason_message,
+        )
+        if response.prompt_feedback.safety_ratings:
+            raise get_safety_error(response.prompt_feedback.safety_ratings)
+        else:
+            raise AiError("blocked: {response.prompt_feedback.block_reason}")
     if response.candidates is not None:
         for candidate in response.candidates:
             if (
@@ -109,7 +115,7 @@ def log_spend(chars_in: int, chars_out: int):
 
 
 def ask_google_streaming(
-    prompt: str, system_prompt: str | None = None, model="gemini-2.0-flash-exp"
+    prompt: str, system_prompt: str | None = None, model: str = "gemini-2.0-flash-exp"
 ) -> Iterator[str]:
     total_response_length = 0
     try:
@@ -146,7 +152,7 @@ def ask_google_streaming(
 
 def ask_google_stream_actions(
     instructions: str,
-    examples: list[tuple[dict, dict]],
+    examples: list[tuple[str, str]],
     input: game_types.GameState,
 ) -> Iterator[game_types.AiAction]:
     system_prompt = """You are the game master for a difficult permadeath roguelike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
@@ -196,13 +202,13 @@ At any time, you may ABORT generation if the user-provided theme is truly heinou
 def gen_actions(
     instructions: str, state: game_types.GameState
 ) -> Iterator[game_types.AiAction]:
-    examples = []
+    examples: list[tuple[str, str]] = []
     if instructions == "Generate everything":
         pirates_input = game_types.GameState(theme="Pirates").model_dump_json(
             exclude_defaults=True
         )
         pirates_state = game_types.GameState(**get_test_json("pirates.json"))
-        pirates_output = []
+        pirates_output: list[game_types.AiAction] = []
         pirates_output.append(
             game_types.AiAction(set_setting_desc=pirates_state.setting_desc)
         )
@@ -215,8 +221,8 @@ def gen_actions(
         pirates_output.append(game_types.AiAction(set_boss=pirates_state.boss))
         for character in pirates_state.characters:
             pirates_output.append(game_types.AiAction(add_character=character))
-        pirates_output = "\n".join(
+        pirates_output_str = "\n".join(
             x.model_dump_json(exclude_defaults=True) for x in pirates_output
         )
-        examples.append((pirates_input, pirates_output))
+        examples.append((pirates_input, pirates_output_str))
     yield from ask_google_stream_actions(instructions, examples, state)
