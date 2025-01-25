@@ -1,2 +1,4 @@
 .env
 sevendrl-key.json
+typings
+pyrightconfig.json

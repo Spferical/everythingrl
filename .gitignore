@@ -20,4 +20,8 @@ dist/everythingrl.js
 
 # nix and wasm build script
 result
+
 dist/assets
+**/gcloud_creds.json
+local.data
+**/__pycache__

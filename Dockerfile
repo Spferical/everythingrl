@@ -1,4 +1,5 @@
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 RUN apt-get update && apt-get install -y \
     python3-dev libgeos-dev build-essential git && \
@@ -21,9 +22,17 @@ WORKDIR /app/server
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev
 
+
+FROM docker.io/python:3.13-slim-bookworm
+
+RUN apt-get update && apt-get install -y \
+    libgeos-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app /app
+
+WORKDIR /app/server
 ENV PATH="/app/server/.venv/bin:$PATH"
-
-EXPOSE 5000
-
 ENV FLASK_ENV=production
+EXPOSE 5000
 CMD gunicorn --workers 5 -b 0.0.0.0:5000 app:app
