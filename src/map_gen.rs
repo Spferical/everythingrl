@@ -252,6 +252,7 @@ pub fn gen_bsp_tree(rect: Rect, opts: BspSplitOpts, rng: &mut impl Rng) -> BspTr
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn carve_line_drunk(
     world: &mut World,
     start: Pos,
@@ -544,7 +545,7 @@ fn sprinkle_items(
     world: &mut World,
     poses: &mut Vec<Pos>,
     num: usize,
-    items: &Vec<Rc<ItemInfo>>,
+    items: &[Rc<ItemInfo>],
     rng: &mut impl Rng,
 ) -> usize {
     for i in 0..num {

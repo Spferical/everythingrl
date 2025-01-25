@@ -832,7 +832,7 @@ impl Ui {
                     ]) as f32
                         * 0.4
                         + 1.;
-                    let attenuation = 1. / (dist_from_center_sq * flicker).max(2.0).min(4.0);
+                    let attenuation = 1. / (dist_from_center_sq * flicker).clamp(2.0, 4.0);
                     let bg_hsl = macroquad::color::rgb_to_hsl(glyph.bg);
                     let bg_rgb =
                         macroquad::color::hsl_to_rgb(bg_hsl.0, bg_hsl.1, bg_hsl.2 * attenuation);

@@ -19,6 +19,7 @@ mod world;
 
 use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
+#[allow(clippy::large_enum_variant)]
 enum GameState {
     Menu(main_menu::Menu),
     Intro(intro::IntroState),
