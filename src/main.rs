@@ -19,6 +19,8 @@ mod world;
 
 use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
+const FONT_BYTES: &[u8] = include_bytes!("../assets/DejaVuSansMono.ttf");
+
 #[allow(clippy::large_enum_variant)]
 enum GameState {
     Menu(main_menu::Menu),
@@ -264,7 +266,7 @@ fn egui_startup() {
         let mut fonts = egui::FontDefinitions::default();
         fonts.font_data.insert(
             "DejaVuSansMono".to_owned(),
-            egui::FontData::from_static(include_bytes!("../assets/DejaVuSansMono.ttf")),
+            egui::FontData::from_static(FONT_BYTES),
         );
         fonts
             .families
@@ -339,7 +341,7 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
-    let font = load_ttf_font("assets/DejaVuSansMono.ttf").await.unwrap();
+    let font = load_ttf_font_from_bytes(FONT_BYTES).unwrap();
     egui_startup();
     egui_update_scaling(1.0);
 
