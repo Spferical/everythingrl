@@ -179,6 +179,7 @@
             packages = with pkgs; [
                 lld
                 uv
+                binaryen
             ];
           };
       });

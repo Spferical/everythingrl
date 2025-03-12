@@ -29,7 +29,7 @@ function build_windows() {
 build_windows
 
 function build_wasm() {
-    nix develop --command './build_wasm.sh'
+    RELEASE=1 nix develop --command './build_wasm.sh'
     rm -rf dist/assets/
     rsync -a assets/ dist/assets/
 }
