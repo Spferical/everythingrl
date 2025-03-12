@@ -131,7 +131,7 @@ impl Menu {
             let width = screen_width() * miniquad::window::dpi_scale();
             let padding = 3.0 * miniquad::window::dpi_scale();
             let title = match self.state {
-                MenuState::Main => "EverythingRL",
+                MenuState::Main => "EverythingRL 005",
                 MenuState::Load => "Load an existing EverythingRL world",
             };
             egui::Window::new(title)
