@@ -180,6 +180,7 @@
                 lld
                 uv
                 binaryen
+                rust-analyzer
             ];
           };
       });
