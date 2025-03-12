@@ -13,6 +13,7 @@ project_name=$(cargo metadata --format-version=1 \
 
 function build_linux() {
     CARGO_TARGET_DIR=./.centos-target/ cross build --target=x86_64-unknown-linux-gnu --release
+    rm -rf dist_linux
     mkdir -p dist_linux
     cp "./.centos-target/x86_64-unknown-linux-gnu/release/${project_name}" dist_linux/
 }
