@@ -333,6 +333,10 @@ fn window_conf() -> Conf {
     Conf {
         window_title: "EverythingRL".to_owned(),
         high_dpi: true,
+        platform: miniquad::conf::Platform {
+            linux_backend: miniquad::conf::LinuxBackend::WaylandWithX11Fallback,
+            ..Default::default()
+        },
         ..Default::default()
     }
 }
