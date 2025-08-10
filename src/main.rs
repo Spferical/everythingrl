@@ -266,7 +266,7 @@ fn egui_startup() {
         let mut fonts = egui::FontDefinitions::default();
         fonts.font_data.insert(
             "DejaVuSansMono".to_owned(),
-            egui::FontData::from_static(FONT_BYTES),
+            egui::FontData::from_static(FONT_BYTES).into(),
         );
         fonts
             .families
@@ -280,6 +280,9 @@ fn egui_startup() {
             .push("DejaVuSansMono".to_owned());
 
         egui_ctx.set_fonts(fonts);
+        egui_ctx.style_mut(|style| {
+            style.interaction.selectable_labels = false;
+        });
     });
 }
 
@@ -313,11 +316,6 @@ fn egui_update_scaling(user_scale: f32) {
         ]
         .into();
         egui_ctx.set_style(style);
-
-        let mut visuals = egui::Visuals::default();
-        visuals.window_shadow.extrusion = 0.;
-        visuals.popup_shadow.extrusion = 0.;
-        egui_ctx.set_visuals(visuals);
     });
 }
 

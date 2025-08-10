@@ -177,7 +177,6 @@ impl ItemInfo {
         let harm = if matches!(self.ty, Poison) {
             // Check if the player armor negates poison in any way.
             // If not, then negate the healing!
-            println!("got here {:?}", self.ty);
             !armor_types.iter().any(|ty| {
                 matches!(ty.get_effectiveness(Poison), Two | Four)
                     || matches!(Poison.get_effectiveness(*ty), Half | Quarter | Zero)

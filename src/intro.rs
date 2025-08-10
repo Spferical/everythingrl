@@ -126,7 +126,7 @@ fn storyteller_window(
     let num_typewritten_chars = (CHARS_PER_SECOND * typewriter_time) as usize;
     let typewritten_text: String = text.chars().take(num_typewritten_chars).collect();
     let width = screen_width() * miniquad::window::dpi_scale();
-    let padding = 3.0 * miniquad::window::dpi_scale();
+    let padding = (3.0 * miniquad::window::dpi_scale()) as i8;
     egui::Window::new("StoryTeller")
         .resizable(false)
         .collapsible(false)
@@ -134,8 +134,8 @@ fn storyteller_window(
         .max_width(width)
         .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
-            egui::Frame::none()
-                .inner_margin(egui::style::Margin::symmetric(padding, padding))
+            egui::Frame::NONE
+                .inner_margin(egui::Margin::symmetric(padding, padding))
                 .show(ui, |ui| {
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                         ui.label(egui::RichText::new(typewritten_text));

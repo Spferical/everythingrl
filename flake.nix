@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-24.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
 
     crane = {
       url = "github:ipetkov/crane";
@@ -179,7 +179,9 @@
             packages = with pkgs; [
                 lld
                 uv
+                python3
                 binaryen
+                gamescope
                 rust-analyzer
             ];
           };

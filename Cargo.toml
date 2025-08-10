@@ -13,8 +13,8 @@ indexmap = "2.2.3"
 lazy_static = "1.4.0"
 macroquad = "0.4.4"
 egui-macroquad = { git = "https://github.com/optozorax/egui-macroquad.git" }
-egui = "0.25.0"
-egui_extras = "0.25"
+egui = "0.31.1"
+egui_extras = "0.31"
 rand = { version = "0.8", default-features = false, features = ["small_rng"] }
 textwrap = "0.16.1"
 reqwest = { version = "0.12.9", default-features = false, features = ["blocking", "rustls-tls", "json", "stream"] }

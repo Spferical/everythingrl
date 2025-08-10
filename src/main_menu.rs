@@ -38,7 +38,7 @@ impl Menu {
 
         ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
-                ui.style_mut().wrap = Some(false);
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 let defs = self.defs.get_or_insert_with(crate::save::load_defs);
                 while let Ok(def) = self.import_rx.try_recv() {
                     defs.push(def);
@@ -82,9 +82,7 @@ impl Menu {
                                         }
                                     });
                                     row.col(|ui| {
-                                        ui.add(
-                                            egui::Label::new(&def.metadata.theme).truncate(true),
-                                        );
+                                        ui.add(egui::Label::new(&def.metadata.theme).truncate());
                                     });
                                     row.col(|ui| {
                                         ui.label(
@@ -129,7 +127,7 @@ impl Menu {
         let mut choice = None;
         egui_macroquad::ui(|egui_ctx| {
             let width = screen_width() * miniquad::window::dpi_scale();
-            let padding = 3.0 * miniquad::window::dpi_scale();
+            let padding = (3.0 * miniquad::window::dpi_scale()) as i8;
             let title = match self.state {
                 MenuState::Main => "EverythingRL 005",
                 MenuState::Load => "Load an existing EverythingRL world",
@@ -141,8 +139,8 @@ impl Menu {
                 .max_width(width)
                 .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
                 .show(egui_ctx, |ui| {
-                    egui::Frame::none()
-                        .inner_margin(egui::style::Margin::symmetric(padding, padding))
+                    egui::Frame::NONE
+                        .inner_margin(egui::Margin::symmetric(padding, padding))
                         .show(ui, |ui| match self.state {
                             MenuState::Main => {
                                 ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {

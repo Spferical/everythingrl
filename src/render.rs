@@ -459,8 +459,11 @@ impl Ui {
         egui::TopBottomPanel::bottom("bottom_bar")
             .exact_height(height)
             .show(egui_ctx, |ui| {
-                egui::Frame::none()
-                    .inner_margin(egui::style::Margin::symmetric(height * 0.5, height * 0.1))
+                egui::Frame::NONE
+                    .inner_margin(egui::Margin::symmetric(
+                        (height * 0.5) as i8,
+                        (height * 0.1) as i8,
+                    ))
                     .show(ui, |ui| {
                         ui.with_layout(
                             egui::Layout::left_to_right(egui::Align::Center)
@@ -487,7 +490,7 @@ impl Ui {
                                     egui::Slider::new(&mut self.tmp_scale_factor, 0.5..=3.0)
                                         .logarithmic(true),
                                 );
-                                if response.drag_released() {
+                                if response.drag_stopped() {
                                     self.user_scale_factor = self.tmp_scale_factor;
                                 }
                                 if ui.button("Help (q)").clicked() {
@@ -540,10 +543,10 @@ impl Ui {
                 offset_y * miniquad::window::dpi_scale(),
             ))
             .show(egui_ctx, |ui| {
-                egui::Frame::none()
-                    .inner_margin(egui::style::Margin::symmetric(
-                        pokedex_width * 0.02,
-                        pokedex_height * miniquad::window::dpi_scale() * 0.02,
+                egui::Frame::NONE
+                    .inner_margin(egui::Margin::symmetric(
+                        (pokedex_width * 0.02) as i8,
+                        (pokedex_height * miniquad::window::dpi_scale() * 0.02) as i8,
                     ))
                     .show(ui, |ui| {
                         ui.set_height(ui.available_height());
@@ -673,7 +676,7 @@ impl Ui {
                                                 egui::Label::new(
                                                     egui::RichText::new(description).italics(),
                                                 )
-                                                .wrap(true),
+                                                .wrap(),
                                             )
                                         });
                                     });
@@ -702,10 +705,10 @@ impl Ui {
             .show(egui_ctx, |ui| {
                 ui.set_height(ui.available_height());
                 ui.set_width(ui.available_width());
-                egui::Frame::none()
-                    .inner_margin(egui::style::Margin::symmetric(
-                        log_width * 0.02,
-                        log_height * 0.02,
+                egui::Frame::NONE
+                    .inner_margin(egui::Margin::symmetric(
+                        (log_width * 0.02) as i8,
+                        (log_height * 0.02) as i8,
                     ))
                     .show(ui, |ui| {
                         egui::ScrollArea::vertical()
@@ -855,7 +858,7 @@ impl Ui {
                             color: glyph.color,
                             ..Default::default()
                         },
-                    )
+                    );
                 }
             }
         }

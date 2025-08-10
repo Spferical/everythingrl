@@ -1,4 +1,4 @@
-use egui::Label;
+use egui::{Label, TextWrapMode};
 use macroquad::prelude::*;
 
 use crate::net::{Character, GameDefs};
@@ -20,7 +20,7 @@ impl Chargen {
         let mut choice = None;
         egui_macroquad::ui(|egui_ctx| {
             let width = screen_width() * miniquad::window::dpi_scale();
-            let padding = 3.0 * miniquad::window::dpi_scale();
+            let padding = (3.0 * miniquad::window::dpi_scale()) as i8;
             egui::Window::new("Choose your character")
                 .resizable(false)
                 .collapsible(false)
@@ -28,8 +28,8 @@ impl Chargen {
                 .max_width(width)
                 .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
                 .show(egui_ctx, |ui| {
-                    egui::Frame::none()
-                        .inner_margin(egui::style::Margin::symmetric(padding, padding))
+                    egui::Frame::NONE
+                        .inner_margin(egui::Margin::symmetric(padding, padding))
                         .show(ui, |ui| {
                             ui.vertical(|ui| {
                                 ui.label(self.defs.setting_desc.clone().unwrap_or("".into()));
@@ -55,7 +55,7 @@ impl Chargen {
                                                                     egui::RichText::new(&c.name)
                                                                         .heading(),
                                                                 )
-                                                                .wrap(false),
+                                                                .wrap_mode(TextWrapMode::Extend),
                                                             );
                                                         });
                                                         if row.response().clicked() {
