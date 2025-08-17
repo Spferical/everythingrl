@@ -39,6 +39,27 @@ impl Menu {
         ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                if ui.button("Load game from file").clicked() {
+                    let tx = self.import_tx.clone();
+                    crate::util::spawn(async move {
+                        if let Some(handle) = rfd::AsyncFileDialog::new().pick_file().await {
+                            let data = handle.read().await;
+                            match serde_json::from_slice::<Defs>(&data) {
+                                Ok(defs) => {
+                                    tx.send(defs).ok();
+                                }
+                                Err(e) => {
+                                    // TODO: when we rev the game data format,
+                                    // we'll need to indicate/fail somewhere.
+                                    macroquad::miniquad::error!("{}", e);
+                                }
+                            }
+                        }
+                    })
+                }
+                if ui.button("Close").clicked() {
+                    self.state = MenuState::Main;
+                }
                 let defs = self.defs.get_or_insert_with(crate::save::load_defs);
                 while let Ok(def) = self.import_rx.try_recv() {
                     defs.push(def);
@@ -96,24 +117,6 @@ impl Menu {
                                 });
                             }
                         });
-                }
-                if ui.button("Load game from file").clicked() {
-                    let tx = self.import_tx.clone();
-                    crate::util::spawn(async move {
-                        if let Some(handle) = rfd::AsyncFileDialog::new().pick_file().await {
-                            let data = handle.read().await;
-                            match serde_json::from_slice::<Defs>(&data) {
-                                Ok(defs) => {
-                                    tx.send(defs).ok();
-                                }
-                                Err(e) => {
-                                    // TODO: when we rev the game data format,
-                                    // we'll need to indicate/fail somewhere.
-                                    macroquad::miniquad::error!("{}", e);
-                                }
-                            }
-                        }
-                    })
                 }
                 if ui.button("Close").clicked() {
                     self.state = MenuState::Main;
