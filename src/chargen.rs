@@ -36,34 +36,10 @@ impl Chargen {
                                 ui.separator();
                                 ui.horizontal(|ui| {
                                     ui.vertical(|ui| {
-                                        egui_extras::TableBuilder::new(ui)
-                                            .striped(true)
-                                            .column(egui_extras::Column::auto())
-                                            .sense(egui::Sense::click())
-                                            .header(20.0, |mut header| {
-                                                header.col(|_ui| {});
-                                            })
-                                            .body(|mut body| {
-                                                for (i, c) in
-                                                    self.defs.characters.iter().enumerate()
-                                                {
-                                                    body.row(20.0, |mut row| {
-                                                        row.set_selected(self.selected == Some(i));
-                                                        row.col(|ui| {
-                                                            ui.add(
-                                                                Label::new(
-                                                                    egui::RichText::new(&c.name)
-                                                                        .heading(),
-                                                                )
-                                                                .wrap_mode(TextWrapMode::Extend),
-                                                            );
-                                                        });
-                                                        if row.response().clicked() {
-                                                            self.selected = Some(i)
-                                                        }
-                                                    });
-                                                }
-                                            });
+                                        for (i, c) in self.defs.characters.iter().enumerate() {
+                                            let name_text = egui::RichText::new(&c.name).heading();
+                                            ui.radio_value(&mut self.selected, Some(i), name_text);
+                                        }
                                     });
                                     ui.separator();
                                     ui.vertical(|ui| {
