@@ -365,7 +365,7 @@ impl Ui {
             let player_pos = sim.get_player_pos();
             let grid_rect =
                 Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
-            let upper_left = grid_rect.topleft();
+            let upper_left = grid_rect.bottomleft(); // world coords are flipped.
 
             // Handle smooth camera movement.
             self.camera_delta = Some(match self.camera_delta {

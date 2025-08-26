@@ -314,6 +314,23 @@ pub fn fill_rect(world: &mut World, rect: Rect, kind: TileKind) {
     }
 }
 
+pub fn print_rect(world: &World, rect: Rect) {
+    let mut text_map = String::new();
+    for y in rect.y1..=rect.y2 {
+        for x in rect.x1..=rect.x2 {
+            let pos = Pos { x, y };
+            let ch = if world[pos].kind.is_walkable() {
+                '.'
+            } else {
+                '#'
+            };
+            text_map.push(ch);
+        }
+        text_map.push('\n');
+    }
+    macroquad::miniquad::info!("{}", text_map);
+}
+
 fn gen_alien_nest(world: &mut World, rng: &mut impl Rng, entrances: &[Pos], rect: Rect) {
     // draw a bunch of lines between the entrances
     let mut interior_entrances = Vec::new();
@@ -444,18 +461,18 @@ pub fn gen_simple_rooms(
             carve_floor(world, pos, 0, TileKind::Floor)
         }
     }
-    let topleft_room = rooms
+    let bottomleft_room = rooms
         .iter()
-        .min_by_key(|r| (r.topleft().x, r.topleft().y))
+        .min_by_key(|r| (r.bottomleft().x, r.bottomleft().y))
         .unwrap();
-    let bottomright_room = rooms
+    let topright_room = rooms
         .iter()
-        .max_by_key(|r| (r.center() - topleft_room.center()).mhn_dist())
+        .max_by_key(|r| (r.center() - bottomleft_room.center()).mhn_dist())
         .unwrap();
 
     LevelgenResult {
-        start: topleft_room.center(),
-        end: bottomright_room.center(),
+        start: bottomleft_room.center(),
+        end: topright_room.center(),
     }
 }
 
@@ -504,7 +521,7 @@ fn gen_level_mapgen(
     assert!(buf.height as i32 == rect.height());
     for x in 0..buf.width {
         for y in 0..buf.height {
-            let pos = rect.topleft()
+            let pos = rect.bottomleft()
                 + Offset {
                     x: x as i32,
                     y: y as i32,
@@ -519,8 +536,8 @@ fn gen_level_mapgen(
 
     let start = buf.starting_point.unwrap();
     let start_pos = Pos {
-        x: rect.topleft().x + start.x as i32,
-        y: rect.topleft().y + start.y as i32,
+        x: rect.bottomleft().x + start.x as i32,
+        y: rect.bottomleft().y + start.y as i32,
     };
 
     // Mapgen assumes diagonal movement, which we don't have.
@@ -717,6 +734,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         .into_iter()
         .filter(|p| world[*p].kind.is_walkable())
         .count();
+    print_rect(world, rect);
     if (total_reachable as i32) < rect.width() * rect.height() / 16 {
         // Try again
         fill_rect(world, rect, TileKind::Wall);

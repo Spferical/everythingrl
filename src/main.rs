@@ -178,16 +178,16 @@ impl PlayState {
             }
             KeyCode::J | KeyCode::Down => {
                 if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                    tick |= self.sim.do_player_action(PlayerAction::Fire(SOUTH));
+                    tick |= self.sim.do_player_action(PlayerAction::Fire(NORTH));
                 } else {
-                    tick |= self.sim.do_player_action(PlayerAction::Move(SOUTH));
+                    tick |= self.sim.do_player_action(PlayerAction::Move(NORTH));
                 }
             }
             KeyCode::K | KeyCode::Up => {
                 if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                    tick |= self.sim.do_player_action(PlayerAction::Fire(NORTH));
+                    tick |= self.sim.do_player_action(PlayerAction::Fire(SOUTH));
                 } else {
-                    tick |= self.sim.do_player_action(PlayerAction::Move(NORTH));
+                    tick |= self.sim.do_player_action(PlayerAction::Move(SOUTH));
                 }
             }
             KeyCode::I => {
