@@ -361,15 +361,6 @@ pub struct Recipe {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-pub struct CraftArgs {
-    theme: String,
-    setting: String,
-    items: Vec<ItemDefinition>,
-    item1: ItemDefinition,
-    item2: ItemDefinition,
-}
-
-#[derive(Debug, Clone, serde::Serialize)]
 pub struct ActionsArgs {
     state: GameDefs,
     ask: String,
