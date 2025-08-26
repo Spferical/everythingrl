@@ -1,0 +1,15 @@
+[package]
+name = "rogue-algebra"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+bevy15 = ["bevy15_math"]
+
+[dependencies]
+rand = { version = "0.8.5", default-features = false }
+bevy15_math = { package = "bevy_math", version = "0.15.0", optional = true, default-features = false }
+
+[dev-dependencies]
+rand = { version = "0.8.5" }

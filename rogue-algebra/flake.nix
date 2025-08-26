@@ -40,12 +40,8 @@
         craneLib = (crane.mkLib pkgs).overrideToolchain pkgs.rust-bin.stable.latest.default;
         src = lib.cleanSourceWith {
           src = craneLib.path ./.;
-          filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/assets/.*$" path != null);
+          filter = path: type: (craneLib.filterCargoSources path type) || (builtins.match ".*/static/.*$" path != null);
         };
-        craneLibWasm = craneLib.overrideToolchain (pkgs.rust-bin.stable.latest.default.override {
-          targets = [ "wasm32-unknown-unknown" ];
-            extensions = [ "rust-src" "rust-analyzer"];
-        });
 
         # Common arguments can be set here to avoid repeating them later
         commonArgs = {
@@ -56,35 +52,7 @@
             makeWrapper
           ];
 
-          buildInputs = with pkgs; [
-            # Add additional build inputs here
-            openssl
-            libGL
-            fontconfig
-            pkg-config
-            stdenv.cc.cc
-          ] ++ lib.optionals pkgs.stdenv.isLinux [
-            wayland
-            libxkbcommon
-            glew
-            egl-wayland
-            xorg.libX11
-            xorg.libXcursor
-            xorg.libXi
-            xorg.libXrandr
-            xorg.libxcb
-            alsa-lib
-          ] ++ lib.optionals pkgs.stdenv.isDarwin [
-            # Additional darwin specific inputs can be set here
-            pkgs.libiconv
-          ];
-
-          # Additional environment variables can be set directly
-          # MY_CUSTOM_VAR = "some value";
-        };
-
-        wasmArgs = {
-          CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+          buildInputs = with pkgs; [];
         };
 
         craneLibLLvmTools = craneLib.overrideToolchain
@@ -102,15 +70,6 @@
         # artifacts from above.
         my-crate = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
-          postInstall = ''
-            wrapProgram "$out/bin/seven-drl-2024" --set LD_LIBRARY_PATH "${lib.makeLibraryPath commonArgs.buildInputs}";
-          '';
-        });
-        # Build the actual crate itself, reusing the dependency
-        # artifacts from above.
-        my-crate-wasm = craneLibWasm.buildPackage (wasmArgs // commonArgs // {
-          inherit cargoArtifacts;
-          cargoTestCommand = "true";
         });
       in
       {
@@ -155,7 +114,6 @@
 
         packages = {
           default = my-crate;
-          wasm = my-crate-wasm;
           my-crate-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs // {
             inherit cargoArtifacts;
           });
@@ -165,7 +123,7 @@
           drv = my-crate;
         };
 
-        devShells.default = craneLibWasm.devShell
+        devShells.default = craneLib.devShell
           {
             # Inherit inputs from checks.
             checks = self.checks.${system};
@@ -173,16 +131,10 @@
             # Additional dev-shell environment variables can be set directly
             # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
             LD_LIBRARY_PATH = "${lib.makeLibraryPath commonArgs.buildInputs}";
-            CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_LINKER = "lld";
 
             # Extra inputs can be added here; cargo and rustc are provided by default.
-            packages = with pkgs; [
-                lld
-                uv
-                python3
-                binaryen
-                gamescope
-                rust-analyzer
+            packages = [
+              #pkgs.ripgrep
             ];
           };
       });

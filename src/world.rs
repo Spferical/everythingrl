@@ -1,15 +1,16 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
-use crate::grid::{self, Offset, Pos, TileMap, CARDINALS};
+use enum_map::{enum_map, Enum, EnumMap};
+use lazy_static::lazy_static;
+use rand::{seq::SliceRandom as _, Rng, SeedableRng};
+use rogue_algebra::{Offset, Pos, TileMap, CARDINALS};
+
 use crate::net::{
     Area, AttackEffectiveness, Color, IdeaGuy, ItemDefinition, ItemKind, MonsterDefinition,
     PokemonType,
 };
 use crate::render::{Animation, AnimationState, ShotAnimation};
-use enum_map::{enum_map, Enum, EnumMap};
-use lazy_static::lazy_static;
-use rand::{seq::SliceRandom as _, Rng, SeedableRng};
 
 pub const FOV_RANGE: i32 = 8;
 pub const STARTING_DURABILITY: usize = 20;
@@ -1195,12 +1196,12 @@ impl World {
         }
     }
 
-    pub fn get_fov(&self) -> HashSet<Pos> {
-        crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self)
+    pub fn get_fov(&self, pos: Pos) -> HashSet<Pos> {
+        crate::fov::calculate_fov(pos, FOV_RANGE, |pos| self.get_tile(pos).kind.is_opaque())
     }
 
     pub fn get_visible_mobs(&self) -> Vec<Mob> {
-        let fov = crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self);
+        let fov = self.get_fov(self.player_pos);
         let mut all_mobs: Vec<(i32, Pos, Mob)> = Vec::new();
         for pos in fov {
             if self.mobs.contains_key(&pos) {
@@ -1219,7 +1220,7 @@ impl World {
     pub fn tick(&mut self) {
         let poses = self.mobs.keys().copied().collect::<Vec<_>>();
         let boss_kind = self.world_info.boss_info.as_ref().unwrap().mob_kind;
-        let fov = crate::fov::calculate_fov(self.player_pos, FOV_RANGE, self);
+        let fov = self.get_fov(self.player_pos);
         for pos in poses {
             let mut mob = match self.mobs.remove(&pos) {
                 Some(mob) => mob,
@@ -1361,15 +1362,15 @@ impl World {
         self.player_pos
     }
 
-    pub fn get_tile(&self, pos: grid::Pos) -> Tile {
+    pub fn get_tile(&self, pos: Pos) -> Tile {
         self.tile_map[pos].clone()
     }
 
-    pub fn get_mob(&self, pos: grid::Pos) -> Option<Mob> {
+    pub fn get_mob(&self, pos: Pos) -> Option<Mob> {
         self.mobs.get(&pos).cloned()
     }
 
-    pub fn add_mob(&mut self, pos: grid::Pos, mob: Mob) {
+    pub fn add_mob(&mut self, pos: Pos, mob: Mob) {
         self.mobs.insert(pos, mob);
     }
 

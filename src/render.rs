@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use ::rand::rngs::StdRng;
 use ::rand::SeedableRng;
 use egui::{Color32, FontId, RichText};
@@ -5,11 +7,10 @@ use macroquad::prelude::*;
 use macroquad::text::Font;
 use noise::{NoiseFn, Perlin};
 use rand_distr::{Distribution, Normal};
-use std::collections::HashSet;
+use rogue_algebra::{Pos, Rect};
 
 use crate::net::{Color, ItemKind};
-use crate::world::{Item, MobKindInfo};
-use crate::{grid::Pos, grid::Rect, world::TileKind};
+use crate::world::{Item, MobKindInfo, TileKind};
 
 pub const FOV_BG: macroquad::color::Color = DARKGRAY;
 pub const OOS_BG: macroquad::color::Color = BLACK;
@@ -393,7 +394,7 @@ impl Ui {
                 location: (player_pos.x as usize, player_pos.y as usize),
                 layer: 2,
             }];
-            let fov = sim.get_fov();
+            let fov = sim.get_fov(sim.player_pos);
             for pos in grid_rect {
                 let tile = &memory.tile_map[pos];
                 let bg = if fov.contains(&pos) { FOV_BG } else { OOS_BG };

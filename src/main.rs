@@ -1,12 +1,14 @@
+use std::collections::HashMap;
+
 use chargen::Chargen;
 use macroquad::prelude::*;
+use rogue_algebra::fov;
+use rogue_algebra::{EAST, NORTH, SOUTH, WEST};
+
 use net::{GameDefs, IdeaGuy, InitialGenerationStatus};
-use std::collections::HashMap;
 use world::PlayerAction;
 
 mod chargen;
-mod fov;
-mod grid;
 mod intro;
 mod main_menu;
 mod map_gen;
@@ -16,8 +18,6 @@ mod render;
 mod save;
 mod util;
 mod world;
-
-use crate::grid::{EAST, NORTH, SOUTH, WEST};
 
 const FONT_BYTES: &[u8] = include_bytes!("../assets/DejaVuSansMono.ttf");
 
@@ -246,7 +246,7 @@ impl PlayState {
     }
 
     fn update_memory(&mut self) {
-        let seen = fov::calculate_fov(self.sim.get_player_pos(), world::FOV_RANGE, &self.sim);
+        let seen = self.sim.get_fov(self.sim.player_pos);
         self.memory.mobs.clear();
         for pos in seen {
             self.memory.tile_map[pos] = Some(self.sim.get_tile(pos));

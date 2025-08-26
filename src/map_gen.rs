@@ -5,10 +5,10 @@ use std::rc::Rc;
 use rand::rngs::StdRng;
 use rand::Rng;
 use rand::{seq::SliceRandom, SeedableRng};
+use rogue_algebra::{Offset, Pos, Rect, TileMap, CARDINALS};
 
-use crate::grid::{Offset, Pos, Rect, TileMap, CARDINALS};
 use crate::net::{ItemKind, MapGen};
-use crate::world::{Item, ItemInfo, ItemInstance, Mob, MobKind, TileKind, World, FOV_RANGE};
+use crate::world::{Item, ItemInfo, ItemInstance, Mob, MobKind, TileKind, World};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarveRoomOpts {
@@ -268,7 +268,7 @@ pub fn carve_line_drunk(
         let dir = if rng.gen::<f64>() < waviness {
             *CARDINALS.choose(rng).unwrap()
         } else {
-            (end - pos).closest_dir()
+            (end - pos).nearest_cardinal()
         };
         if !bound.contains(pos + dir) {
             continue;
@@ -301,7 +301,7 @@ pub fn carve_corridor(world: &mut World, start: Pos, end: Pos, tile: TileKind) {
     let mut pos = start;
     while pos != end {
         carve_floor(world, pos, 0, tile);
-        pos += (end - pos).closest_dir();
+        pos += (end - pos).nearest_cardinal();
     }
 }
 
@@ -574,7 +574,7 @@ fn sprinkle_enemies_and_items(
         .filter(|pos| world[*pos].kind.is_walkable())
         .collect::<Vec<_>>();
 
-    let fov = crate::fov::calculate_fov(lgr.start, FOV_RANGE, world);
+    let fov = world.get_fov(lgr.start);
 
     let walkable_poses_out_of_fov = walkable_poses
         .iter()
