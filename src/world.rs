@@ -34,6 +34,33 @@ impl StatusEffect {
             StatusEffect::Bleed => Color::Red,
         }
     }
+    pub fn can_effect(&self, ty1: PokemonType, ty2: Option<PokemonType>) -> bool {
+        match self {
+            Self::Poison => {
+                PokemonType::Poison.get_effectiveness2(ty1, ty2) >= AttackEffectiveness::One
+            }
+            Self::Burn => {
+                PokemonType::Fire.get_effectiveness2(ty1, ty2) >= AttackEffectiveness::One
+            }
+            Self::Bleed => {
+                PokemonType::Steel.get_effectiveness2(ty1, ty2) >= AttackEffectiveness::One
+            }
+        }
+    }
+    pub fn duration(&self) -> usize {
+        match self {
+            Self::Poison => 10,
+            Self::Burn => 5,
+            Self::Bleed => 2,
+        }
+    }
+    pub fn dot(&self) -> Option<usize> {
+        match self {
+            Self::Poison => Some(1),
+            Self::Burn => Some(5),
+            Self::Bleed => Some(10),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -910,17 +937,15 @@ impl World {
             }
         } else {
             for effect in effects.into_iter() {
-                let duration = match effect {
-                    StatusEffect::Poison => 10,
-                    StatusEffect::Burn => 3,
-                    StatusEffect::Bleed => 5,
-                };
-                mob.status_effects.push(StatusInfo { effect, duration });
-                self.log_message(vec![
-                    (mki.name.clone(), mki.color),
-                    (" is afflicted with ".into(), Color::White),
-                    (format!("{:?}", effect), effect.color()),
-                ]);
+                if effect.can_effect(mki.type1, mki.type2) {
+                    let duration = effect.duration();
+                    mob.status_effects.push(StatusInfo { effect, duration });
+                    self.log_message(vec![
+                        (mki.name.clone(), mki.color),
+                        (" is afflicted with ".into(), Color::White),
+                        (format!("{:?}", effect), effect.color()),
+                    ]);
+                }
             }
             self.mobs.insert(mob_pos, mob);
         }
@@ -1322,15 +1347,18 @@ impl World {
 
             // Apply status effects
             let mut total_dot_damage = 0;
-            mob.status_effects.retain_mut(|effect| {
-                let damage = match effect.effect {
-                    StatusEffect::Poison => 1, // Slow DOT
-                    StatusEffect::Burn => 5,   // Fast DOT
-                    StatusEffect::Bleed => 3,  // Medium DOT
-                };
-                total_dot_damage += damage;
-                effect.duration -= 1;
-                effect.duration > 0
+            let dot_statuses = mob
+                .status_effects
+                .iter()
+                .map(|effect| effect.effect)
+                .filter(|effect| effect.dot().is_some())
+                .collect::<Vec<_>>();
+            mob.status_effects.retain_mut(|status| {
+                if let Some(damage) = status.effect.dot() {
+                    total_dot_damage += damage;
+                }
+                status.duration -= 1;
+                status.duration > 0
             });
 
             if total_dot_damage > 0 {
@@ -1338,12 +1366,16 @@ impl World {
                 mob.damage += total_dot_damage;
 
                 if fov.contains(&pos) {
-                    self.log_message(vec![
+                    let mut msg = vec![
                         (mki.name.clone(), mki.color),
                         (" takes ".into(), Color::White),
                         (format!("{}", total_dot_damage), Color::Red),
-                        (" damage from status effects.".into(), Color::White),
-                    ]);
+                        (" damage from ".into(), Color::White),
+                    ];
+                    for status in dot_statuses {
+                        msg.push((format!("{status:?}"), status.color()));
+                    }
+                    self.log_message(msg);
                 }
 
                 if mob.damage >= mki.max_hp() {
@@ -1430,17 +1462,19 @@ impl World {
                                     MonsterModifier::Burn => StatusEffect::Burn,
                                     MonsterModifier::Bleed => StatusEffect::Bleed,
                                 };
-                                let duration = match effect {
-                                    StatusEffect::Poison => 10,
-                                    StatusEffect::Burn => 3,
-                                    StatusEffect::Bleed => 5,
-                                };
-                                self.player_status_effects
-                                    .push(StatusInfo { effect, duration });
-                                self.log_message(vec![
-                                    ("You are afflicted with ".into(), Color::White),
-                                    (format!("{:?}", effect), Color::Red),
-                                ]);
+                                if effect.can_effect(defense1, defense2) {
+                                    let duration = match effect {
+                                        StatusEffect::Poison => 10,
+                                        StatusEffect::Burn => 3,
+                                        StatusEffect::Bleed => 5,
+                                    };
+                                    self.player_status_effects
+                                        .push(StatusInfo { effect, duration });
+                                    self.log_message(vec![
+                                        ("You are afflicted with ".into(), Color::White),
+                                        (format!("{:?}", effect), Color::Red),
+                                    ]);
+                                }
                             }
 
                             let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
@@ -1495,6 +1529,12 @@ impl World {
             self.mobs.insert(current_pos, mob);
         }
         let mut player_dot_damage = 0;
+        let dot_statuses = self
+            .player_status_effects
+            .iter()
+            .map(|effect| effect.effect)
+            .filter(|effect| effect.dot().is_some())
+            .collect::<Vec<_>>();
         self.player_status_effects.retain_mut(|effect| {
             let damage = match effect.effect {
                 StatusEffect::Poison => 1,
@@ -1505,14 +1545,18 @@ impl World {
             effect.duration -= 1;
             effect.duration > 0
         });
-
         if player_dot_damage > 0 {
             self.player_damage += player_dot_damage;
-            self.log_message(vec![
+            let mut msg = vec![
                 ("You take ".into(), Color::White),
                 (format!("{}", player_dot_damage), Color::Red),
-                (" damage from status effects.".into(), Color::White),
-            ]);
+                (" damage from ".into(), Color::White),
+            ];
+            for status in dot_statuses {
+                msg.push((format!("{status:?} "), status.color()));
+            }
+            msg.push((".".into(), Color::White));
+            self.log_message(msg);
         }
 
         if self.player_is_dead() {
