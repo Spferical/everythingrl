@@ -21,6 +21,33 @@ mod world;
 
 const FONT_BYTES: &[u8] = include_bytes!("../assets/DejaVuSansMono.ttf");
 
+const INVENTORY_KEYS: [(char, KeyCode); 24] = [
+    ('1', KeyCode::Key1),
+    ('2', KeyCode::Key2),
+    ('3', KeyCode::Key3),
+    ('4', KeyCode::Key4),
+    ('5', KeyCode::Key5),
+    ('6', KeyCode::Key6),
+    ('7', KeyCode::Key7),
+    ('8', KeyCode::Key8),
+    ('9', KeyCode::Key9),
+    ('0', KeyCode::Key0),
+    ('B', KeyCode::B),
+    ('F', KeyCode::F),
+    ('M', KeyCode::M),
+    ('N', KeyCode::N),
+    ('O', KeyCode::O),
+    ('P', KeyCode::P),
+    ('S', KeyCode::S),
+    ('T', KeyCode::T),
+    ('U', KeyCode::U),
+    ('V', KeyCode::V),
+    ('W', KeyCode::W),
+    ('X', KeyCode::X),
+    ('Y', KeyCode::Y),
+    ('Z', KeyCode::Z),
+];
+
 #[allow(clippy::large_enum_variant)]
 enum GameState {
     Menu(main_menu::Menu),
@@ -222,17 +249,13 @@ impl PlayState {
             KeyCode::Escape => {
                 self.ui.ui_selected = false;
             }
-            _ => {
-                let key = key as usize;
-                if key >= KeyCode::Key0 as usize && key <= KeyCode::Key9 as usize {
-                    // Change this so that we only open the UI if a real
-                    // inventory item is selected.
+            key => {
+                if let Some(slot) = INVENTORY_KEYS.iter().position(|(_, k)| k == &key) {
                     self.ui.ui_selected = true;
-                    let key = key - KeyCode::Key0 as usize;
-                    if self.ui.inventory_selected.contains(&key) {
-                        self.ui.inventory_selected.remove(&key);
+                    if self.ui.inventory_selected.contains(&slot) {
+                        self.ui.inventory_selected.remove(&slot);
                     } else {
-                        self.ui.inventory_selected.insert(key);
+                        self.ui.inventory_selected.insert(slot);
                     }
                     tick = false
                 }

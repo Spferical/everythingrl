@@ -17,7 +17,7 @@ pub const STARTING_DURABILITY: usize = 20;
 pub const PLAYER_MAX_HEALTH: usize = 100;
 pub const RELOAD_DELAY: usize = 2;
 pub const SPEED_MUL: i32 = 8;
-pub const INVENTORY_LIMIT: usize = 10;
+pub const INVENTORY_LIMIT: usize = crate::INVENTORY_KEYS.len();
 
 pub const PICK_UP_MESSAGES: [&str; 5] = [
     "You see here a ",

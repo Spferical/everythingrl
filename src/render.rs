@@ -11,6 +11,7 @@ use rogue_algebra::{Pos, Rect};
 
 use crate::net::{Color, ItemKind};
 use crate::world::{Item, MobKindInfo, TileKind};
+use crate::INVENTORY_KEYS;
 
 pub const FOV_BG: macroquad::color::Color = DARKGRAY;
 pub const OOS_BG: macroquad::color::Color = BLACK;
@@ -192,7 +193,7 @@ impl Ui {
                         basic_label("i", "Show inventory.");
                         basic_label(".", "Wait a turn.");
                         basic_label(",", "Pick up item.");
-                        basic_label("0-9", "Multi-select inventory item");
+                        basic_label("0-9, misc", "Multi-select inventory item");
                         basic_label("e", "Equip/eat selected item(s).");
                         basic_label("d", "Drop selected item(s).");
                         basic_label("c", "Combine/cook selected item(s).");
@@ -298,7 +299,11 @@ impl Ui {
                                 }
 
                                 row.col(|ui| {
-                                    ui.label(row_index.to_string());
+                                    let key_char = INVENTORY_KEYS
+                                        .get(row_index)
+                                        .map(|(c, _)| c)
+                                        .unwrap_or(&'?');
+                                    ui.label(key_char.to_string());
                                 });
                                 row.col(|ui| {
                                     let (ch, color) = get_item_glyph(&slot.item);
