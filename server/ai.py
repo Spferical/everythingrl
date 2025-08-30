@@ -177,23 +177,29 @@ At any time, you may ABORT generation if the user-provided theme is truly heinou
         )
     prompt = f"Game JSON: {input.model_dump_json(exclude_defaults=True)}\nOutput schema: {game_types.AiAction.model_json_schema()}\nInstructions: {instructions}"
     LOG.debug(f"ASKING: {system_prompt}\n{prompt}")
-    response_text = ""
     actions_emitted = 0
     last_exc = None
-    for text_chunk in ask_google_streaming(prompt, system_prompt=system_prompt):
-        response_text += text_chunk
-        [*complete_lines, response_text] = response_text.split("\n")
-        for complete_line in complete_lines:
-            try:
-                LOG.debug(f"RECEIVED: {complete_line}")
-                if not complete_line or complete_line.startswith("```"):
-                    # No use logging this junk
-                    continue
-                yield game_types.AiAction(**json.loads(complete_line))
-                actions_emitted += 1
-            except Exception as e:
-                LOG.debug("Bad response", line=complete_line, exc_info=e)
-                last_exc = e
+
+    def text_chunks_to_lines(text_iter: Iterator[str]) -> Iterator[str]:
+        response_text = ""
+        for text_chunk in text_iter:
+            response_text += text_chunk
+            [*complete_lines, response_text] = response_text.split("\n")
+            yield from complete_lines
+        yield response_text
+
+    text_chunks = ask_google_streaming(prompt, system_prompt=system_prompt)
+    for line in text_chunks_to_lines(text_chunks):
+        try:
+            LOG.debug(f"RECEIVED: {line}")
+            if not line or line.startswith("```"):
+                # No use logging this junk
+                continue
+            yield game_types.AiAction(**json.loads(line))
+            actions_emitted += 1
+        except Exception as e:
+            LOG.debug("Bad response", line=line, exc_info=e)
+            last_exc = e
     if actions_emitted == 0:
         if last_exc is not None:
             raise last_exc

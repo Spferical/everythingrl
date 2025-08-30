@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 
@@ -679,23 +680,20 @@ impl Inventory {
     }
 
     fn sort(&mut self) {
-        self.items.sort_by_key(|x| match x {
-            InventoryItem {
-                item: Item::Instance(ek),
-                equipped,
-            } => match (equipped, ek.info.kind) {
-                (true, ItemKind::MeleeWeapon) => 1,
-                (true, ItemKind::RangedWeapon) => 2,
-                (true, ItemKind::Armor) => 3,
-                (false, ItemKind::MeleeWeapon) => 4,
-                (false, ItemKind::RangedWeapon) => 5,
-                (false, ItemKind::Armor) => 6,
-                (_, ItemKind::Food) => 7,
-            },
-            InventoryItem {
-                item: Item::PendingCraft(..),
-                ..
-            } => 999,
+        self.items.sort_by(|a, b| {
+            match (&a.item, &b.item) {
+                // Pending crafts on bottom.
+                (Item::PendingCraft(..), Item::Instance(..)) => Ordering::Greater,
+                (Item::Instance(..), Item::PendingCraft(..)) => Ordering::Less,
+                (Item::PendingCraft(..), Item::PendingCraft(..)) => Ordering::Equal,
+                // Sort real items by equipped, kind, then level.
+                (Item::Instance(a_eki), Item::Instance(b_eki)) => a
+                    .equipped
+                    .cmp(&b.equipped)
+                    .reverse()
+                    .then(a_eki.info.kind.cmp(&b_eki.info.kind))
+                    .then(a_eki.info.level.cmp(&b_eki.info.level).reverse()),
+            }
         });
     }
     fn add(&mut self, item: Item) -> Option<Item> {

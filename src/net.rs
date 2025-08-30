@@ -13,7 +13,19 @@ use crate::util::spawn;
 
 pub static RATELIMIT: Ratelimit = Ratelimit::new(Duration::from_secs(1));
 
-#[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Enum,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    Debug,
+    Clone,
+    Copy,
+    serde::Deserialize,
+    serde::Serialize,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum ItemKind {
     MeleeWeapon,
