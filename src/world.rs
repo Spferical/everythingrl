@@ -89,6 +89,36 @@ pub struct StatusInfo {
     pub duration: usize,
 }
 
+struct StatusTick {
+    dot_statuses: Vec<StatusEffect>,
+    total_dot_damage: usize,
+    is_stunned: bool,
+}
+
+fn tick_status_effects(statuses: &mut Vec<StatusInfo>) -> StatusTick {
+    let mut total_dot_damage = 0;
+    let dot_statuses = statuses
+        .iter()
+        .map(|effect| effect.effect)
+        .filter(|effect| effect.dot().is_some())
+        .collect::<Vec<_>>();
+    let is_stunned = statuses
+        .iter()
+        .any(|effect| matches!(effect.effect, StatusEffect::Stun));
+    statuses.retain_mut(|status| {
+        if let Some(damage) = status.effect.dot() {
+            total_dot_damage += damage;
+        }
+        status.duration -= 1;
+        status.duration > 0
+    });
+    StatusTick {
+        dot_statuses,
+        total_dot_damage,
+        is_stunned,
+    }
+}
+
 pub const FOV_RANGE: i32 = 8;
 pub const STARTING_DURABILITY: usize = 20;
 pub const PLAYER_MAX_HEALTH: usize = 100;
@@ -1415,374 +1445,27 @@ impl World {
     }
 
     pub fn tick(&mut self) {
-        let poses = self.mobs.keys().copied().collect::<Vec<_>>();
         let boss_kind = self.world_info.boss_info.as_ref().unwrap().mob_kind;
         let fov = self.get_fov(self.player_pos);
 
-        let mut player_dot_damage = 0;
-        let dot_statuses = self
-            .player_status_effects
-            .iter()
-            .map(|effect| effect.effect)
-            .filter(|effect| effect.dot().is_some())
-            .collect::<Vec<_>>();
-        self.player_status_effects.retain_mut(|effect| {
-            if let Some(damage) = effect.effect.dot() {
-                player_dot_damage += damage;
-            }
-            effect.duration -= 1;
-            effect.duration > 0
-        });
-        if player_dot_damage > 0 {
-            self.player_damage += player_dot_damage;
+        let status_tick = tick_status_effects(&mut self.player_status_effects);
+        if status_tick.total_dot_damage > 0 {
+            self.player_damage += status_tick.total_dot_damage;
             let mut msg = vec![
                 ("You take ".into(), Color::White),
-                (format!("{}", player_dot_damage), Color::Red),
+                (format!("{}", status_tick.total_dot_damage), Color::Red),
                 (" damage from ".into(), Color::White),
             ];
-            for status in dot_statuses {
+            for status in status_tick.dot_statuses {
                 msg.push((format!("{status:?} "), status.color()));
             }
             msg.push((".".into(), Color::White));
             self.log_message(msg);
         }
 
-        for pos in poses {
-            let mut mob = match self.mobs.remove(&pos) {
-                Some(mob) => mob,
-                None => continue,
-            };
-
-            // Apply status effects
-            let mut total_dot_damage = 0;
-            let dot_statuses = mob
-                .status_effects
-                .iter()
-                .map(|effect| effect.effect)
-                .filter(|effect| effect.dot().is_some())
-                .collect::<Vec<_>>();
-            let is_stunned = mob
-                .status_effects
-                .iter()
-                .any(|effect| matches!(effect.effect, StatusEffect::Stun));
-            mob.status_effects.retain_mut(|status| {
-                if let Some(damage) = status.effect.dot() {
-                    total_dot_damage += damage;
-                }
-                status.duration -= 1;
-                status.duration > 0
-            });
-
-            if is_stunned {
-                let mki = self.get_mobkind_info(mob.kind).clone();
-                if fov.contains(&pos) {
-                    self.log_message(vec![
-                        (mki.name.clone(), mki.color),
-                        (" is stunned!".into(), Color::Yellow),
-                    ]);
-                }
-                self.mobs.insert(pos, mob);
-                continue;
-            }
-
-            if total_dot_damage > 0 {
-                let mki = self.get_mobkind_info(mob.kind).clone();
-                mob.damage += total_dot_damage;
-
-                if fov.contains(&pos) {
-                    let mut msg = vec![
-                        (mki.name.clone(), mki.color),
-                        (" takes ".into(), Color::White),
-                        (format!("{}", total_dot_damage), Color::Red),
-                        (" damage from ".into(), Color::White),
-                    ];
-                    for status in dot_statuses {
-                        msg.push((format!("{status:?}"), status.color()));
-                    }
-                    self.log_message(msg);
-                }
-
-                if mob.damage >= mki.max_hp() {
-                    self.log_message(vec![(mki.death, mki.color)]);
-                    if mob.kind == self.world_info.boss_info.as_ref().unwrap().mob_kind {
-                        self.victory = true;
-                        self.log_message(vec![("YOU WIN!".into(), Color::Gold)]);
-                    }
-                    // Mob is dead, don't re-insert it
-                    continue;
-                }
-            }
-
-            let mki = self.get_mobkind_info(mob.kind).clone();
-            if mob.kind == boss_kind && fov.contains(&pos) && self.rng.gen::<f64>() < 0.1 {
-                if let Some(msg) = self
-                    .world_info
-                    .boss_info
-                    .as_ref()
-                    .unwrap()
-                    .periodic_messages
-                    .choose(&mut self.rng)
-                {
-                    self.log_message(vec![(msg.clone(), Color::White)]);
-                }
-            }
-            let mut current_pos = pos;
-            while mob.actions >= SPEED_MUL {
-                if fov.contains(&current_pos) {
-                    if matches!(mob.ai, MobAi::Idle) {
-                        let info = self.get_mobkind_info(mob.kind);
-                        let mut seen_message = info.seen.clone();
-                        if seen_message.ends_with('\'') {
-                            seen_message = format!("{}: {seen_message}", info.name);
-                        }
-                        self.log_message(vec![(seen_message, info.color)]);
-                    }
-                    mob.ai = MobAi::Move {
-                        dest: self.player_pos,
-                    }
-                }
-                match mob.ai {
-                    MobAi::Idle => current_pos = pos,
-                    MobAi::Move { dest } => {
-                        let armor = self.inventory.get_equipped_armor_info();
-                        let defense1 = armor
-                            .first()
-                            .map(|eki| eki.ty)
-                            .unwrap_or(PokemonType::Normal);
-                        let defense2 = armor.get(1).map(|eki| eki.ty);
-                        let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
-                        let def_level = armor.iter().map(|a| a.level).sum();
-
-                        if mki.ranged {
-                            let range = ((5 + mki.level * 2) as i32).max(FOV_RANGE);
-                            let in_range =
-                                (current_pos - self.player_pos).dist_squared() <= range * range;
-                            println!("(0) {} in range -- {in_range}", mki.name);
-                            let is_cardinal = current_pos.x == self.player_pos.x
-                                || current_pos.y == self.player_pos.y;
-
-                            let fire_line: Vec<_> = line_drawing::Bresenham::new(
-                                (current_pos.x, current_pos.y),
-                                (self.player_pos.x, self.player_pos.y),
-                            )
-                            .map(|(x, y)| Pos::new(x, y))
-                            .collect();
-
-                            let path_is_clear = !fire_line
-                                .iter()
-                                .skip(1)
-                                .take(fire_line.len() - 2)
-                                .any(|&p| !self.tile_map[p].kind.is_walkable());
-
-                            let no_friendly_fire = !fire_line
-                                .iter()
-                                .skip(1)
-                                .any(|&p| p != self.player_pos && self.mobs.contains_key(&p));
-
-                            let can_fire = is_cardinal
-                                && in_range
-                                && mob.reload == 0
-                                && fov.contains(&current_pos)
-                                && path_is_clear
-                                && no_friendly_fire;
-
-                            if can_fire {
-                                let damage = calc_damage(
-                                    &mut self.rng,
-                                    mki.level,
-                                    def_level,
-                                    eff,
-                                    false,
-                                    true,
-                                );
-                                let knockback = mki.modifiers.contains(&MonsterModifier::Knockback);
-                                for modifier in &mki.modifiers {
-                                    if let Some(effect) = StatusEffect::from_monster_mod(*modifier)
-                                    {
-                                        if effect.can_effect(defense1, defense2)
-                                            && self.rng.gen::<f64>() < effect.chance()
-                                        {
-                                            let duration = effect.duration();
-                                            self.player_status_effects
-                                                .push(StatusInfo { effect, duration });
-                                            self.log_message(vec![
-                                                ("You are afflicted with ".into(), Color::White),
-                                                (format!("{:?}", effect), Color::Red),
-                                            ]);
-                                        }
-                                    }
-                                }
-
-                                if knockback {
-                                    let knockback_dir = self.player_pos - current_pos;
-                                    let next_pos = self.player_pos + knockback_dir;
-                                    if self.tile_map[next_pos].kind.is_walkable()
-                                        && !self.mobs.contains_key(&next_pos)
-                                    {
-                                        self.player_pos = next_pos;
-                                    }
-                                }
-
-                                let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
-                                let mut log_msg = vec![
-                                    (msg, mki.color),
-                                    (" You take ".into(), Color::White),
-                                    (format!("{}", damage), Color::Red),
-                                    (" damage!".into(), Color::White),
-                                ];
-                                log_msg.append(&mut self.get_eff_msg(eff));
-
-                                self.log_message(log_msg);
-
-                                for destroyed_armor in self.inventory.damage_armor() {
-                                    self.log_message(vec![
-                                        ("Your ".into(), Color::White),
-                                        (
-                                            destroyed_armor.name.clone(),
-                                            destroyed_armor.ty.get_color(),
-                                        ),
-                                        (" breaks!".into(), Color::Red),
-                                    ]);
-                                }
-
-                                self.untriggered_animations.push(AnimationState::new(
-                                    Animation::Shot(ShotAnimation {
-                                        cells: fire_line,
-                                        color: mki.attack_type.get_color(),
-                                    }),
-                                    0.5,
-                                ));
-                                mob.reload = RELOAD_DELAY;
-
-                                self.player_damage += damage;
-                            } else {
-                                // Move to a firing position
-                                let mut best_target: Option<Pos> = None;
-                                let mut min_dist_sq = i32::MAX;
-
-                                for &dir in &CARDINALS {
-                                    for r in 1..=range {
-                                        let candidate_pos = self.player_pos + dir * r;
-                                        if !self.tile_map[candidate_pos].kind.is_walkable() {
-                                            break;
-                                        }
-
-                                        if !self.mobs.contains_key(&candidate_pos) {
-                                            let dist_sq =
-                                                (current_pos - candidate_pos).dist_squared();
-                                            if dist_sq < min_dist_sq {
-                                                min_dist_sq = dist_sq;
-                                                best_target = Some(candidate_pos);
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if let Some(target_dest) = best_target {
-                                    let next_step = self.path_towards(
-                                        current_pos,
-                                        target_dest,
-                                        false,
-                                        true,
-                                        None,
-                                    );
-                                    if next_step != self.player_pos {
-                                        current_pos = next_step;
-                                    }
-                                } else {
-                                    // Fallback
-                                    let target = self.path_towards(
-                                        current_pos,
-                                        self.player_pos,
-                                        false,
-                                        true,
-                                        None,
-                                    );
-                                    if target != self.player_pos {
-                                        current_pos = target;
-                                    }
-                                }
-                            }
-                        } else {
-                            // Melee mob logic (original logic)
-                            let target = self.path_towards(current_pos, dest, false, true, None);
-                            if target == self.player_pos {
-                                let damage = calc_damage(
-                                    &mut self.rng,
-                                    mki.level,
-                                    def_level,
-                                    eff,
-                                    false,
-                                    false,
-                                );
-                                let knockback = mki.modifiers.contains(&MonsterModifier::Knockback);
-                                for modifier in &mki.modifiers {
-                                    if let Some(effect) = StatusEffect::from_monster_mod(*modifier)
-                                    {
-                                        if effect.can_effect(defense1, defense2)
-                                            && self.rng.gen::<f64>() < effect.chance()
-                                        {
-                                            let duration = effect.duration();
-                                            self.player_status_effects
-                                                .push(StatusInfo { effect, duration });
-                                            self.log_message(vec![
-                                                ("You are afflicted with ".into(), Color::White),
-                                                (format!("{:?}", effect), Color::Red),
-                                            ]);
-                                        }
-                                    }
-                                }
-
-                                if knockback {
-                                    let knockback_dir = self.player_pos - current_pos;
-                                    let next_pos = self.player_pos + knockback_dir;
-                                    if self.tile_map[next_pos].kind.is_walkable()
-                                        && !self.mobs.contains_key(&next_pos)
-                                    {
-                                        self.player_pos = next_pos;
-                                    }
-                                }
-
-                                let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
-                                let mut log_msg = vec![
-                                    (msg, mki.color),
-                                    (" You take ".into(), Color::White),
-                                    (format!("{}", damage), Color::Red),
-                                    (" damage!".into(), Color::White),
-                                ];
-                                log_msg.append(&mut self.get_eff_msg(eff));
-                                self.log_message(log_msg);
-
-                                for destroyed_armor in self.inventory.damage_armor() {
-                                    self.log_message(vec![
-                                        ("Your ".into(), Color::White),
-                                        (
-                                            destroyed_armor.name.clone(),
-                                            destroyed_armor.ty.get_color(),
-                                        ),
-                                        (" breaks!".into(), Color::Red),
-                                    ]);
-                                }
-                                self.player_damage += damage;
-                            }
-
-                            if target != self.player_pos {
-                                current_pos = target;
-                            }
-                        }
-                    }
-                }
-                if mob.reload != 0 {
-                    mob.reload -= 1;
-                }
-
-                mob.actions -= SPEED_MUL;
-                if mob.actions <= 0 {
-                    mob.actions = 0;
-                }
-            }
-            mob.actions += self.get_mobkind_info(mob.kind).speed.get_actions_per_turn();
-            self.mobs.insert(current_pos, mob);
+        let initial_mob_poses = self.mobs.keys().copied().collect::<Vec<_>>();
+        for pos in initial_mob_poses {
+            self.act_mob(boss_kind, &fov, pos);
         }
 
         if self.player_is_dead() {
@@ -1794,6 +1477,267 @@ impl World {
             ]);
         }
         self.step += 1;
+    }
+
+    fn act_mob(&mut self, boss_kind: MobKind, fov: &HashSet<Pos>, pos: Pos) {
+        let mut mob = match self.mobs.remove(&pos) {
+            Some(mob) => mob,
+            None => return,
+        };
+        let mki = self.get_mobkind_info(mob.kind).clone();
+
+        let status_tick = tick_status_effects(&mut mob.status_effects);
+
+        if status_tick.total_dot_damage > 0 {
+            mob.damage += status_tick.total_dot_damage;
+
+            if fov.contains(&pos) {
+                let mut msg = vec![
+                    (mki.name.clone(), mki.color),
+                    (" takes ".into(), Color::White),
+                    (format!("{}", status_tick.total_dot_damage), Color::Red),
+                    (" damage from ".into(), Color::White),
+                ];
+                for status in status_tick.dot_statuses {
+                    msg.push((format!("{status:?}"), status.color()));
+                }
+                self.log_message(msg);
+            }
+
+            if mob.damage >= mki.max_hp() {
+                self.log_message(vec![(mki.death, mki.color)]);
+                if mob.kind == self.world_info.boss_info.as_ref().unwrap().mob_kind {
+                    self.victory = true;
+                    self.log_message(vec![("YOU WIN!".into(), Color::Gold)]);
+                }
+                // Mob is dead, don't re-insert it
+                return;
+            }
+        }
+        if status_tick.is_stunned {
+            if fov.contains(&pos) {
+                self.log_message(vec![
+                    (mki.name.clone(), mki.color),
+                    (" is stunned!".into(), Color::Yellow),
+                ]);
+            }
+            self.mobs.insert(pos, mob);
+            return;
+        }
+
+        if mob.kind == boss_kind && fov.contains(&pos) && self.rng.gen::<f64>() < 0.1 {
+            if let Some(msg) = self
+                .world_info
+                .boss_info
+                .as_ref()
+                .unwrap()
+                .periodic_messages
+                .choose(&mut self.rng)
+            {
+                self.log_message(vec![(msg.clone(), Color::White)]);
+            }
+        }
+        let mut current_pos = pos;
+        while mob.actions >= SPEED_MUL {
+            if fov.contains(&current_pos) {
+                if matches!(mob.ai, MobAi::Idle) {
+                    let info = self.get_mobkind_info(mob.kind);
+                    let mut seen_message = info.seen.clone();
+                    if seen_message.ends_with('\'') {
+                        seen_message = format!("{}: {seen_message}", info.name);
+                    }
+                    self.log_message(vec![(seen_message, info.color)]);
+                }
+                mob.ai = MobAi::Move {
+                    dest: self.player_pos,
+                }
+            }
+            match mob.ai {
+                MobAi::Idle => {}
+                MobAi::Move { dest } => {
+                    self.handle_move_ai(fov, &mut mob, &mki, &mut current_pos, dest);
+                }
+            }
+            if mob.reload != 0 {
+                mob.reload -= 1;
+            }
+
+            mob.actions -= SPEED_MUL;
+            if mob.actions <= 0 {
+                mob.actions = 0;
+            }
+        }
+        mob.actions += self.get_mobkind_info(mob.kind).speed.get_actions_per_turn();
+        self.mobs.insert(current_pos, mob);
+    }
+
+    fn handle_move_ai(
+        &mut self,
+        fov: &HashSet<Pos>,
+        mob: &mut Mob,
+        mki: &MobKindInfo,
+        current_pos: &mut Pos,
+        dest: Pos,
+    ) {
+        if mki.ranged {
+            let range = ((5 + mki.level * 2) as i32).max(FOV_RANGE);
+            let in_range = (*current_pos - self.player_pos).dist_squared() <= range * range;
+            println!("(0) {} in range -- {in_range}", mki.name);
+            let is_cardinal =
+                current_pos.x == self.player_pos.x || current_pos.y == self.player_pos.y;
+
+            let fire_line: Vec<_> = line_drawing::Bresenham::new(
+                (current_pos.x, current_pos.y),
+                (self.player_pos.x, self.player_pos.y),
+            )
+            .map(|(x, y)| Pos::new(x, y))
+            .collect();
+
+            let path_is_clear = !fire_line
+                .iter()
+                .skip(1)
+                .take(fire_line.len() - 2)
+                .any(|&p| !self.tile_map[p].kind.is_walkable());
+
+            let no_friendly_fire = !fire_line
+                .iter()
+                .skip(1)
+                .any(|&p| p != self.player_pos && self.mobs.contains_key(&p));
+
+            let can_fire = is_cardinal
+                && in_range
+                && mob.reload == 0
+                && fov.contains(&*current_pos)
+                && path_is_clear
+                && no_friendly_fire;
+
+            if can_fire {
+                self.attack_player(mob, mki, *current_pos, Some(fire_line));
+            } else {
+                let best_target = self.find_ranged_attack_position(*current_pos, range);
+                if let Some(target_dest) = best_target {
+                    let next_step = self.path_towards(*current_pos, target_dest, false, true, None);
+                    if next_step != self.player_pos {
+                        *current_pos = next_step;
+                    }
+                } else {
+                    // Fallback to melee behavior
+                    let target =
+                        self.path_towards(*current_pos, self.player_pos, false, true, None);
+                    if target != self.player_pos {
+                        *current_pos = target;
+                    }
+                }
+            }
+        } else {
+            // Melee monster
+            let target = self.path_towards(*current_pos, dest, false, true, None);
+            if target == self.player_pos {
+                self.attack_player(mob, mki, *current_pos, None);
+            }
+
+            if target != self.player_pos {
+                *current_pos = target;
+            }
+        }
+    }
+
+    fn find_ranged_attack_position(&mut self, current_pos: Pos, range: i32) -> Option<Pos> {
+        // Move to a firing position
+        let mut best_target: Option<Pos> = None;
+        let mut min_dist_sq = i32::MAX;
+
+        for &dir in &CARDINALS {
+            for r in 1..=range {
+                let candidate_pos = self.player_pos + dir * r;
+                if !self.tile_map[candidate_pos].kind.is_walkable() {
+                    break;
+                }
+
+                if !self.mobs.contains_key(&candidate_pos) {
+                    let dist_sq = (current_pos - candidate_pos).dist_squared();
+                    if dist_sq < min_dist_sq {
+                        min_dist_sq = dist_sq;
+                        best_target = Some(candidate_pos);
+                    }
+                }
+            }
+        }
+        best_target
+    }
+
+    fn attack_player(
+        &mut self,
+        mob: &mut Mob,
+        mki: &MobKindInfo,
+        mob_pos: Pos,
+        ranged_fire_line: Option<Vec<Pos>>,
+    ) {
+        let armor = self.inventory.get_equipped_armor_info();
+        let defense1 = armor
+            .first()
+            .map(|eki| eki.ty)
+            .unwrap_or(PokemonType::Normal);
+        let defense2 = armor.get(1).map(|eki| eki.ty);
+        let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
+        let def_level = armor.iter().map(|a| a.level).sum();
+        let is_ranged = ranged_fire_line.is_some();
+        let damage = calc_damage(&mut self.rng, mki.level, def_level, eff, false, is_ranged);
+        let knockback = mki.modifiers.contains(&MonsterModifier::Knockback);
+        for modifier in &mki.modifiers {
+            if let Some(effect) = StatusEffect::from_monster_mod(*modifier) {
+                if effect.can_effect(defense1, defense2) && self.rng.gen::<f64>() < effect.chance()
+                {
+                    let duration = effect.duration();
+                    self.player_status_effects
+                        .push(StatusInfo { effect, duration });
+                    self.log_message(vec![
+                        ("You are afflicted with ".into(), Color::White),
+                        (format!("{:?}", effect), Color::Red),
+                    ]);
+                }
+            }
+        }
+
+        if knockback {
+            let knockback_dir = self.player_pos - mob_pos;
+            let next_pos = self.player_pos + knockback_dir;
+            if self.tile_map[next_pos].kind.is_walkable() && !self.mobs.contains_key(&next_pos) {
+                self.player_pos = next_pos;
+            }
+        }
+
+        let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
+        let mut log_msg = vec![
+            (msg, mki.color),
+            (" You take ".into(), Color::White),
+            (format!("{}", damage), Color::Red),
+            (" damage!".into(), Color::White),
+        ];
+        log_msg.append(&mut self.get_eff_msg(eff));
+
+        self.log_message(log_msg);
+
+        for destroyed_armor in self.inventory.damage_armor() {
+            self.log_message(vec![
+                ("Your ".into(), Color::White),
+                (destroyed_armor.name.clone(), destroyed_armor.ty.get_color()),
+                (" breaks!".into(), Color::Red),
+            ]);
+        }
+
+        if let Some(ranged_fire_line) = ranged_fire_line {
+            self.untriggered_animations.push(AnimationState::new(
+                Animation::Shot(ShotAnimation {
+                    cells: ranged_fire_line,
+                    color: mki.attack_type.get_color(),
+                }),
+                0.5,
+            ));
+            mob.reload = RELOAD_DELAY;
+        }
+
+        self.player_damage += damage;
     }
 
     pub fn player_is_dead(&self) -> bool {
