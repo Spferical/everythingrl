@@ -1337,12 +1337,14 @@ impl World {
                 let mki = self.get_mobkind_info(mob.kind).clone();
                 mob.damage += total_dot_damage;
 
-                self.log_message(vec![
-                    (mki.name.clone(), mki.color),
-                    (" takes ".into(), Color::White),
-                    (format!("{}", total_dot_damage), Color::Red),
-                    (" damage from status effects.".into(), Color::White),
-                ]);
+                if fov.contains(&pos) {
+                    self.log_message(vec![
+                        (mki.name.clone(), mki.color),
+                        (" takes ".into(), Color::White),
+                        (format!("{}", total_dot_damage), Color::Red),
+                        (" damage from status effects.".into(), Color::White),
+                    ]);
+                }
 
                 if mob.damage >= mki.max_hp() {
                     self.log_message(vec![(mki.death, mki.color)]);
