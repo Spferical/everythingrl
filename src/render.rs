@@ -594,36 +594,35 @@ impl Ui {
                                         color: color.into(),
                                         ..Default::default()
                                     };
+                                    let with_color =
+                                        |format: &egui::TextFormat, color| egui::TextFormat {
+                                            color,
+                                            ..format.clone()
+                                        };
+                                    let details_format = egui::TextFormat {
+                                        font_id: self.get_details_font(),
+                                        color: Color32::WHITE,
+                                        ..Default::default()
+                                    };
                                     job.append(char, 0.0, base_format.clone());
                                     job.append(
                                         &format!(" - {name}\n    "),
                                         0.0,
                                         base_format.clone(),
                                     );
-                                    let type_format = egui::TextFormat {
-                                        color: type1.get_color().into(),
-                                        ..base_format.clone()
-                                    };
+                                    let type_format =
+                                        with_color(&base_format, type1.get_color().into());
                                     job.append(&format!("{} ", type1), 0.0, type_format.clone());
                                     if let Some(type2) = type2 {
-                                        let type2_format = egui::TextFormat {
-                                            color: type2.get_color().into(),
-                                            ..base_format.clone()
-                                        };
+                                        let type2_format =
+                                            with_color(&base_format, type2.get_color().into());
                                         job.append(&format!("{} ", type2), 0.0, type2_format);
                                     }
 
-                                    let details_format = egui::TextFormat {
-                                        font_id: self.get_details_font(),
-                                        color: Color32::WHITE,
-                                        ..Default::default()
-                                    };
                                     job.append("| ATT ", 0.0, details_format.clone());
 
-                                    let attack_type_format = egui::TextFormat {
-                                        color: attack_type.get_color().into(),
-                                        ..details_format.clone()
-                                    };
+                                    let attack_type_format =
+                                        with_color(&details_format, attack_type.get_color().into());
                                     job.append(
                                         &format!("{} ", attack_type),
                                         0.0,
@@ -645,10 +644,7 @@ impl Ui {
                                     } else {
                                         Color32::WHITE
                                     };
-                                    let hp_format = egui::TextFormat {
-                                        color: hp_color,
-                                        ..details_format.clone()
-                                    };
+                                    let hp_format = with_color(&details_format, hp_color);
                                     job.append(&format!("{}", hp), 0.0, hp_format);
                                     job.append(
                                         &format!("/ {}", max_hp),
@@ -660,29 +656,27 @@ impl Ui {
 
                                     if !mob_kind_def.modifiers.is_empty() {
                                         let mut modifier_job = egui::text::LayoutJob::default();
-                                        for (i, modifier) in
-                                            mob_kind_def.modifiers.iter().enumerate()
-                                        {
-                                            modifier_job.append(
-                                                &format!("{:?}", modifier),
-                                                0.0,
-                                                egui::TextFormat {
-                                                    font_id: self.get_details_font(),
-                                                    color: Color::Red.into(),
-                                                    ..Default::default()
-                                                },
+                                        for modifier in mob_kind_def.modifiers.iter() {
+                                            let modifier_format = with_color(
+                                                &details_format,
+                                                modifier.color().into(),
                                             );
-                                            if i < mob_kind_def.modifiers.len() - 1 {
-                                                modifier_job.append(
-                                                    ", ",
-                                                    0.0,
-                                                    egui::TextFormat {
-                                                        font_id: self.get_details_font(),
-                                                        color: Color32::WHITE,
-                                                        ..Default::default()
-                                                    },
-                                                );
-                                            }
+                                            modifier_job.append(
+                                                &format!("{:?} ", modifier),
+                                                0.0,
+                                                modifier_format,
+                                            );
+                                        }
+                                        for status in mob.status_effects.iter() {
+                                            let format = with_color(
+                                                &details_format,
+                                                status.effect.color().into(),
+                                            );
+                                            modifier_job.append(
+                                                &format!("{:?} ", status.effect),
+                                                0.0,
+                                                format,
+                                            );
                                         }
                                         ui.label(modifier_job);
                                     }

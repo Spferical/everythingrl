@@ -19,6 +19,23 @@ pub enum StatusEffect {
     Bleed,
 }
 
+impl StatusEffect {
+    pub fn from_item_mod(item_mod: ItemModifier) -> Option<Self> {
+        match item_mod {
+            ItemModifier::Poison => Some(Self::Poison),
+            ItemModifier::Burn => Some(Self::Burn),
+            ItemModifier::Bleed => Some(Self::Bleed),
+        }
+    }
+    pub fn color(&self) -> Color {
+        match self {
+            StatusEffect::Poison => Color::Purple,
+            StatusEffect::Burn => Color::Orange,
+            StatusEffect::Bleed => Color::Red,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StatusInfo {
     pub effect: StatusEffect,
@@ -208,6 +225,14 @@ impl ItemInfo {
         } else {
             amt
         }
+    }
+
+    pub fn get_status_effects(&self) -> Vec<StatusEffect> {
+        self.modifiers
+            .iter()
+            .cloned()
+            .filter_map(StatusEffect::from_item_mod)
+            .collect()
     }
 }
 
@@ -858,7 +883,14 @@ impl World {
         }
     }
 
-    fn damage_mob(&mut self, mut mob: Mob, mob_pos: Pos, damage: usize, eff: AttackEffectiveness) {
+    fn attack_mob(
+        &mut self,
+        mut mob: Mob,
+        mob_pos: Pos,
+        damage: usize,
+        eff: AttackEffectiveness,
+        effects: Vec<StatusEffect>,
+    ) {
         let mki = self.get_mobkind_info(mob.kind).clone();
         mob.damage += damage;
 
@@ -877,6 +909,19 @@ impl World {
                 self.log_message(vec![("YOU WIN!".into(), Color::Gold)]);
             }
         } else {
+            for effect in effects.into_iter() {
+                let duration = match effect {
+                    StatusEffect::Poison => 10,
+                    StatusEffect::Burn => 3,
+                    StatusEffect::Bleed => 5,
+                };
+                mob.status_effects.push(StatusInfo { effect, duration });
+                self.log_message(vec![
+                    (mki.name.clone(), mki.color),
+                    (" is afflicted with ".into(), Color::White),
+                    (format!("{:?}", effect), effect.color()),
+                ]);
+            }
             self.mobs.insert(mob_pos, mob);
         }
     }
@@ -889,38 +934,28 @@ impl World {
             PlayerAction::Move(offset) => {
                 assert!(offset.mhn_dist() == 1);
                 let new_pos = self.player_pos + offset;
-                if let Some(mut mob) = self.mobs.remove(&new_pos) {
+                if let Some(mob) = self.mobs.remove(&new_pos) {
                     let mki = self.get_mobkind_info(mob.kind).clone();
-                    let player_weapon_info = self.inventory.get_equipped_weapon_info(true);
-
-                    if let Some(ref weapon) = player_weapon_info {
-                        for modifier in &weapon.modifiers {
-                            let effect = match modifier {
-                                ItemModifier::Poison => StatusEffect::Poison,
-                                ItemModifier::Burn => StatusEffect::Burn,
-                                ItemModifier::Bleed => StatusEffect::Bleed,
-                            };
-                            let duration = match effect {
-                                StatusEffect::Poison => 10,
-                                StatusEffect::Burn => 3,
-                                StatusEffect::Bleed => 5,
-                            };
-                            mob.status_effects.push(StatusInfo { effect, duration });
-                            self.log_message(vec![
-                                (mki.name.clone(), mki.color),
-                                (" is afflicted with ".into(), Color::White),
-                                (format!("{:?}", effect), Color::Red),
-                            ]);
-                        }
-                    }
+                    let player_weapon_info = &self.inventory.get_equipped_weapon_info(true);
 
                     let (att_type, att_level) = player_weapon_info
+                        .as_ref()
                         .map(|w| (w.ty, w.level))
                         .unwrap_or((PokemonType::Normal, 0));
-                    let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
-                    let damage = calc_damage(&mut self.rng, att_level, mki.level, eff, true, false);
-
-                    self.damage_mob(mob, new_pos, damage, eff);
+                    let effectiveness = att_type.get_effectiveness2(mki.type1, mki.type2);
+                    let damage = calc_damage(
+                        &mut self.rng,
+                        att_level,
+                        mki.level,
+                        effectiveness,
+                        true,
+                        false,
+                    );
+                    let effects = player_weapon_info
+                        .as_ref()
+                        .map(|pwi| pwi.get_status_effects())
+                        .unwrap_or_default();
+                    self.attack_mob(mob, new_pos, damage, effectiveness, effects);
 
                     if let Some(destroyed_weapon) = self.inventory.damage_weapon(true) {
                         self.log_message(vec![
@@ -986,10 +1021,17 @@ impl World {
                         if let Some(mob) = self.mobs.remove(&zapped_pos) {
                             let mki = self.get_mobkind_info(mob.kind).clone();
                             let (att_type, att_level) = (pwi.ty, pwi.level);
-                            let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
-                            let damage =
-                                calc_damage(&mut self.rng, att_level, mki.level, eff, true, true);
-                            self.damage_mob(mob, zapped_pos, damage, eff);
+                            let effectiveness = att_type.get_effectiveness2(mki.type1, mki.type2);
+                            let effects = pwi.get_status_effects();
+                            let damage = calc_damage(
+                                &mut self.rng,
+                                att_level,
+                                mki.level,
+                                effectiveness,
+                                true,
+                                true,
+                            );
+                            self.attack_mob(mob, zapped_pos, damage, effectiveness, effects);
                         }
                         zapped_tiles.push(zapped_pos);
                     }

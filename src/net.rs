@@ -38,6 +38,16 @@ pub enum MonsterModifier {
     Bleed,
 }
 
+impl MonsterModifier {
+    pub fn color(&self) -> Color {
+        match self {
+            MonsterModifier::Poison => Color::Purple,
+            MonsterModifier::Burn => Color::Orange,
+            MonsterModifier::Bleed => Color::Red,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PokemonType {
