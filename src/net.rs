@@ -28,6 +28,8 @@ pub enum ItemModifier {
     Poison,
     Burn,
     Bleed,
+    Stun,
+    Knockback,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -36,6 +38,8 @@ pub enum MonsterModifier {
     Poison,
     Burn,
     Bleed,
+    Stun,
+    Knockback,
 }
 
 impl MonsterModifier {
@@ -44,6 +48,8 @@ impl MonsterModifier {
             MonsterModifier::Poison => Color::Purple,
             MonsterModifier::Burn => Color::Orange,
             MonsterModifier::Bleed => Color::Red,
+            MonsterModifier::Stun => Color::Yellow,
+            MonsterModifier::Knockback => Color::White,
         }
     }
 }

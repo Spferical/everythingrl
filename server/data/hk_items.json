@@ -193,7 +193,8 @@
     "level": 3,
     "type": "steel",
     "kind": "melee_weapon",
-    "description": "A forged nail of pure steel, imbued with an ethereal light, increasing its strength and sharpness."
+    "description": "A forged nail of pure steel, imbued with an ethereal light, increasing its strength and sharpness.",
+    "modifiers": ["knockback"]
   },
   {
     "name": "Descending Dark",

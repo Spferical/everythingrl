@@ -17,6 +17,7 @@ pub enum StatusEffect {
     Poison,
     Burn,
     Bleed,
+    Stun,
 }
 
 impl StatusEffect {
@@ -25,6 +26,17 @@ impl StatusEffect {
             ItemModifier::Poison => Some(Self::Poison),
             ItemModifier::Burn => Some(Self::Burn),
             ItemModifier::Bleed => Some(Self::Bleed),
+            ItemModifier::Stun => Some(Self::Stun),
+            _ => None,
+        }
+    }
+    pub fn from_monster_mod(monster_mod: MonsterModifier) -> Option<Self> {
+        match monster_mod {
+            MonsterModifier::Poison => Some(Self::Poison),
+            MonsterModifier::Burn => Some(Self::Burn),
+            MonsterModifier::Bleed => Some(Self::Bleed),
+            MonsterModifier::Stun => Some(Self::Stun),
+            _ => None,
         }
     }
     pub fn color(&self) -> Color {
@@ -32,6 +44,7 @@ impl StatusEffect {
             StatusEffect::Poison => Color::Purple,
             StatusEffect::Burn => Color::Orange,
             StatusEffect::Bleed => Color::Red,
+            StatusEffect::Stun => Color::Yellow,
         }
     }
     pub fn can_effect(&self, ty1: PokemonType, ty2: Option<PokemonType>) -> bool {
@@ -45,6 +58,7 @@ impl StatusEffect {
             Self::Bleed => {
                 PokemonType::Steel.get_effectiveness2(ty1, ty2) >= AttackEffectiveness::One
             }
+            Self::Stun => true,
         }
     }
     pub fn duration(&self) -> usize {
@@ -52,6 +66,7 @@ impl StatusEffect {
             Self::Poison => 10,
             Self::Burn => 5,
             Self::Bleed => 2,
+            Self::Stun => 1,
         }
     }
     pub fn dot(&self) -> Option<usize> {
@@ -59,6 +74,7 @@ impl StatusEffect {
             Self::Poison => Some(1),
             Self::Burn => Some(5),
             Self::Bleed => Some(10),
+            Self::Stun => None,
         }
     }
 }
@@ -252,14 +268,6 @@ impl ItemInfo {
         } else {
             amt
         }
-    }
-
-    pub fn get_status_effects(&self) -> Vec<StatusEffect> {
-        self.modifiers
-            .iter()
-            .cloned()
-            .filter_map(StatusEffect::from_item_mod)
-            .collect()
     }
 }
 
@@ -913,10 +921,10 @@ impl World {
     fn attack_mob(
         &mut self,
         mut mob: Mob,
-        mob_pos: Pos,
+        mut mob_pos: Pos,
         damage: usize,
         eff: AttackEffectiveness,
-        effects: Vec<StatusEffect>,
+        modifiers: &[ItemModifier],
     ) {
         let mki = self.get_mobkind_info(mob.kind).clone();
         mob.damage += damage;
@@ -936,15 +944,26 @@ impl World {
                 self.log_message(vec![("YOU WIN!".into(), Color::Gold)]);
             }
         } else {
-            for effect in effects.into_iter() {
-                if effect.can_effect(mki.type1, mki.type2) {
-                    let duration = effect.duration();
-                    mob.status_effects.push(StatusInfo { effect, duration });
-                    self.log_message(vec![
-                        (mki.name.clone(), mki.color),
-                        (" is afflicted with ".into(), Color::White),
-                        (format!("{:?}", effect), effect.color()),
-                    ]);
+            for modifier in modifiers {
+                if let Some(effect) = StatusEffect::from_item_mod(*modifier) {
+                    if effect.can_effect(mki.type1, mki.type2) {
+                        let duration = effect.duration();
+                        mob.status_effects.push(StatusInfo { effect, duration });
+                        self.log_message(vec![
+                            (mki.name.clone(), mki.color),
+                            (" is afflicted with ".into(), Color::White),
+                            (format!("{:?}", effect), effect.color()),
+                        ]);
+                    }
+                }
+                if matches!(modifier, ItemModifier::Knockback) {
+                    let knockback_dir = mob_pos - self.player_pos;
+                    let next_pos = mob_pos + knockback_dir;
+                    if self.tile_map[next_pos].kind.is_walkable()
+                        && !self.mobs.contains_key(&next_pos)
+                    {
+                        mob_pos = next_pos;
+                    }
                 }
             }
             self.mobs.insert(mob_pos, mob);
@@ -954,6 +973,15 @@ impl World {
     pub fn do_player_action(&mut self, action: PlayerAction) -> bool {
         if self.player_is_dead() || self.victory {
             return false;
+        }
+        if self
+            .player_status_effects
+            .iter()
+            .any(|effect| matches!(effect.effect, StatusEffect::Stun))
+        {
+            self.log_message(vec![("You are stunned!".into(), Color::Yellow)]);
+            self.tick();
+            return true;
         }
         let tick = match action {
             PlayerAction::Move(offset) => {
@@ -976,11 +1004,11 @@ impl World {
                         true,
                         false,
                     );
-                    let effects = player_weapon_info
+                    let modifiers = player_weapon_info
                         .as_ref()
-                        .map(|pwi| pwi.get_status_effects())
-                        .unwrap_or_default();
-                    self.attack_mob(mob, new_pos, damage, effectiveness, effects);
+                        .map(|pwi| pwi.modifiers.as_slice())
+                        .unwrap_or(&[]);
+                    self.attack_mob(mob, new_pos, damage, effectiveness, modifiers);
 
                     if let Some(destroyed_weapon) = self.inventory.damage_weapon(true) {
                         self.log_message(vec![
@@ -1047,7 +1075,7 @@ impl World {
                             let mki = self.get_mobkind_info(mob.kind).clone();
                             let (att_type, att_level) = (pwi.ty, pwi.level);
                             let effectiveness = att_type.get_effectiveness2(mki.type1, mki.type2);
-                            let effects = pwi.get_status_effects();
+                            let modifiers = &pwi.modifiers;
                             let damage = calc_damage(
                                 &mut self.rng,
                                 att_level,
@@ -1056,7 +1084,7 @@ impl World {
                                 true,
                                 true,
                             );
-                            self.attack_mob(mob, zapped_pos, damage, effectiveness, effects);
+                            self.attack_mob(mob, zapped_pos, damage, effectiveness, modifiers);
                         }
                         zapped_tiles.push(zapped_pos);
                     }
@@ -1339,6 +1367,35 @@ impl World {
         let poses = self.mobs.keys().copied().collect::<Vec<_>>();
         let boss_kind = self.world_info.boss_info.as_ref().unwrap().mob_kind;
         let fov = self.get_fov(self.player_pos);
+
+        let mut player_dot_damage = 0;
+        let dot_statuses = self
+            .player_status_effects
+            .iter()
+            .map(|effect| effect.effect)
+            .filter(|effect| effect.dot().is_some())
+            .collect::<Vec<_>>();
+        self.player_status_effects.retain_mut(|effect| {
+            if let Some(damage) = effect.effect.dot() {
+                player_dot_damage += damage;
+            }
+            effect.duration -= 1;
+            effect.duration > 0
+        });
+        if player_dot_damage > 0 {
+            self.player_damage += player_dot_damage;
+            let mut msg = vec![
+                ("You take ".into(), Color::White),
+                (format!("{}", player_dot_damage), Color::Red),
+                (" damage from ".into(), Color::White),
+            ];
+            for status in dot_statuses {
+                msg.push((format!("{status:?} "), status.color()));
+            }
+            msg.push((".".into(), Color::White));
+            self.log_message(msg);
+        }
+
         for pos in poses {
             let mut mob = match self.mobs.remove(&pos) {
                 Some(mob) => mob,
@@ -1353,6 +1410,10 @@ impl World {
                 .map(|effect| effect.effect)
                 .filter(|effect| effect.dot().is_some())
                 .collect::<Vec<_>>();
+            let is_stunned = mob
+                .status_effects
+                .iter()
+                .any(|effect| matches!(effect.effect, StatusEffect::Stun));
             mob.status_effects.retain_mut(|status| {
                 if let Some(damage) = status.effect.dot() {
                     total_dot_damage += damage;
@@ -1360,6 +1421,18 @@ impl World {
                 status.duration -= 1;
                 status.duration > 0
             });
+
+            if is_stunned {
+                let mki = self.get_mobkind_info(mob.kind).clone();
+                if fov.contains(&pos) {
+                    self.log_message(vec![
+                        (mki.name.clone(), mki.color),
+                        (" is stunned!".into(), Color::Yellow),
+                    ]);
+                }
+                self.mobs.insert(pos, mob);
+                continue;
+            }
 
             if total_dot_damage > 0 {
                 let mki = self.get_mobkind_info(mob.kind).clone();
@@ -1437,7 +1510,7 @@ impl World {
                         let in_range =
                             (current_pos - self.player_pos).dist_squared() <= range * range;
                         if mki.ranged {
-                            println!("(0) {} in range -- {{in_range}}", mki.name);
+                            println!("(0) {} in range -- {in_range}", mki.name);
                         }
 
                         // If ranged and in range and reload cooldown done
@@ -1456,24 +1529,28 @@ impl World {
                         can_fire |= !mki.ranged && target == self.player_pos;
 
                         if can_fire {
+                            let knockback = mki.modifiers.contains(&MonsterModifier::Knockback);
                             for modifier in &mki.modifiers {
-                                let effect = match modifier {
-                                    MonsterModifier::Poison => StatusEffect::Poison,
-                                    MonsterModifier::Burn => StatusEffect::Burn,
-                                    MonsterModifier::Bleed => StatusEffect::Bleed,
-                                };
-                                if effect.can_effect(defense1, defense2) {
-                                    let duration = match effect {
-                                        StatusEffect::Poison => 10,
-                                        StatusEffect::Burn => 3,
-                                        StatusEffect::Bleed => 5,
-                                    };
-                                    self.player_status_effects
-                                        .push(StatusInfo { effect, duration });
-                                    self.log_message(vec![
-                                        ("You are afflicted with ".into(), Color::White),
-                                        (format!("{:?}", effect), Color::Red),
-                                    ]);
+                                if let Some(effect) = StatusEffect::from_monster_mod(*modifier) {
+                                    if effect.can_effect(defense1, defense2) {
+                                        let duration = effect.duration();
+                                        self.player_status_effects
+                                            .push(StatusInfo { effect, duration });
+                                        self.log_message(vec![
+                                            ("You are afflicted with ".into(), Color::White),
+                                            (format!("{:?}", effect), Color::Red),
+                                        ]);
+                                    }
+                                }
+                            }
+
+                            if knockback {
+                                let knockback_dir = self.player_pos - current_pos;
+                                let next_pos = self.player_pos + knockback_dir;
+                                if self.tile_map[next_pos].kind.is_walkable()
+                                    && !self.mobs.contains_key(&next_pos)
+                                {
+                                    self.player_pos = next_pos;
                                 }
                             }
 
@@ -1527,36 +1604,6 @@ impl World {
             }
             mob.actions += self.get_mobkind_info(mob.kind).speed.get_actions_per_turn();
             self.mobs.insert(current_pos, mob);
-        }
-        let mut player_dot_damage = 0;
-        let dot_statuses = self
-            .player_status_effects
-            .iter()
-            .map(|effect| effect.effect)
-            .filter(|effect| effect.dot().is_some())
-            .collect::<Vec<_>>();
-        self.player_status_effects.retain_mut(|effect| {
-            let damage = match effect.effect {
-                StatusEffect::Poison => 1,
-                StatusEffect::Burn => 5,
-                StatusEffect::Bleed => 3,
-            };
-            player_dot_damage += damage;
-            effect.duration -= 1;
-            effect.duration > 0
-        });
-        if player_dot_damage > 0 {
-            self.player_damage += player_dot_damage;
-            let mut msg = vec![
-                ("You take ".into(), Color::White),
-                (format!("{}", player_dot_damage), Color::Red),
-                (" damage from ".into(), Color::White),
-            ];
-            for status in dot_statuses {
-                msg.push((format!("{status:?} "), status.color()));
-            }
-            msg.push((".".into(), Color::White));
-            self.log_message(msg);
         }
 
         if self.player_is_dead() {

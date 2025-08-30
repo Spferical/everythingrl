@@ -159,7 +159,7 @@ def ask_google_stream_actions(
 
 The game mechanics are fixed and are as follows. The player explores three randomly-generated dungeon levels (areas) and aims to defeat the boss on a small fourth final level. The player may equip up to two pieces of armor (equipment) and one melee weapon and one ranged weapon. They may store extra equipment in their inventory and eat food items to regain health. Weapons, armor, food, and enemies all have Pokemon types that influence their effectiveness. All also have levels, which make them directly more effective.
 
-Some monsters and weapons may have a special `modifiers` list that applies status effects on-hit. For monsters, this is `MonsterModifier`, and for items, it is `ItemModifier`. These can be `poison` (damage over time), `burn` (high damage over a short time), or `bleed` (medium damage over a medium time). Use these to create more interesting and dangerous encounters and items.
+Some monsters and weapons may have a special `modifiers` list that applies status effects on-hit. For monsters, this is `MonsterModifier`, and for items, it is `ItemModifier`. These can be `poison` (damage over time), `burn` (high damage over a short time), `bleed` (medium damage over a medium time), or `stun` (prevents the target from acting for a turn). Use these to create more interesting and dangerous encounters and items.
 
 There are three levels (areas) in the game. Each should have at least 5 possible monsters found in that level, 5 pieces of armor, 3 melee weapons, 2 ranged weapons, and 3 food items. Try to avoid common or generic roguelike items.
 

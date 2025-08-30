@@ -8,12 +8,16 @@ class ItemModifier(str, Enum):
     poison = "poison"
     burn = "burn"
     bleed = "bleed"
+    stun = "stun"
+    knockback = "knockback"
 
 
 class MonsterModifier(str, Enum):
     poison = "poison"
     burn = "burn"
     bleed = "bleed"
+    stun = "stun"
+    knockback = "knockback"
 
 
 class Color(str, Enum):
