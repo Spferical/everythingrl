@@ -61,6 +61,9 @@ impl StatusEffect {
             Self::Stun => true,
         }
     }
+    pub fn chance(&self) -> f64 {
+        0.5
+    }
     pub fn duration(&self) -> usize {
         match self {
             Self::Poison => 10,
@@ -946,7 +949,9 @@ impl World {
         } else {
             for modifier in modifiers {
                 if let Some(effect) = StatusEffect::from_item_mod(*modifier) {
-                    if effect.can_effect(mki.type1, mki.type2) {
+                    if effect.can_effect(mki.type1, mki.type2)
+                        && self.rng.gen::<f64>() < effect.chance()
+                    {
                         let duration = effect.duration();
                         mob.status_effects.push(StatusInfo { effect, duration });
                         self.log_message(vec![
@@ -1532,7 +1537,9 @@ impl World {
                             let knockback = mki.modifiers.contains(&MonsterModifier::Knockback);
                             for modifier in &mki.modifiers {
                                 if let Some(effect) = StatusEffect::from_monster_mod(*modifier) {
-                                    if effect.can_effect(defense1, defense2) {
+                                    if effect.can_effect(defense1, defense2)
+                                        && self.rng.gen::<f64>() < effect.chance()
+                                    {
                                         let duration = effect.duration();
                                         self.player_status_effects
                                             .push(StatusInfo { effect, duration });
