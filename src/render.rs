@@ -550,6 +550,7 @@ impl Ui {
 
         let pokedex_width = panel_width * miniquad::window::dpi_scale();
         let pokedex_height = (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale();
+
         egui::Window::new("Pokédex")
             .resizable(false)
             .collapsible(false)
@@ -588,73 +589,51 @@ impl Ui {
                                     } = mob_kind_def;
 
                                     let mut job = egui::text::LayoutJob::default();
-                                    job.append(
-                                        char,
-                                        0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_base_font(),
-                                            color: color.into(),
-                                            ..Default::default()
-                                        },
-                                    );
+                                    let base_format = egui::TextFormat {
+                                        font_id: self.get_base_font(),
+                                        color: color.into(),
+                                        ..Default::default()
+                                    };
+                                    job.append(char, 0.0, base_format.clone());
                                     job.append(
                                         &format!(" - {name}\n    "),
                                         0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_base_font(),
-                                            color: color.into(),
-                                            ..Default::default()
-                                        },
+                                        base_format.clone(),
                                     );
-                                    job.append(
-                                        &format!("{} ", type1),
-                                        0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_base_font(),
-                                            color: type1.get_color().into(),
-                                            ..Default::default()
-                                        },
-                                    );
+                                    let type_format = egui::TextFormat {
+                                        color: type1.get_color().into(),
+                                        ..base_format.clone()
+                                    };
+                                    job.append(&format!("{} ", type1), 0.0, type_format.clone());
                                     if let Some(type2) = type2 {
-                                        job.append(
-                                            &format!("{} ", type2),
-                                            0.0,
-                                            egui::TextFormat {
-                                                font_id: self.get_details_font(),
-                                                color: type2.get_color().into(),
-                                                ..Default::default()
-                                            },
-                                        );
+                                        let type2_format = egui::TextFormat {
+                                            color: type2.get_color().into(),
+                                            ..base_format.clone()
+                                        };
+                                        job.append(&format!("{} ", type2), 0.0, type2_format);
                                     }
 
-                                    job.append(
-                                        "| ATT ",
-                                        0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_details_font(),
-                                            color: Color32::WHITE,
-                                            ..Default::default()
-                                        },
-                                    );
+                                    let details_format = egui::TextFormat {
+                                        font_id: self.get_details_font(),
+                                        color: Color32::WHITE,
+                                        ..Default::default()
+                                    };
+                                    job.append("| ATT ", 0.0, details_format.clone());
 
+                                    let attack_type_format = egui::TextFormat {
+                                        color: attack_type.get_color().into(),
+                                        ..details_format.clone()
+                                    };
                                     job.append(
                                         &format!("{} ", attack_type),
                                         0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_details_font(),
-                                            color: attack_type.get_color().into(),
-                                            ..Default::default()
-                                        },
+                                        attack_type_format,
                                     );
 
                                     job.append(
                                         &format!("| Level {} | HP ", level),
                                         0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_details_font(),
-                                            color: Color32::WHITE,
-                                            ..Default::default()
-                                        },
+                                        details_format.clone(),
                                     );
 
                                     let max_hp = mob_kind_def.max_hp();
@@ -666,23 +645,15 @@ impl Ui {
                                     } else {
                                         Color32::WHITE
                                     };
-                                    job.append(
-                                        &format!("{}", hp),
-                                        0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_details_font(),
-                                            color: hp_color,
-                                            ..Default::default()
-                                        },
-                                    );
+                                    let hp_format = egui::TextFormat {
+                                        color: hp_color,
+                                        ..details_format.clone()
+                                    };
+                                    job.append(&format!("{}", hp), 0.0, hp_format);
                                     job.append(
                                         &format!("/ {}", max_hp),
                                         0.0,
-                                        egui::TextFormat {
-                                            font_id: self.get_details_font(),
-                                            color: Color32::WHITE,
-                                            ..Default::default()
-                                        },
+                                        details_format.clone(),
                                     );
 
                                     ui.label(job);
