@@ -115,7 +115,7 @@ def log_spend(chars_in: int, chars_out: int):
 
 
 def ask_google_streaming(
-    prompt: str, system_prompt: str | None = None, model: str = "gemini-2.0-flash-exp"
+    prompt: str, system_prompt: str | None = None, model: str = "gemini-2.5-flash-lite"
 ) -> Iterator[str]:
     total_response_length = 0
     try:
@@ -136,9 +136,6 @@ def ask_google_streaming(
         if e.code == 429:
             LOG.error("Got 429. Retrying...")
             time.sleep(1)
-            if model == "gemini-2.0-flash-exp":
-                # experimental model has tight rate limits, fall back to 1.5
-                model = "gemini-1.5-flash-002"
             yield from ask_google_streaming(
                 prompt, system_prompt=system_prompt, model=model
             )
@@ -167,7 +164,7 @@ The player may choose between 5 varied starting characters. These may be named p
 
 The player may combine any two items in the game to create a third item, similar to Homestuck captchalogue code alchemy. The two input items must be the same level; when asked to generate a crafting recipe, assign a level to the output item that is the level of each input item plus one; e.g. 2xL1->L2, 2xL2->L3, etc. DO NOT output crafting recipes unless specifically requested.
 
-You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced. AVOID bland or generic descriptions; prefer short and poignant quips.
+You will be given a JSON object describing the current content definitions for a game. Produce JSON-L, i.e. one or multiple compact JSON objects separated by newlines, describing each _change_ that should be done to the content definitions according to the given instructions. Output according to the jsonschema definition given below. NEVER output markdown or backticks. NEVER output definitions that exist in the Game JSON already, unless they must be replaced. AVOID bland or generic descriptions; prefer short and poignant quips. Write ONE action per JSON object, that is, ONE action per line.
 
 At any time, you may ABORT generation if the user-provided theme is truly heinous.
 """
