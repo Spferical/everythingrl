@@ -23,6 +23,22 @@ pub enum ItemKind {
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ItemModifier {
+    Poison,
+    Burn,
+    Bleed,
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MonsterModifier {
+    Poison,
+    Burn,
+    Bleed,
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PokemonType {
     Normal,
@@ -298,6 +314,8 @@ pub struct MonsterDefinition {
     pub death: String,
     pub ranged: bool,
     pub speed: u8,
+    #[serde(default)]
+    pub modifiers: Vec<MonsterModifier>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
@@ -323,6 +341,8 @@ pub struct ItemDefinition {
     pub ty: PokemonType,
     pub description: String,
     pub kind: ItemKind,
+    #[serde(default)]
+    pub modifiers: Vec<ItemModifier>,
 }
 
 #[derive(Enum, PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]

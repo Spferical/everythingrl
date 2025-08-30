@@ -227,6 +227,7 @@ impl Ui {
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
                         .column(egui_extras::Column::auto())
+                        .column(egui_extras::Column::auto())
                         .sense(egui::Sense::click());
                     table
                         .header(text_height, |mut header| {
@@ -252,6 +253,9 @@ impl Ui {
                             header.col(|ui| {
                                 ui.strong("Condition");
                             });
+                            header.col(|ui| {
+                                ui.strong("Modifiers");
+                            });
                         })
                         .body(|body| {
                             body.rows(text_height, sim.inventory.items.len(), |mut row| {
@@ -264,6 +268,7 @@ impl Ui {
                                 let level;
                                 let cond;
                                 let mut types = vec![];
+                                let mut modifiers = vec![];
                                 match &slot.item {
                                     Item::PendingCraft(..) => {
                                         name = "Crafting in progress...".into();
@@ -282,6 +287,9 @@ impl Ui {
                                             _ => item.info.name.clone(),
                                         };
                                         types.push(item.info.ty);
+                                        for modifier in &item.info.modifiers {
+                                            modifiers.push(format!("{:?}", modifier));
+                                        }
                                         display_slot = match item.info.kind {
                                             ItemKind::MeleeWeapon => "Melee",
                                             ItemKind::RangedWeapon => "Ranged",
@@ -331,6 +339,9 @@ impl Ui {
                                         egui::RichText::new(format!("{:?}", cond))
                                             .color(condition_color(cond)),
                                     );
+                                });
+                                row.col(|ui| {
+                                    ui.label(modifiers.join(", "));
                                 });
 
                                 self.toggle_row_selection(row_index, &row.response());
@@ -675,6 +686,35 @@ impl Ui {
                                     );
 
                                     ui.label(job);
+
+                                    if !mob_kind_def.modifiers.is_empty() {
+                                        let mut modifier_job = egui::text::LayoutJob::default();
+                                        for (i, modifier) in
+                                            mob_kind_def.modifiers.iter().enumerate()
+                                        {
+                                            modifier_job.append(
+                                                &format!("{:?}", modifier),
+                                                0.0,
+                                                egui::TextFormat {
+                                                    font_id: self.get_details_font(),
+                                                    color: Color::Red.into(),
+                                                    ..Default::default()
+                                                },
+                                            );
+                                            if i < mob_kind_def.modifiers.len() - 1 {
+                                                modifier_job.append(
+                                                    ", ",
+                                                    0.0,
+                                                    egui::TextFormat {
+                                                        font_id: self.get_details_font(),
+                                                        color: Color32::WHITE,
+                                                        ..Default::default()
+                                                    },
+                                                );
+                                            }
+                                        }
+                                        ui.label(modifier_job);
+                                    }
 
                                     ui.push_id(i, |ui| {
                                         egui::CollapsingHeader::new("Details...").show(ui, |ui| {

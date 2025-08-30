@@ -155,9 +155,11 @@ def ask_google_stream_actions(
     examples: list[tuple[str, str]],
     input: game_types.GameState,
 ) -> Iterator[game_types.AiAction]:
-    system_prompt = """You are the game master for a difficult permadeath roguelike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
+    system_prompt = """You are the game master for a difficult permadeath roglike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
 
 The game mechanics are fixed and are as follows. The player explores three randomly-generated dungeon levels (areas) and aims to defeat the boss on a small fourth final level. The player may equip up to two pieces of armor (equipment) and one melee weapon and one ranged weapon. They may store extra equipment in their inventory and eat food items to regain health. Weapons, armor, food, and enemies all have Pokemon types that influence their effectiveness. All also have levels, which make them directly more effective.
+
+Some monsters and weapons may have a special `modifiers` list that applies status effects on-hit. For monsters, this is `MonsterModifier`, and for items, it is `ItemModifier`. These can be `poison` (damage over time), `burn` (high damage over a short time), or `bleed` (medium damage over a medium time). Use these to create more interesting and dangerous encounters and items.
 
 There are three levels (areas) in the game. Each should have at least 5 possible monsters found in that level, 5 pieces of armor, 3 melee weapons, 2 ranged weapons, and 3 food items. Try to avoid common or generic roguelike items.
 
@@ -184,7 +186,7 @@ At any time, you may ABORT generation if the user-provided theme is truly heinou
         for complete_line in complete_lines:
             try:
                 LOG.debug(f"RECEIVED: {complete_line}")
-                if complete_line.startswith("```"):
+                if not complete_line or complete_line.startswith("```"):
                     # No use logging this junk
                     continue
                 yield game_types.AiAction(**json.loads(complete_line))

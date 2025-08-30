@@ -7,10 +7,23 @@ use rand::{seq::SliceRandom as _, Rng, SeedableRng};
 use rogue_algebra::{Offset, Pos, TileMap, CARDINALS};
 
 use crate::net::{
-    Area, AttackEffectiveness, Color, IdeaGuy, ItemDefinition, ItemKind, MonsterDefinition,
-    PokemonType,
+    Area, AttackEffectiveness, Color, IdeaGuy, ItemDefinition, ItemKind, ItemModifier,
+    MonsterDefinition, MonsterModifier, PokemonType,
 };
 use crate::render::{Animation, AnimationState, ShotAnimation};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum StatusEffect {
+    Poison,
+    Burn,
+    Bleed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct StatusInfo {
+    pub effect: StatusEffect,
+    pub duration: usize,
+}
 
 pub const FOV_RANGE: i32 = 8;
 pub const STARTING_DURABILITY: usize = 20;
@@ -110,6 +123,7 @@ pub struct Mob {
     pub reload: usize,
     pub actions: i32,
     pub ai: MobAi,
+    pub status_effects: Vec<StatusInfo>,
 }
 
 #[derive(Hash, Debug, Clone)]
@@ -148,6 +162,7 @@ impl Mob {
             reload: RELOAD_DELAY,
             actions: 0,
             ai: MobAi::Idle,
+            status_effects: Vec::new(),
         }
     }
 }
@@ -160,6 +175,7 @@ pub struct ItemInfo {
     pub ty2: Option<PokemonType>,
     pub description: String,
     pub kind: ItemKind,
+    pub modifiers: Vec<ItemModifier>,
 }
 
 impl ItemInfo {
@@ -210,6 +226,7 @@ pub struct MobKindInfo {
     pub death: String,
     pub ranged: bool,
     pub speed: Speed,
+    pub modifiers: Vec<MonsterModifier>,
 }
 
 impl MobKindInfo {
@@ -292,6 +309,7 @@ impl WorldInfo {
                 ty,
                 kind,
                 description,
+                modifiers,
                 ..
             } = item.clone();
             self.item_kinds.push(Rc::new(ItemInfo {
@@ -301,6 +319,7 @@ impl WorldInfo {
                 ty2: None,
                 description,
                 kind,
+                modifiers,
             }));
         }
         let boss = &ig.game_defs.boss.as_ref().unwrap();
@@ -319,6 +338,7 @@ impl WorldInfo {
                 death: boss.game_victory_paragraph.clone(),
                 ranged: true,
                 speed: Speed::Slow,
+                modifiers: vec![],
             });
             self.boss_info = Some(BossInfo {
                 mob_kind: MobKind(self.monster_kinds.len() - 1),
@@ -343,6 +363,7 @@ impl WorldInfo {
                 death,
                 ranged,
                 speed,
+                modifiers,
             } = mob.clone();
             let speed = speed.into();
             self.monster_kinds.push(MobKindInfo {
@@ -359,6 +380,7 @@ impl WorldInfo {
                 death,
                 ranged,
                 speed,
+                modifiers,
             });
         }
 
@@ -708,6 +730,7 @@ pub struct World {
     level_id: usize,
     rng: rand::rngs::SmallRng,
     step: usize,
+    pub player_status_effects: Vec<StatusInfo>,
 }
 
 pub enum PlayerAction {
@@ -739,6 +762,7 @@ impl World {
             stairs: HashMap::new(),
             level_id: 0,
             step: 1,
+            player_status_effects: Vec::new(),
         }
     }
 
@@ -865,11 +889,32 @@ impl World {
             PlayerAction::Move(offset) => {
                 assert!(offset.mhn_dist() == 1);
                 let new_pos = self.player_pos + offset;
-                if let Some(mob) = self.mobs.remove(&new_pos) {
+                if let Some(mut mob) = self.mobs.remove(&new_pos) {
                     let mki = self.get_mobkind_info(mob.kind).clone();
                     let player_weapon_info = self.inventory.get_equipped_weapon_info(true);
+
+                    if let Some(ref weapon) = player_weapon_info {
+                        for modifier in &weapon.modifiers {
+                            let effect = match modifier {
+                                ItemModifier::Poison => StatusEffect::Poison,
+                                ItemModifier::Burn => StatusEffect::Burn,
+                                ItemModifier::Bleed => StatusEffect::Bleed,
+                            };
+                            let duration = match effect {
+                                StatusEffect::Poison => 10,
+                                StatusEffect::Burn => 3,
+                                StatusEffect::Bleed => 5,
+                            };
+                            mob.status_effects.push(StatusInfo { effect, duration });
+                            self.log_message(vec![
+                                (mki.name.clone(), mki.color),
+                                (" is afflicted with ".into(), Color::White),
+                                (format!("{:?}", effect), Color::Red),
+                            ]);
+                        }
+                    }
+
                     let (att_type, att_level) = player_weapon_info
-                        .clone()
                         .map(|w| (w.ty, w.level))
                         .unwrap_or((PokemonType::Normal, 0));
                     let eff = att_type.get_effectiveness2(mki.type1, mki.type2);
@@ -1232,6 +1277,42 @@ impl World {
                 Some(mob) => mob,
                 None => continue,
             };
+
+            // Apply status effects
+            let mut total_dot_damage = 0;
+            mob.status_effects.retain_mut(|effect| {
+                let damage = match effect.effect {
+                    StatusEffect::Poison => 1, // Slow DOT
+                    StatusEffect::Burn => 5,   // Fast DOT
+                    StatusEffect::Bleed => 3,  // Medium DOT
+                };
+                total_dot_damage += damage;
+                effect.duration -= 1;
+                effect.duration > 0
+            });
+
+            if total_dot_damage > 0 {
+                let mki = self.get_mobkind_info(mob.kind).clone();
+                mob.damage += total_dot_damage;
+
+                self.log_message(vec![
+                    (mki.name.clone(), mki.color),
+                    (" takes ".into(), Color::White),
+                    (format!("{}", total_dot_damage), Color::Red),
+                    (" damage from status effects.".into(), Color::White),
+                ]);
+
+                if mob.damage >= mki.max_hp() {
+                    self.log_message(vec![(mki.death, mki.color)]);
+                    if mob.kind == self.world_info.boss_info.as_ref().unwrap().mob_kind {
+                        self.victory = true;
+                        self.log_message(vec![("YOU WIN!".into(), Color::Gold)]);
+                    }
+                    // Mob is dead, don't re-insert it
+                    continue;
+                }
+            }
+
             let mki = self.get_mobkind_info(mob.kind).clone();
             if mob.kind == boss_kind && fov.contains(&pos) && self.rng.gen::<f64>() < 0.1 {
                 if let Some(msg) = self
@@ -1280,7 +1361,7 @@ impl World {
                         let in_range =
                             (current_pos - self.player_pos).dist_squared() <= range * range;
                         if mki.ranged {
-                            println!("(0) {} in range -- {in_range}", mki.name);
+                            println!("(0) {} in range -- {{in_range}}", mki.name);
                         }
 
                         // If ranged and in range and reload cooldown done
@@ -1299,6 +1380,25 @@ impl World {
                         can_fire |= !mki.ranged && target == self.player_pos;
 
                         if can_fire {
+                            for modifier in &mki.modifiers {
+                                let effect = match modifier {
+                                    MonsterModifier::Poison => StatusEffect::Poison,
+                                    MonsterModifier::Burn => StatusEffect::Burn,
+                                    MonsterModifier::Bleed => StatusEffect::Bleed,
+                                };
+                                let duration = match effect {
+                                    StatusEffect::Poison => 10,
+                                    StatusEffect::Burn => 3,
+                                    StatusEffect::Bleed => 5,
+                                };
+                                self.player_status_effects
+                                    .push(StatusInfo { effect, duration });
+                                self.log_message(vec![
+                                    ("You are afflicted with ".into(), Color::White),
+                                    (format!("{:?}", effect), Color::Red),
+                                ]);
+                            }
+
                             let msg = mki.attack.choose(&mut self.rng).unwrap().clone();
                             let mut log_msg = vec![
                                 (msg, mki.color),
@@ -1350,6 +1450,27 @@ impl World {
             mob.actions += self.get_mobkind_info(mob.kind).speed.get_actions_per_turn();
             self.mobs.insert(current_pos, mob);
         }
+        let mut player_dot_damage = 0;
+        self.player_status_effects.retain_mut(|effect| {
+            let damage = match effect.effect {
+                StatusEffect::Poison => 1,
+                StatusEffect::Burn => 5,
+                StatusEffect::Bleed => 3,
+            };
+            player_dot_damage += damage;
+            effect.duration -= 1;
+            effect.duration > 0
+        });
+
+        if player_dot_damage > 0 {
+            self.player_damage += player_dot_damage;
+            self.log_message(vec![
+                ("You take ".into(), Color::White),
+                (format!("{}", player_dot_damage), Color::Red),
+                (" damage from status effects.".into(), Color::White),
+            ]);
+        }
+
         if self.player_is_dead() {
             self.log_message(vec![
                 ("YOU DIED!".into(), Color::Red),

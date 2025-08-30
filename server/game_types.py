@@ -4,6 +4,18 @@ from typing import Annotated
 import pydantic
 
 
+class ItemModifier(str, Enum):
+    poison = "poison"
+    burn = "burn"
+    bleed = "bleed"
+
+
+class MonsterModifier(str, Enum):
+    poison = "poison"
+    burn = "burn"
+    bleed = "bleed"
+
+
 class Color(str, Enum):
     lightgray = "lightgray"
     yellow = "yellow"
@@ -92,6 +104,7 @@ class Monster(pydantic.BaseModel):
     death: str
     ranged: bool
     speed: int
+    modifiers: list[MonsterModifier] = []
 
 
 class Boss(pydantic.BaseModel):
@@ -132,6 +145,7 @@ class Item(pydantic.BaseModel):
     type: PokemonType
     description: str
     kind: ItemKind
+    modifiers: list[ItemModifier] = []
 
 
 class Character(pydantic.BaseModel):
