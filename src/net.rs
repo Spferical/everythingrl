@@ -44,6 +44,31 @@ pub enum ItemModifier {
     Knockback,
 }
 
+impl ItemModifier {
+    pub fn describe(&self) -> Vec<(String, Color)> {
+        let description = match self {
+            ItemModifier::Poison => "Poisons enemies on hit.",
+            ItemModifier::Burn => "Burns enemies on hit.",
+            ItemModifier::Bleed => "Causes enemies to bleed on hit.",
+            ItemModifier::Stun => "Stuns enemies on hit.",
+            ItemModifier::Knockback => "Knocks enemies back a tile.",
+        };
+        vec![
+            (format!("{self:?}"), self.color()),
+            (format!(": {description}"), Color::White),
+        ]
+    }
+    pub fn color(&self) -> Color {
+        match self {
+            Self::Poison => Color::Purple,
+            Self::Burn => Color::Orange,
+            Self::Bleed => Color::Red,
+            Self::Stun => Color::Yellow,
+            Self::Knockback => Color::White,
+        }
+    }
+}
+
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MonsterModifier {

@@ -146,6 +146,15 @@ pub enum Item {
     PendingCraft(Rc<ItemInfo>, Rc<ItemInfo>),
 }
 
+impl Item {
+    pub fn describe(&self) -> Vec<(String, Color)> {
+        match self {
+            Item::Instance(ii) => ii.info.describe(),
+            Item::PendingCraft(_, _) => vec![("Crafting in progress...".into(), Color::Pink)],
+        }
+    }
+}
+
 pub struct TileKindInfo {
     pub opaque: bool,
     pub walkable: bool,
@@ -243,11 +252,38 @@ pub struct ItemInfo {
 }
 
 impl ItemInfo {
+    pub fn describe(&self) -> Vec<(String, Color)> {
+        let mut desc = vec![];
+        desc.push((self.name.clone(), self.ty.get_color()));
+        desc.push((". ".into(), Color::White));
+
+        let (num_att_dice, att_dice_sides) = attack_dice(self.level);
+        let (num_def_dice, def_dice_sides) = def_dice(self.level);
+        let heal_amt = self.get_base_heal_amt();
+        let base_desc = match self.kind {
+            ItemKind::MeleeWeapon => format!("Deals {num_att_dice}d{att_dice_sides} damage."),
+            ItemKind::RangedWeapon => format!("Deals {num_att_dice}d{att_dice_sides} / 2 damage."),
+            ItemKind::Armor => format!("Prevents {num_def_dice}d{def_dice_sides} damage."),
+            ItemKind::Food => format!("Heals for {heal_amt} hp."),
+        };
+        desc.push((base_desc, Color::White));
+        desc.push((" ".into(), Color::White));
+
+        for modifier in &self.modifiers {
+            desc.append(&mut modifier.describe());
+            desc.push((" ".into(), Color::White));
+        }
+        desc.push((self.description.clone(), Color::White));
+        desc
+    }
     pub fn get_range(&self) -> usize {
         match self.kind {
             ItemKind::RangedWeapon => 5 + self.level * 2,
             _ => 0,
         }
+    }
+    pub fn get_base_heal_amt(&self) -> i32 {
+        5 * ((self.level as f32).powf(2.5) as i32)
     }
     /// If ingested, how much does this heal?
     pub fn get_heal_amount(&self, armor_types: &[PokemonType]) -> i32 {
@@ -266,7 +302,7 @@ impl ItemInfo {
             false
         };
 
-        let amt = 5 * ((self.level as f32).powf(2.5) as i32);
+        let amt = self.get_base_heal_amt();
         if harm {
             -amt
         } else {
@@ -305,6 +341,14 @@ pub struct BossInfo {
     pub periodic_messages: Vec<String>,
 }
 
+fn attack_dice(att_level: usize) -> (usize, usize) {
+    (att_level + 1, 6)
+}
+
+fn def_dice(def_level: usize) -> (usize, usize) {
+    (def_level, 6)
+}
+
 fn calc_damage(
     rng: &mut rand::rngs::SmallRng,
     att_level: usize,
@@ -315,12 +359,16 @@ fn calc_damage(
 ) -> usize {
     // Base 4 mult.
     let mult = eff.get_scale();
-    let mut damage = (1..=att_level + 1)
-        .map(|_| rng.gen_range(1..=6))
+    let (num_att_dice, att_dice_sides) = attack_dice(att_level);
+    let mut damage = (1..=num_att_dice)
+        .map(|_| rng.gen_range(1..=att_dice_sides))
         .sum::<usize>()
         * mult
         / 4;
-    let defense = (1..=def_level).map(|_| rng.gen_range(1..=6)).sum::<usize>();
+    let (num_def_dice, def_dice_sides) = def_dice(def_level);
+    let defense = (1..=num_def_dice)
+        .map(|_| rng.gen_range(1..=def_dice_sides))
+        .sum::<usize>();
     damage = damage.saturating_sub(defense);
     damage = damage.max(1);
     if is_ranged {

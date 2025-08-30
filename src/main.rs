@@ -142,15 +142,7 @@ impl PlayState {
     pub fn inspect(&mut self) {
         for item in self.ui.inventory_selected.iter() {
             if let Some(item) = self.sim.inventory.items.get(*item).map(|x| &x.item) {
-                self.sim.log_message(vec![match item {
-                    world::Item::Instance(ii) => (
-                        format!("{}: {}", ii.info.name, ii.info.description.clone()),
-                        ii.info.ty.get_color(),
-                    ),
-                    world::Item::PendingCraft(_, _) => {
-                        ("Crafting in progress...".into(), net::Color::Pink)
-                    }
-                }]);
+                self.sim.log_message(item.describe());
             }
         }
     }
