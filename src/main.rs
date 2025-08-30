@@ -161,7 +161,7 @@ impl PlayState {
             match ui_button {
                 render::UiButton::Equip => {
                     self.equip();
-                    true
+                    false
                 }
                 render::UiButton::Drop => {
                     self.drop();
