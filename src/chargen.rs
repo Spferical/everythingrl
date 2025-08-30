@@ -1,4 +1,4 @@
-use egui::{Label, TextWrapMode};
+use egui::Label;
 use macroquad::prelude::*;
 
 use crate::net::{Character, GameDefs};
