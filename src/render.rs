@@ -17,6 +17,7 @@ pub const FOV_BG: macroquad::color::Color = DARKGRAY;
 pub const OOS_BG: macroquad::color::Color = BLACK;
 
 const SIDEBAR_FRACTION: f32 = 0.33;
+const BAR_HEIGHT: f32 = 32.0;
 
 #[derive(Clone, Debug)]
 pub struct ShotAnimation {
@@ -116,7 +117,7 @@ fn normpdf(x: f32, mean: f32, std: f32) -> f32 {
 
 pub fn render_top_bar(egui_ctx: &egui::Context, scale_factor: &mut f32) {
     egui::TopBottomPanel::top("top_bar")
-        .exact_height(32.0)
+        .exact_height(BAR_HEIGHT)
         .show(egui_ctx, |ui| {
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                 ui.label(RichText::new("UI SCALE:").color(Color::White));
@@ -389,7 +390,6 @@ impl Ui {
         if self.help_selected {
             self.render_help(egui_ctx);
         }
-        let bottom_bar_height = 32.0;
         let player_pos = sim.get_player_pos();
         let grid_rect =
             Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
@@ -464,19 +464,18 @@ impl Ui {
                 });
             }
         }
-        let bottom_bar_height_mq =
-            bottom_bar_height * (screen_height() / egui_ctx.screen_rect().height());
+        let bar_height_mq = BAR_HEIGHT * (screen_height() / egui_ctx.screen_rect().height());
         let glyph_rect = macroquad::math::Rect {
             x: 0.0,
-            y: 0.0,
+            y: bar_height_mq,
             w: screen_width() * (1.0 - SIDEBAR_FRACTION),
-            h: screen_height() - bottom_bar_height_mq,
+            h: screen_height() - bar_height_mq,
         };
         self.render_glyphs(&glyphs, glyph_rect, world_offset);
 
         // Draw side panel UI.
         self.render_side_ui(egui_ctx, sim);
-        self.render_bottom_bar(egui_ctx, sim, bottom_bar_height);
+        self.render_bottom_bar(egui_ctx, sim, BAR_HEIGHT);
     }
 
     fn render_bottom_bar(
