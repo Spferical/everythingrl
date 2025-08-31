@@ -332,11 +332,11 @@ fn tick_gamestate(
                 *ig = Some(IdeaGuy::new(GameDefs::new(intro.theme.clone())));
             } else if let Some(ref ig_inner) = ig {
                 if let InitialGenerationStatus::ErroredOut { msg, reason } = ig_inner.get_state() {
-                    intro.reset_from_error(msg, reason);
+                    intro.reset_from_error(msg, &reason);
                     *ig = None;
                 }
             }
-            let intro_waiting = intro::intro_loop(intro, ig, egui_ctx);
+            let intro_waiting = intro::intro_loop(intro, ig.as_ref(), egui_ctx);
             if intro.exit {
                 return ControlFlow::Break(());
             }

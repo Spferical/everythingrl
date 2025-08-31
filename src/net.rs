@@ -45,7 +45,7 @@ pub enum ItemModifier {
 }
 
 impl ItemModifier {
-    pub fn describe(&self) -> Vec<(String, Color)> {
+    pub fn describe(self) -> Vec<(String, Color)> {
         let description = match self {
             ItemModifier::Poison => "Poisons enemies on hit.",
             ItemModifier::Burn => "Burns enemies on hit.",
@@ -58,7 +58,7 @@ impl ItemModifier {
             (format!(": {description}"), Color::White),
         ]
     }
-    pub fn color(&self) -> Color {
+    pub fn color(self) -> Color {
         match self {
             Self::Poison => Color::Purple,
             Self::Burn => Color::Orange,
@@ -80,7 +80,7 @@ pub enum MonsterModifier {
 }
 
 impl MonsterModifier {
-    pub fn color(&self) -> Color {
+    pub fn color(self) -> Color {
         match self {
             MonsterModifier::Poison => Color::Purple,
             MonsterModifier::Burn => Color::Orange,
@@ -115,23 +115,21 @@ pub enum PokemonType {
 }
 
 impl PokemonType {
-    pub fn get_color(&self) -> Color {
+    pub fn get_color(self) -> Color {
         match self {
             PokemonType::Normal => Color::Lightgray,
             PokemonType::Fire => Color::Red,
             PokemonType::Water => Color::Blue,
             PokemonType::Electric => Color::Yellow,
             PokemonType::Grass => Color::Green,
-            PokemonType::Ice => Color::Skyblue,
+            PokemonType::Ice | PokemonType::Flying => Color::Skyblue,
             PokemonType::Fighting => Color::Maroon,
             PokemonType::Poison => Color::Violet,
             PokemonType::Ground => Color::Brown,
-            PokemonType::Flying => Color::Skyblue,
             PokemonType::Psychic => Color::Magenta,
             PokemonType::Bug => Color::Lime,
-            PokemonType::Rock => Color::Orange,
+            PokemonType::Rock | PokemonType::Dragon => Color::Orange,
             PokemonType::Ghost => Color::Purple,
-            PokemonType::Dragon => Color::Orange,
             PokemonType::Dark => Color::Black,
             PokemonType::Steel => Color::White,
             PokemonType::Fairy => Color::Pink,
@@ -230,7 +228,7 @@ pub enum AttackEffectiveness {
 }
 
 impl AttackEffectiveness {
-    pub fn get_scale(&self) -> usize {
+    pub fn get_scale(self) -> usize {
         match self {
             AttackEffectiveness::Zero => 0,
             AttackEffectiveness::Quarter => 1,
@@ -541,14 +539,14 @@ impl GameDefs {
                 if let Some(area) = self.areas.iter_mut().find(|a| a.name == new_area.name) {
                     *area = new_area;
                 } else {
-                    self.areas.push(new_area)
+                    self.areas.push(new_area);
                 }
             }
             AiAction::AddMonsterDef(new_mon) => {
                 if let Some(m) = self.monsters.iter_mut().find(|m| m.name == new_mon.name) {
                     *m = new_mon;
                 } else {
-                    self.monsters.push(new_mon)
+                    self.monsters.push(new_mon);
                 }
             }
             AiAction::AddItemDef(new_item) => {
@@ -697,7 +695,7 @@ fn get_missing_requirements(defs: &GameDefs) -> String {
         .map(|mon| mon.name.clone())
         .collect::<HashSet<String>>();
     for monster_name in mentioned_monsters.difference(&defined_monsters) {
-        reqs += &format!("- a monster definition for \"{monster_name}\".\n");
+        reqs.push_str(&format!("- a monster definition for \"{monster_name}\".\n"));
     }
     let mentioned_items = defs
         .areas
@@ -718,10 +716,10 @@ fn get_missing_requirements(defs: &GameDefs) -> String {
         .map(|i| i.name.clone())
         .collect::<HashSet<String>>();
     for item_name in mentioned_items.difference(&defined_items) {
-        reqs += &format!("- an item definition for \"{item_name}\".\n");
+        reqs.push_str(&format!("- an item definition for \"{item_name}\".\n"));
     }
     if defs.boss.is_none() {
-        reqs += "- a final boss.\n"
+        reqs += "- a final boss.\n";
     }
     if defs.characters.len() < 3 {
         reqs += "- at least 3 characters or character classes available to the player.\n";

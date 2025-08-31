@@ -31,7 +31,7 @@ impl Chargen {
                     .inner_margin(egui::Margin::symmetric(padding, padding))
                     .show(ui, |ui| {
                         ui.vertical(|ui| {
-                            ui.label(self.defs.setting_desc.clone().unwrap_or("".into()));
+                            ui.label(self.defs.setting_desc.clone().unwrap_or_default());
                             ui.separator();
                             ui.horizontal(|ui| {
                                 ui.vertical(|ui| {

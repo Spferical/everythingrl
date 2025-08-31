@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 /// Consider 8 quadrants on a standard graph, each one an infinitely-long
 /// right triangle with one corner on the origin.
-/// A QuadTransform takes an (x, y) position in the first quadrant
+/// A `QuadTransform` takes an (x, y) position in the first quadrant
 /// and rotates/reflects it to get the corresponding position in another.
 const QUAD_TRANSFORMATIONS: [[i32; 4]; 8] = [
     [1, 0, 0, 1],
@@ -61,8 +61,8 @@ fn cast_light(
             let offset = apply_quad_transform(quad, Offset { x: dx, y: dy });
             let pos = start_pos + offset;
             // get slopes for the extremities of the square
-            let left_slope = (dx as f64 - 0.5) / (dy as f64 + 0.5);
-            let right_slope = (dx as f64 + 0.5) / (dy as f64 - 0.5);
+            let left_slope = (f64::from(dx) - 0.5) / (f64::from(dy) + 0.5);
+            let right_slope = (f64::from(dx) + 0.5) / (f64::from(dy) - 0.5);
             if start_slope > right_slope || end_slope < left_slope {
                 continue;
             }
@@ -71,7 +71,7 @@ fn cast_light(
 
             if opaque(pos) {
                 if prev_blocked {
-                    new_start = right_slope
+                    new_start = right_slope;
                 } else {
                     // end of row for transparent tiles
                     prev_blocked = true;

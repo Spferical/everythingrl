@@ -29,19 +29,19 @@ pub const TIPS: [&str; 3] = [
 ];
 
 pub struct LoadingTypewriter {
-    setting_dt: Option<f32>,
-    areas_dt: Option<f32>,
-    monsters_dt: Option<f32>,
-    items_dt: Option<f32>,
+    setting: Option<f32>,
+    areas: Option<f32>,
+    monsters: Option<f32>,
+    items: Option<f32>,
 }
 
 impl LoadingTypewriter {
     fn new() -> LoadingTypewriter {
         LoadingTypewriter {
-            setting_dt: None,
-            areas_dt: None,
-            monsters_dt: None,
-            items_dt: None,
+            setting: None,
+            areas: None,
+            monsters: None,
+            items: None,
         }
     }
 
@@ -54,18 +54,18 @@ impl LoadingTypewriter {
     }
 
     fn get_setting_text<'a>(&mut self, text: &'a str) -> &'a str {
-        LoadingTypewriter::trim(text, &mut self.setting_dt)
+        LoadingTypewriter::trim(text, &mut self.setting)
     }
 
     fn get_monsters_text<'a>(&mut self, text: &'a str) -> &'a str {
-        LoadingTypewriter::trim(text, &mut self.monsters_dt)
+        LoadingTypewriter::trim(text, &mut self.monsters)
     }
 
     fn advance(&mut self) {
-        self.setting_dt = self.setting_dt.map(|dt| dt + get_frame_time());
-        self.areas_dt = self.areas_dt.map(|dt| dt + get_frame_time());
-        self.monsters_dt = self.monsters_dt.map(|dt| dt + get_frame_time());
-        self.items_dt = self.items_dt.map(|dt| dt + get_frame_time());
+        self.setting = self.setting.map(|dt| dt + get_frame_time());
+        self.areas = self.areas.map(|dt| dt + get_frame_time());
+        self.monsters = self.monsters.map(|dt| dt + get_frame_time());
+        self.items = self.items.map(|dt| dt + get_frame_time());
     }
 }
 
@@ -108,18 +108,18 @@ impl IntroState {
         }
     }
 
-    pub fn reset_from_error(&mut self, msg: String, reason: GenerationAbortReason) {
+    pub fn reset_from_error(&mut self, msg: String, reason: &GenerationAbortReason) {
         self.ready_for_generation = false;
         self.prompt_state = PromptState::Errored(msg);
         if matches!(reason, GenerationAbortReason::ServerError) {
-            self.theme = "".into();
+            self.theme = String::new();
         }
     }
 }
 
 fn storyteller_window(
     egui_ctx: &egui::Context,
-    text: String,
+    text: &str,
     typewriter_time: f32,
     add_contents: impl FnOnce(&mut egui::Ui),
 ) {
@@ -174,7 +174,15 @@ fn draw_background(state: &mut IntroState, ig: &IdeaGuy) {
         );
     }
 
-    if !ig.game_defs.monsters.is_empty() {
+    if ig.game_defs.monsters.is_empty() {
+        draw_text(
+            "Loading monsters...",
+            screen_width() * 0.6,
+            screen_height() * 0.1,
+            font_size,
+            BLACK,
+        );
+    } else {
         let monsters: Vec<_> = ig
             .game_defs
             .monsters
@@ -195,18 +203,10 @@ fn draw_background(state: &mut IntroState, ig: &IdeaGuy) {
                 BLACK,
             );
         }
-    } else {
-        draw_text(
-            "Loading monsters...",
-            screen_width() * 0.6,
-            screen_height() * 0.1,
-            font_size,
-            BLACK,
-        );
     }
 }
 
-pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>, egui_ctx: &egui::Context) -> bool {
+pub fn intro_loop(state: &mut IntroState, ig: Option<&IdeaGuy>, egui_ctx: &egui::Context) -> bool {
     state.prompt_dt += get_frame_time();
 
     if let Some(ig) = ig {
@@ -229,7 +229,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>, egui_ctx: &egui:
         PromptState::Done => "Starting the game!".into(),
         };
 
-    storyteller_window(egui_ctx, text, state.prompt_dt, |ui| {
+    storyteller_window(egui_ctx, &text, state.prompt_dt, |ui| {
         let old_prompt_state = state.prompt_state.clone();
         match state.prompt_state {
             PromptState::Welcome(n) => {
@@ -267,7 +267,7 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>, egui_ctx: &egui:
             }
             PromptState::Generating => {
                 state.ready_for_generation = true;
-                match ig.as_ref().map(|ig| ig.get_state()) {
+                match ig.map(IdeaGuy::get_state) {
                     Some(InitialGenerationStatus::Done) => {
                         ui.label(
                             egui::RichText::new("Done! Press Enter to continue!")
@@ -277,10 +277,10 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>, egui_ctx: &egui:
                             state.prompt_state = PromptState::Done;
                         }
                     }
-                    Some(InitialGenerationStatus::Generating { msg, .. }) => {
-                        ui.label(&msg);
-                    }
-                    Some(InitialGenerationStatus::ErroredOut { msg, .. }) => {
+                    Some(
+                        InitialGenerationStatus::Generating { msg, .. }
+                        | InitialGenerationStatus::ErroredOut { msg, .. },
+                    ) => {
                         ui.label(&msg);
                     }
                     None => {}

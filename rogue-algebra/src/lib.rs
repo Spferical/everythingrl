@@ -513,13 +513,13 @@ impl Rect {
         self.x1 += amt;
         self.x2 -= amt;
         if self.x2 < self.x1 {
-            self.x1 = (self.x1 + self.x2) / 2;
+            self.x1 = i32::midpoint(self.x1, self.x2);
             self.x2 = self.x1;
         }
         self.y1 += amt;
         self.y2 -= amt;
         if self.y2 < self.y1 {
-            self.y1 = (self.y1 + self.y2) / 2;
+            self.y1 = i32::midpoint(self.y1, self.y2);
             self.y2 = self.y1;
         }
         self

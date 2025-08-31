@@ -55,7 +55,7 @@ impl Menu {
                                 }
                             }
                         }
-                    })
+                    });
                 }
                 if ui.button("Close").clicked() {
                     self.state = MenuState::Main;
@@ -110,8 +110,9 @@ impl Menu {
                                             chrono::Local
                                                 .timestamp_opt(def.metadata.created, 0)
                                                 .single()
-                                                .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
-                                                .unwrap_or("".into()),
+                                                .map_or_else(String::new, |t| {
+                                                    t.format("%Y-%m-%d %H:%M:%S").to_string()
+                                                }),
                                         );
                                     });
                                 });

@@ -62,9 +62,9 @@ pub fn carve_rooms_bsp_extra_loops(
     let rooms = carve_rooms_bsp(world, rect, opts, rng);
     for _ in 0..((rooms.len() - 1) as f32 * loopiness) as u32 {
         loop {
-            let room1 = rooms.choose(rng).unwrap();
-            let room2 = rooms.choose(rng).unwrap();
-            if let Some(wall) = get_connecting_wall(*room1, *room2) {
+            let rand_room1 = rooms.choose(rng).unwrap();
+            let rand_room2 = rooms.choose(rng).unwrap();
+            if let Some(wall) = get_connecting_wall(*rand_room1, *rand_room2) {
                 let pos = wall.choose(rng);
                 carve_floor(world, pos, 0, opts.floor);
                 break;
@@ -146,14 +146,14 @@ struct RoomGraph {
 
 impl RoomGraph {
     fn get_adj(&self, rect: Rect) -> Option<&[Rect]> {
-        self.room_adj.get(&rect).map(|v| v.as_slice())
+        self.room_adj.get(&rect).map(Vec::as_slice)
     }
     fn choose(&self, rng: &mut impl Rng) -> Option<Rect> {
         if self.room_adj.is_empty() {
             return None;
         }
         let idx = rng.gen_range(0..self.room_adj.len());
-        self.room_adj.keys().nth(idx).cloned()
+        self.room_adj.keys().nth(idx).copied()
     }
     fn len(&self) -> usize {
         self.room_adj.len()
@@ -212,14 +212,14 @@ impl RoomGraph {
 
 // returns (rooms, walls between connected rooms in the bsp tree)
 pub fn gen_bsp_tree(rect: Rect, opts: BspSplitOpts, rng: &mut impl Rng) -> BspTree {
-    assert!(opts.min_width * 2 < opts.max_width);
-    assert!(opts.min_height * 2 < opts.max_height);
     #[derive(Clone, Copy, Debug)]
     enum Split {
         X,
         Y,
         None,
     }
+    assert!(opts.min_width * 2 < opts.max_width);
+    assert!(opts.min_height * 2 < opts.max_height);
     let too_wide = (rect.x2 - rect.x1) > opts.max_width;
     let too_tall = (rect.y2 - rect.y1) > opts.max_height;
     let split = match (too_wide, too_tall) {
@@ -458,7 +458,7 @@ pub fn gen_simple_rooms(
     // Write rooms on top of corridors
     for room in rooms.iter().copied() {
         for pos in room {
-            carve_floor(world, pos, 0, TileKind::Floor)
+            carve_floor(world, pos, 0, TileKind::Floor);
         }
     }
     let bottomleft_room = rooms
@@ -503,7 +503,7 @@ fn gen_dijkstra_map(world: &mut World, start: Pos) -> TileMap<i32> {
             for pos in adjacent {
                 dijkstra_map[pos] = i;
                 visited.insert(pos);
-                new_periphery.push(pos)
+                new_periphery.push(pos);
             }
         }
         std::mem::swap(&mut periphery, &mut new_periphery);
@@ -513,7 +513,7 @@ fn gen_dijkstra_map(world: &mut World, start: Pos) -> TileMap<i32> {
 
 fn gen_level_mapgen(
     world: &mut World,
-    buf: mapgen::MapBuffer,
+    buf: &mapgen::MapBuffer,
     rect: Rect,
     _rng: &mut impl Rng,
 ) -> LevelgenResult {
@@ -708,7 +708,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
                 .with(mapgen::CullUnreachable::new())
                 .with(mapgen::DistantExit::new())
                 .build_with_rng(rng);
-            gen_level_mapgen(world, buf, rect, rng)
+            gen_level_mapgen(world, &buf, rect, rng)
         }
         MapGen::Hive => {
             let buf = mapgen::MapBuilder::new(80, 50)
@@ -719,7 +719,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
                 ))
                 .with(mapgen::DistantExit::new())
                 .build_with_rng(rng);
-            gen_level_mapgen(world, buf, rect, rng)
+            gen_level_mapgen(world, &buf, rect, rng)
         }
         MapGen::DenseRooms => {
             // too dense for big rect
@@ -737,7 +737,7 @@ fn generate_level(world: &mut World, i: usize, rng: &mut StdRng) -> Result<Level
         fill_rect(world, rect, TileKind::Wall);
         return Err("Too small".into());
     }
-    sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, rng).map(|_| lgr)
+    sprinkle_enemies_and_items(world, rect, &lgr, &sprinkle, rng).map(|()| lgr)
 }
 
 pub fn generate_world(world: &mut World, seed: u64) {
@@ -774,7 +774,7 @@ pub fn generate_world(world: &mut World, seed: u64) {
 }
 
 pub fn carve_floor(world: &mut World, pos: Pos, brush_size: u8, tile: TileKind) {
-    let brush_size = brush_size as i32;
+    let brush_size = i32::from(brush_size);
     let brush_floor = -brush_size / 2;
     let brush_ceil = brush_floor + brush_size;
     for dx in brush_floor..=brush_ceil {

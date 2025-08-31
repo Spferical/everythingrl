@@ -5,7 +5,7 @@ use crate::Pos;
 pub fn dfs(starts: &[Pos], reachable: impl FnMut(Pos) -> Vec<Pos>) -> impl Iterator<Item = Pos> {
     Dfs {
         stack: starts.to_vec(),
-        visited: starts.iter().cloned().collect::<HashSet<_>>(),
+        visited: starts.iter().copied().collect::<HashSet<_>>(),
         reachable,
         to_emit: starts.to_vec(),
     }
@@ -47,7 +47,7 @@ pub fn bfs_paths(
     Bfs {
         periphery: starts.iter().map(|p| vec![*p]).collect(),
         new_periphery: vec![],
-        visited: starts.iter().cloned().collect::<HashSet<_>>(),
+        visited: starts.iter().copied().collect::<HashSet<_>>(),
         reachable,
         to_emit: starts.iter().map(|p| vec![*p]).collect(),
         maxdist,
