@@ -498,17 +498,26 @@ impl Ui {
                             egui::Layout::left_to_right(egui::Align::Center)
                                 .with_cross_align(egui::Align::Center),
                             |ui| {
-                                let white = &Color::White;
-                                ui.label(RichText::new("HEALTH:").color(white));
+                                if ui.button("Help (q)").clicked() {
+                                    self.toggle_help();
+                                }
+                                ui.separator();
+                                ui.label(RichText::new("HEALTH:"));
                                 let player_hp = usize::saturating_sub(
                                     crate::world::PLAYER_MAX_HEALTH,
                                     sim.player_damage,
                                 );
                                 let red = &Color::Red;
-                                ui.label(RichText::new(format!("{player_hp}")).color(red));
-                                ui.separator();
-                                if ui.button("Help (q)").clicked() {
-                                    self.toggle_help();
+                                ui.colored_label(red, format!("{player_hp}"));
+                                if !sim.player_status_effects.is_empty() {
+                                    ui.separator();
+                                    ui.label("STATUS EFFECTS: ");
+                                    for status in &sim.player_status_effects {
+                                        ui.colored_label(
+                                            status.effect.color(),
+                                            format!("{:?} ", status.effect),
+                                        );
+                                    }
                                 }
                             },
                         );
