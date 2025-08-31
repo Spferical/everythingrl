@@ -217,7 +217,7 @@ impl Ui {
         egui::Window::new("Inventory")
             .resizable(false)
             .collapsible(false)
-            .anchor(egui::Align2::LEFT_TOP, egui::Vec2::new(0.0, 0.0))
+            .default_pos(egui::Pos2::new(0.0, 64.0))
             .show(egui_ctx, |ui| {
                 ui.style_mut().override_text_style = Some(egui::TextStyle::Body);
                 let text_height = egui::TextStyle::Body
