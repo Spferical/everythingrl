@@ -10,7 +10,7 @@ use rand_distr::{Distribution, Normal};
 use rogue_algebra::{Pos, Rect};
 
 use crate::net::{Color, ItemKind};
-use crate::world::{Item, MobKindInfo, TileKind};
+use crate::world::{Item, MobKindInfo, Speed, TileKind};
 use crate::INVENTORY_KEYS;
 
 pub const FOV_BG: macroquad::color::Color = DARKGRAY;
@@ -636,8 +636,17 @@ impl Ui {
 
                                     ui.label(job);
 
+                                    let mut modifier_job = egui::text::LayoutJob::default();
+                                    if mob_kind_def.ranged {
+                                        modifier_job.append("Ranged ", 0.0, details_format.clone());
+                                    }
+                                    if mob_kind_def.speed == Speed::Slow {
+                                        modifier_job.append("Slow ", 0.0, details_format.clone());
+                                    } else if mob_kind_def.speed == Speed::Fast {
+                                        modifier_job.append("Fast ", 0.0, details_format.clone());
+                                    }
+
                                     if !mob_kind_def.modifiers.is_empty() {
-                                        let mut modifier_job = egui::text::LayoutJob::default();
                                         for modifier in mob_kind_def.modifiers.iter() {
                                             let modifier_format = with_color(
                                                 &details_format,
@@ -660,8 +669,8 @@ impl Ui {
                                                 format,
                                             );
                                         }
-                                        ui.label(modifier_job);
                                     }
+                                    ui.label(modifier_job);
 
                                     ui.push_id(i, |ui| {
                                         egui::CollapsingHeader::new("Details...").show(ui, |ui| {

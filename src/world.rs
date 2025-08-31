@@ -229,7 +229,7 @@ pub struct Mob {
     pub status_effects: Vec<StatusInfo>,
 }
 
-#[derive(Hash, Debug, Clone)]
+#[derive(Hash, Debug, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Speed {
     Slow = 1,
