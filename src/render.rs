@@ -62,8 +62,6 @@ pub struct Ui {
     camera_delta: Option<(f32, f32)>,
     last_upper_left: Option<Pos>,
     pub inventory_selected: HashSet<usize>,
-    pub user_scale_factor: f32,
-    tmp_scale_factor: f32,
     animations: Vec<AnimationState>,
 
     pub ui_button: Option<UiButton>,
@@ -116,6 +114,21 @@ fn normpdf(x: f32, mean: f32, std: f32) -> f32 {
     num / denom
 }
 
+pub fn render_top_bar(egui_ctx: &egui::Context, scale_factor: &mut f32) {
+    egui::TopBottomPanel::top("top_bar")
+        .exact_height(32.0)
+        .show(egui_ctx, |ui| {
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                ui.label(RichText::new("UI SCALE:").color(Color::White));
+                let response = ui.add(egui::Slider::new(scale_factor, 0.5..=3.0).logarithmic(true));
+                if response.drag_stopped() && *scale_factor != egui_ctx.zoom_factor() {
+                    miniquad::info!("{}", format_args!("scale factor {scale_factor}"));
+                    egui_ctx.set_zoom_factor(*scale_factor);
+                }
+            });
+        });
+}
+
 impl Ui {
     pub fn new(grid_size: Option<usize>, font: Font) -> Ui {
         Ui {
@@ -126,8 +139,6 @@ impl Ui {
             camera_delta: None,
             last_upper_left: None,
             inventory_selected: HashSet::new(),
-            user_scale_factor: 1.0,
-            tmp_scale_factor: 1.0,
             animations: Vec::new(),
             ui_button: None,
         }
@@ -366,105 +377,106 @@ impl Ui {
             });
     }
 
-    pub fn render(&mut self, sim: &crate::world::World, memory: &crate::world::Memory) {
-        egui_macroquad::ui(|egui_ctx| {
-            if self.ui_selected {
-                self.render_inventory(egui_ctx, sim);
-            }
-            if self.help_selected {
-                self.render_help(egui_ctx);
-            }
-            let bottom_bar_height = 32.0 * self.scale_factor();
-            let player_pos = sim.get_player_pos();
-            let grid_rect =
-                Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
-            let world_offset = grid_rect.bottomleft();
+    pub fn render(
+        &mut self,
+        sim: &crate::world::World,
+        memory: &crate::world::Memory,
+        egui_ctx: &egui::Context,
+    ) {
+        if self.ui_selected {
+            self.render_inventory(egui_ctx, sim);
+        }
+        if self.help_selected {
+            self.render_help(egui_ctx);
+        }
+        let bottom_bar_height = 32.0;
+        let player_pos = sim.get_player_pos();
+        let grid_rect =
+            Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
+        let world_offset = grid_rect.bottomleft();
 
-            // Handle smooth camera movement.
-            self.camera_delta = Some(match self.camera_delta {
-                None => (0., 0.),
-                Some(old_delta) => {
-                    let added_delta = match self.last_upper_left {
-                        None => (0., 0.),
-                        Some(old_upper_left) => (
-                            (world_offset.x - old_upper_left.x) as f32,
-                            (world_offset.y - old_upper_left.y) as f32,
-                        ),
-                    };
-                    (
-                        (old_delta.0 + added_delta.0) * 0.9,
-                        (old_delta.1 + added_delta.1) * 0.9,
-                    )
-                }
-            });
-            self.last_upper_left = Some(world_offset);
+        // Handle smooth camera movement.
+        self.camera_delta = Some(match self.camera_delta {
+            None => (0., 0.),
+            Some(old_delta) => {
+                let added_delta = match self.last_upper_left {
+                    None => (0., 0.),
+                    Some(old_upper_left) => (
+                        (world_offset.x - old_upper_left.x) as f32,
+                        (world_offset.y - old_upper_left.y) as f32,
+                    ),
+                };
+                (
+                    (old_delta.0 + added_delta.0) * 0.9,
+                    (old_delta.1 + added_delta.1) * 0.9,
+                )
+            }
+        });
+        self.last_upper_left = Some(world_offset);
 
-            // Render mobs.
-            let mut glyphs = vec![Glyph {
-                character: '@',
-                color: WHITE,
-                bg: FOV_BG,
-                location: (player_pos.x as usize, player_pos.y as usize),
-                layer: 2,
-            }];
-            let fov = sim.get_fov(sim.player_pos);
-            for pos in grid_rect {
-                let tile = &memory.tile_map[pos];
-                let bg = if fov.contains(&pos) { FOV_BG } else { OOS_BG };
-                if let Some(tile) = tile {
-                    let (character, color) = match tile.kind {
-                        TileKind::Floor => ('.', LIGHTGRAY),
-                        TileKind::Wall => ('#', WHITE),
-                        TileKind::YellowFloor => ('.', YELLOW),
-                        TileKind::YellowWall => ('#', YELLOW),
-                        TileKind::BloodyFloor => ('.', RED),
-                        TileKind::Stairs => ('>', LIGHTGRAY),
-                    };
+        // Render mobs.
+        let mut glyphs = vec![Glyph {
+            character: '@',
+            color: WHITE,
+            bg: FOV_BG,
+            location: (player_pos.x as usize, player_pos.y as usize),
+            layer: 2,
+        }];
+        let fov = sim.get_fov(sim.player_pos);
+        for pos in grid_rect {
+            let tile = &memory.tile_map[pos];
+            let bg = if fov.contains(&pos) { FOV_BG } else { OOS_BG };
+            if let Some(tile) = tile {
+                let (character, color) = match tile.kind {
+                    TileKind::Floor => ('.', LIGHTGRAY),
+                    TileKind::Wall => ('#', WHITE),
+                    TileKind::YellowFloor => ('.', YELLOW),
+                    TileKind::YellowWall => ('#', YELLOW),
+                    TileKind::BloodyFloor => ('.', RED),
+                    TileKind::Stairs => ('>', LIGHTGRAY),
+                };
+                glyphs.push(Glyph {
+                    character,
+                    color,
+                    bg,
+                    location: (pos.x as usize, pos.y as usize),
+                    layer: 0,
+                });
+                if let Some(ref item) = tile.item {
+                    let (character, color) = get_item_glyph(item);
                     glyphs.push(Glyph {
                         character,
-                        color,
+                        color: color.into(),
                         bg,
                         location: (pos.x as usize, pos.y as usize),
-                        layer: 0,
-                    });
-                    if let Some(ref item) = tile.item {
-                        let (character, color) = get_item_glyph(item);
-                        glyphs.push(Glyph {
-                            character,
-                            color: color.into(),
-                            bg,
-                            location: (pos.x as usize, pos.y as usize),
-                            layer: 1,
-                        });
-                    }
-                }
-                if let Some(mob) = memory.mobs.get(&pos) {
-                    let mob_kind_info = sim.get_mobkind_info(mob.kind);
-                    glyphs.push(Glyph {
-                        character: mob_kind_info.char.chars().next().unwrap(),
-                        color: mob_kind_info.color.into(),
-                        bg,
-                        location: (pos.x as usize, pos.y as usize),
-                        layer: 2,
+                        layer: 1,
                     });
                 }
             }
-            let bottom_bar_height_mq =
-                bottom_bar_height * (screen_height() / egui_ctx.screen_rect().height());
-            let glyph_rect = macroquad::math::Rect {
-                x: 0.0,
-                y: 0.0,
-                w: screen_width() * (1.0 - SIDEBAR_FRACTION),
-                h: screen_height() - bottom_bar_height_mq,
-            };
-            self.render_glyphs(&glyphs, glyph_rect, world_offset);
+            if let Some(mob) = memory.mobs.get(&pos) {
+                let mob_kind_info = sim.get_mobkind_info(mob.kind);
+                glyphs.push(Glyph {
+                    character: mob_kind_info.char.chars().next().unwrap(),
+                    color: mob_kind_info.color.into(),
+                    bg,
+                    location: (pos.x as usize, pos.y as usize),
+                    layer: 2,
+                });
+            }
+        }
+        let bottom_bar_height_mq =
+            bottom_bar_height * (screen_height() / egui_ctx.screen_rect().height());
+        let glyph_rect = macroquad::math::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: screen_width() * (1.0 - SIDEBAR_FRACTION),
+            h: screen_height() - bottom_bar_height_mq,
+        };
+        self.render_glyphs(&glyphs, glyph_rect, world_offset);
 
-            // Draw side panel UI.
-            self.render_side_ui(egui_ctx, sim);
-            self.render_bottom_bar(egui_ctx, sim, bottom_bar_height);
-        });
-
-        egui_macroquad::draw();
+        // Draw side panel UI.
+        self.render_side_ui(egui_ctx, sim);
+        self.render_bottom_bar(egui_ctx, sim, bottom_bar_height);
     }
 
     fn render_bottom_bar(
@@ -495,14 +507,6 @@ impl Ui {
                                 let red = &Color::Red;
                                 ui.label(RichText::new(format!("{player_hp}")).color(red));
                                 ui.separator();
-                                ui.label(RichText::new("FONT SCALE:").color(white));
-                                let response = ui.add(
-                                    egui::Slider::new(&mut self.tmp_scale_factor, 0.5..=3.0)
-                                        .logarithmic(true),
-                                );
-                                if response.drag_stopped() {
-                                    self.user_scale_factor = self.tmp_scale_factor;
-                                }
                                 if ui.button("Help (q)").clicked() {
                                     self.toggle_help();
                                 }

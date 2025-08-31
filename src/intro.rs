@@ -206,7 +206,7 @@ fn draw_background(state: &mut IntroState, ig: &IdeaGuy) {
     }
 }
 
-pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
+pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>, egui_ctx: &egui::Context) -> bool {
     state.prompt_dt += get_frame_time();
 
     if let Some(ig) = ig {
@@ -214,12 +214,11 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
     }
     state.typewriter.advance();
 
-    egui_macroquad::ui(|egui_ctx| {
-        let setting1 = &state.chosen_settings[0];
-        let setting2 = &state.chosen_settings[1];
-        let tip = &state.chosen_tip;
+    let setting1 = &state.chosen_settings[0];
+    let setting2 = &state.chosen_settings[1];
+    let tip = &state.chosen_tip;
 
-        let text = match state.prompt_state {
+    let text = match state.prompt_state {
         PromptState::Welcome(0) => "Welcome, traveler. I am the Storyteller of this roguelike game.".into(),
         PromptState::Welcome(1) => "My objective is to create the world of the game which you are about to play. From the inhabitants of this virtual dungeon, to their implements and attire, to their demeanor and persuasion, to the very earth they step foot upon....".into(),
         PromptState::Welcome(_) => "... they will be invented by yours truly. With a bit of help from you of course.".into(),
@@ -230,73 +229,71 @@ pub fn intro_loop(state: &mut IntroState, ig: &Option<IdeaGuy>) -> bool {
         PromptState::Done => "Starting the game!".into(),
         };
 
-        storyteller_window(egui_ctx, text, state.prompt_dt, |ui| {
-            let old_prompt_state = state.prompt_state.clone();
-            match state.prompt_state {
-                PromptState::Welcome(n) => {
-                    ui.label(
-                        egui::RichText::new("(Press Enter to continue)")
-                            .small()
-                            .color(egui::Color32::from_rgb(100, 100, 100)),
-                    );
-                    if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                        state.prompt_state = PromptState::Welcome(n + 1);
-                        if n >= 2 {
-                            state.prompt_state = PromptState::Understand;
-                        }
+    storyteller_window(egui_ctx, text, state.prompt_dt, |ui| {
+        let old_prompt_state = state.prompt_state.clone();
+        match state.prompt_state {
+            PromptState::Welcome(n) => {
+                ui.label(
+                    egui::RichText::new("(Press Enter to continue)")
+                        .small()
+                        .color(egui::Color32::from_rgb(100, 100, 100)),
+                );
+                if let Some(KeyCode::Enter) = get_last_key_pressed() {
+                    state.prompt_state = PromptState::Welcome(n + 1);
+                    if n >= 2 {
+                        state.prompt_state = PromptState::Understand;
                     }
                 }
-                PromptState::Understand => {
-                    if ui.button("I understand").clicked() {
-                        state.prompt_state = PromptState::EnterTheme;
-                    }
-                    if ui.button("Exit").clicked() {
-                        state.exit = true;
-                    }
-                }
-                PromptState::EnterTheme | PromptState::Errored(..) => {
-                    state.ready_for_generation = false;
-                    ui.add(
-                        egui::widgets::TextEdit::singleline(&mut state.theme)
-                            .desired_width(f32::INFINITY),
-                    );
-                    if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                        if !state.theme.is_empty() {
-                            state.prompt_state = PromptState::Generating;
-                        }
-                    }
-                }
-                PromptState::Generating => {
-                    state.ready_for_generation = true;
-                    match ig.as_ref().map(|ig| ig.get_state()) {
-                        Some(InitialGenerationStatus::Done) => {
-                            ui.label(
-                                egui::RichText::new("Done! Press Enter to continue!")
-                                    .color(egui::Color32::from_rgb(0, 255, 0)),
-                            );
-                            if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                                state.prompt_state = PromptState::Done;
-                            }
-                        }
-                        Some(InitialGenerationStatus::Generating { msg, .. }) => {
-                            ui.label(&msg);
-                        }
-                        Some(InitialGenerationStatus::ErroredOut { msg, .. }) => {
-                            ui.label(&msg);
-                        }
-                        None => {}
-                    }
-                }
-                PromptState::Done => {}
             }
-            if state.prompt_state != old_prompt_state {
-                state.prompt_dt = 0.0;
-            } else if let Some(KeyCode::Enter) = get_last_key_pressed() {
-                state.prompt_dt += 1000.0;
+            PromptState::Understand => {
+                if ui.button("I understand").clicked() {
+                    state.prompt_state = PromptState::EnterTheme;
+                }
+                if ui.button("Exit").clicked() {
+                    state.exit = true;
+                }
             }
-        });
+            PromptState::EnterTheme | PromptState::Errored(..) => {
+                state.ready_for_generation = false;
+                ui.add(
+                    egui::widgets::TextEdit::singleline(&mut state.theme)
+                        .desired_width(f32::INFINITY),
+                );
+                if let Some(KeyCode::Enter) = get_last_key_pressed() {
+                    if !state.theme.is_empty() {
+                        state.prompt_state = PromptState::Generating;
+                    }
+                }
+            }
+            PromptState::Generating => {
+                state.ready_for_generation = true;
+                match ig.as_ref().map(|ig| ig.get_state()) {
+                    Some(InitialGenerationStatus::Done) => {
+                        ui.label(
+                            egui::RichText::new("Done! Press Enter to continue!")
+                                .color(egui::Color32::from_rgb(0, 255, 0)),
+                        );
+                        if let Some(KeyCode::Enter) = get_last_key_pressed() {
+                            state.prompt_state = PromptState::Done;
+                        }
+                    }
+                    Some(InitialGenerationStatus::Generating { msg, .. }) => {
+                        ui.label(&msg);
+                    }
+                    Some(InitialGenerationStatus::ErroredOut { msg, .. }) => {
+                        ui.label(&msg);
+                    }
+                    None => {}
+                }
+            }
+            PromptState::Done => {}
+        }
+        if state.prompt_state != old_prompt_state {
+            state.prompt_dt = 0.0;
+        } else if let Some(KeyCode::Enter) = get_last_key_pressed() {
+            state.prompt_dt += 1000.0;
+        }
     });
 
-    egui_macroquad::draw();
     !matches!(state.prompt_state, PromptState::Done)
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::ops::ControlFlow;
 
 use chargen::Chargen;
 use macroquad::prelude::*;
@@ -276,73 +277,28 @@ impl PlayState {
     }
 }
 
-fn egui_startup() {
-    egui_macroquad::ui(|egui_ctx| {
-        let mut fonts = egui::FontDefinitions::default();
-        fonts.font_data.insert(
-            "DejaVuSansMono".to_owned(),
-            egui::FontData::from_static(FONT_BYTES).into(),
-        );
-        fonts
-            .families
-            .entry(egui::FontFamily::Proportional)
-            .or_default()
-            .insert(0, "DejaVuSansMono".to_owned());
-        fonts
-            .families
-            .entry(egui::FontFamily::Monospace)
-            .or_default()
-            .push("DejaVuSansMono".to_owned());
+fn egui_startup(egui_ctx: &egui::Context, scale_factor: f32) {
+    egui_ctx.set_zoom_factor(scale_factor);
+    let mut fonts = egui::FontDefinitions::default();
+    fonts.font_data.insert(
+        "DejaVuSansMono".to_owned(),
+        egui::FontData::from_static(FONT_BYTES).into(),
+    );
+    fonts
+        .families
+        .entry(egui::FontFamily::Proportional)
+        .or_default()
+        .insert(0, "DejaVuSansMono".to_owned());
+    fonts
+        .families
+        .entry(egui::FontFamily::Monospace)
+        .or_default()
+        .push("DejaVuSansMono".to_owned());
 
-        egui_ctx.set_fonts(fonts);
-        egui_ctx.style_mut(|style| {
-            style.interaction.selectable_labels = false;
-        });
-        egui_ctx.set_zoom_factor(2.0);
+    egui_ctx.set_fonts(fonts);
+    egui_ctx.style_mut(|style| {
+        style.interaction.selectable_labels = false;
     });
-}
-
-fn egui_update_scaling(user_scale: f32) {
-    egui_macroquad::ui(|egui_ctx| {
-        let game_scale = screen_width().min(screen_height());
-        let scale_factor = miniquad::window::dpi_scale() * (game_scale / 1200.) * user_scale;
-        use egui::FontFamily::*;
-        use egui::TextStyle::*;
-        let mut style = (*egui_ctx.style()).clone();
-        style.text_styles = [
-            (
-                Heading,
-                egui::FontId::new(20.0 * scale_factor, Proportional),
-            ),
-            (
-                heading2(),
-                egui::FontId::new(25.0 * scale_factor, Proportional),
-            ),
-            (
-                heading3(),
-                egui::FontId::new(23.0 * scale_factor, Proportional),
-            ),
-            (Body, egui::FontId::new(18.0 * scale_factor, Proportional)),
-            (
-                egui::TextStyle::Monospace,
-                egui::FontId::new(14.0 * scale_factor, Proportional),
-            ),
-            (Button, egui::FontId::new(14.0 * scale_factor, Proportional)),
-            (Small, egui::FontId::new(10.0 * scale_factor, Proportional)),
-        ]
-        .into();
-        egui_ctx.set_style(style);
-    });
-}
-
-#[inline]
-fn heading2() -> egui::TextStyle {
-    egui::TextStyle::Name("Heading2".into())
-}
-
-#[inline]
-fn heading3() -> egui::TextStyle {
-    egui::TextStyle::Name("ContextHeading".into())
 }
 
 fn window_conf() -> Conf {
@@ -357,15 +313,104 @@ fn window_conf() -> Conf {
     }
 }
 
+fn tick_gamestate(
+    gs: &mut GameState,
+    ig: &mut Option<IdeaGuy>,
+    font: &Font,
+    egui_ctx: &egui::Context,
+) -> ControlFlow<(), Option<GameState>> {
+    std::ops::ControlFlow::Continue(match gs {
+        GameState::Chargen(ref mut chargen) => chargen
+            .tick(egui_ctx)
+            .map(|c| GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap(), c))),
+        GameState::Menu(ref mut menu) => match menu.tick(egui_ctx) {
+            None => None,
+            Some(main_menu::Choice::Play) => Some(GameState::Intro(intro::IntroState::new())),
+            Some(main_menu::Choice::Load(def)) => {
+                let defs: GameDefs = serde_json::from_value(def.defs).unwrap();
+                *ig = Some(IdeaGuy::new(defs.clone()));
+                Some(GameState::Chargen(crate::chargen::Chargen::new(defs)))
+            }
+        },
+        GameState::Intro(ref mut intro) => {
+            if intro.ready_for_generation && ig.is_none() {
+                *ig = Some(IdeaGuy::new(GameDefs::new(intro.theme.clone())));
+            } else if let Some(ref ig_inner) = ig {
+                if let InitialGenerationStatus::ErroredOut { msg, reason } = ig_inner.get_state() {
+                    intro.reset_from_error(msg, reason);
+                    *ig = None;
+                }
+            }
+            let intro_waiting = intro::intro_loop(intro, ig, egui_ctx);
+            if intro.exit {
+                return ControlFlow::Break(());
+            }
+            let mut new_gs = None;
+            if !intro_waiting {
+                if let Some(ig) = ig.as_mut() {
+                    if matches!(ig.get_state(), InitialGenerationStatus::Done) {
+                        crate::save::save_def(&ig.game_defs);
+                        new_gs = Some(GameState::Chargen(crate::chargen::Chargen::new(
+                            ig.game_defs.clone(),
+                        )));
+                    }
+                }
+            }
+            new_gs
+        }
+        GameState::Play(ref mut ps) => {
+            let mut restart = false;
+            let ig = ig.as_mut().unwrap();
+            ps.sim.update_defs(ig);
+            if let Some(key) = get_last_key_pressed() {
+                restart |= ps.handle_key(key);
+                if KEYS_WITH_REPEAT.contains(&key) {
+                    ps.pressed_keys.insert(key, 0.0);
+                }
+            }
+            // Key repeat, once per second
+            ps.pressed_keys.retain(|k, _v| is_key_down(*k));
+            let mut keys_to_repeat = vec![];
+            for (k, v) in ps.pressed_keys.iter_mut() {
+                let old_v = *v;
+                *v += get_frame_time();
+                if *v >= INIT_KEY_REPEAT
+                    && (((old_v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
+                        != ((*v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor())
+                {
+                    keys_to_repeat.push(*k);
+                }
+            }
+            for k in keys_to_repeat {
+                ps.handle_key(k);
+            }
+
+            ps.handle_buttons();
+
+            // Handle animations
+            for untriggered_animation in ps.sim.untriggered_animations.iter() {
+                ps.ui.add_animation(untriggered_animation.clone());
+            }
+            ps.sim.untriggered_animations.clear();
+
+            ps.ui.render(&ps.sim, &ps.memory, egui_ctx);
+
+            if restart {
+                Some(GameState::Chargen(Chargen::new(ig.game_defs.clone())))
+            } else {
+                None
+            }
+        }
+    })
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let font = load_ttf_font_from_bytes(FONT_BYTES).unwrap();
-    egui_startup();
-    egui_update_scaling(1.0);
+    let mut egui_startup_done: bool = false;
     macroquad::miniquad::info!("MINIQUAD SCALE: {}", miniquad::window::dpi_scale());
 
-    let mut last_size = (screen_width(), screen_height());
-    let mut last_user_scale_factor = 1.0;
+    let mut scale_factor = 2.0;
     let mut gs = GameState::Menu(main_menu::Menu::new());
     let mut ig: Option<IdeaGuy> = None;
 
@@ -375,106 +420,24 @@ async fn main() {
         };
         clear_background(GRAY);
 
-        let user_scale = if let GameState::Play(ref ps) = gs {
-            ps.ui.user_scale_factor
-        } else {
-            1.0
-        };
-        if (screen_width(), screen_height()) != last_size || last_user_scale_factor != user_scale {
-            egui_update_scaling(user_scale);
-            last_size = (screen_width(), screen_height());
-            last_user_scale_factor = user_scale;
+        let mut tick_result = std::ops::ControlFlow::Break(());
+        egui_macroquad::ui(|egui_ctx| {
+            if !egui_startup_done {
+                egui_startup(egui_ctx, scale_factor);
+                egui_startup_done = true;
+            }
+            tick_result = tick_gamestate(&mut gs, &mut ig, &font, egui_ctx);
+            render::render_top_bar(egui_ctx, &mut scale_factor);
+        });
+        egui_macroquad::draw();
+        match tick_result {
+            ControlFlow::Break(()) => return,
+            ControlFlow::Continue(new_gs) => {
+                if let Some(new_gs) = new_gs {
+                    gs = new_gs;
+                }
+            }
         }
-
-        let mut restart = false;
-        gs = match gs {
-            GameState::Chargen(ref mut chargen) => {
-                if let Some(c) = chargen.tick() {
-                    GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap(), c))
-                } else {
-                    gs
-                }
-            }
-            GameState::Menu(ref mut menu) => match menu.tick() {
-                None => gs,
-                Some(main_menu::Choice::Play) => GameState::Intro(intro::IntroState::new()),
-                Some(main_menu::Choice::Load(def)) => {
-                    let defs: GameDefs = serde_json::from_value(def.defs).unwrap();
-                    ig = Some(IdeaGuy::new(defs.clone()));
-                    GameState::Chargen(crate::chargen::Chargen::new(defs))
-                }
-            },
-            GameState::Intro(ref mut intro) => {
-                if intro.ready_for_generation && ig.is_none() {
-                    ig = Some(IdeaGuy::new(GameDefs::new(intro.theme.clone())));
-                } else if let Some(ref ig_inner) = ig {
-                    if let InitialGenerationStatus::ErroredOut { msg, reason } =
-                        ig_inner.get_state()
-                    {
-                        intro.reset_from_error(msg, reason);
-                        ig = None;
-                    }
-                }
-                let intro_waiting = intro::intro_loop(intro, &ig);
-                if intro.exit {
-                    return;
-                }
-                let mut new_gs = gs;
-                if !intro_waiting {
-                    if let Some(ig) = ig.as_mut() {
-                        if matches!(ig.get_state(), InitialGenerationStatus::Done) {
-                            crate::save::save_def(&ig.game_defs);
-                            new_gs = GameState::Chargen(crate::chargen::Chargen::new(
-                                ig.game_defs.clone(),
-                            ));
-                        }
-                    }
-                }
-                new_gs
-            }
-            GameState::Play(ref mut ps) => {
-                let ig = ig.as_mut().unwrap();
-                ps.sim.update_defs(ig);
-                if let Some(key) = get_last_key_pressed() {
-                    restart |= ps.handle_key(key);
-                    if KEYS_WITH_REPEAT.contains(&key) {
-                        ps.pressed_keys.insert(key, 0.0);
-                    }
-                }
-                // Key repeat, once per second
-                ps.pressed_keys.retain(|k, _v| is_key_down(*k));
-                let mut keys_to_repeat = vec![];
-                for (k, v) in ps.pressed_keys.iter_mut() {
-                    let old_v = *v;
-                    *v += get_frame_time();
-                    if *v >= INIT_KEY_REPEAT
-                        && (((old_v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor()
-                            != ((*v - INIT_KEY_REPEAT) / KEY_REPEAT_DELAY).floor())
-                    {
-                        keys_to_repeat.push(*k);
-                    }
-                }
-                for k in keys_to_repeat {
-                    ps.handle_key(k);
-                }
-
-                ps.handle_buttons();
-
-                // Handle animations
-                for untriggered_animation in ps.sim.untriggered_animations.iter() {
-                    ps.ui.add_animation(untriggered_animation.clone());
-                }
-                ps.sim.untriggered_animations.clear();
-
-                ps.ui.render(&ps.sim, &ps.memory);
-
-                if restart {
-                    GameState::Chargen(Chargen::new(ig.game_defs.clone()))
-                } else {
-                    gs
-                }
-            }
-        };
 
         next_frame().await
     }

@@ -126,44 +126,41 @@ impl Menu {
         ret
     }
 
-    pub fn tick(&mut self) -> Option<Choice> {
+    pub fn tick(&mut self, egui_ctx: &egui::Context) -> Option<Choice> {
         let mut choice = None;
-        egui_macroquad::ui(|egui_ctx| {
-            let width = screen_width() * miniquad::window::dpi_scale();
-            let padding = (3.0 * miniquad::window::dpi_scale()) as i8;
-            let title = match self.state {
-                MenuState::Main => "EverythingRL 005",
-                MenuState::Load => "Load an existing EverythingRL world",
-            };
-            egui::Window::new(title)
-                .resizable(false)
-                .collapsible(false)
-                .min_width(width / 2.0)
-                .max_width(width)
-                .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
-                .show(egui_ctx, |ui| {
-                    egui::Frame::NONE
-                        .inner_margin(egui::Margin::symmetric(padding, padding))
-                        .show(ui, |ui| match self.state {
-                            MenuState::Main => {
-                                ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                                    if ui.button("Play in a new world").clicked() {
-                                        choice = Some(Choice::Play);
-                                    }
-                                    if ui.button("Load an existing world").clicked() {
-                                        self.state = MenuState::Load;
-                                    };
-                                });
-                            }
-                            MenuState::Load => {
-                                if let Some(def) = self.show_load_menu(ui) {
-                                    choice = Some(Choice::Load(def));
+        let width = screen_width() * miniquad::window::dpi_scale();
+        let padding = (3.0 * miniquad::window::dpi_scale()) as i8;
+        let title = match self.state {
+            MenuState::Main => "EverythingRL 005",
+            MenuState::Load => "Load an existing EverythingRL world",
+        };
+        egui::Window::new(title)
+            .resizable(false)
+            .collapsible(false)
+            .min_width(width / 2.0)
+            .max_width(width)
+            .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
+            .show(egui_ctx, |ui| {
+                egui::Frame::NONE
+                    .inner_margin(egui::Margin::symmetric(padding, padding))
+                    .show(ui, |ui| match self.state {
+                        MenuState::Main => {
+                            ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                                if ui.button("Play in a new world").clicked() {
+                                    choice = Some(Choice::Play);
                                 }
+                                if ui.button("Load an existing world").clicked() {
+                                    self.state = MenuState::Load;
+                                };
+                            });
+                        }
+                        MenuState::Load => {
+                            if let Some(def) = self.show_load_menu(ui) {
+                                choice = Some(Choice::Load(def));
                             }
-                        });
-                });
-        });
-        egui_macroquad::draw();
+                        }
+                    });
+            });
         choice
     }
 }
