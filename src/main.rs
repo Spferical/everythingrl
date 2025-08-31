@@ -298,6 +298,7 @@ fn egui_startup() {
         egui_ctx.style_mut(|style| {
             style.interaction.selectable_labels = false;
         });
+        egui_ctx.set_zoom_factor(2.0);
     });
 }
 
@@ -361,6 +362,7 @@ async fn main() {
     let font = load_ttf_font_from_bytes(FONT_BYTES).unwrap();
     egui_startup();
     egui_update_scaling(1.0);
+    macroquad::miniquad::info!("MINIQUAD SCALE: {}", miniquad::window::dpi_scale());
 
     let mut last_size = (screen_width(), screen_height());
     let mut last_user_scale_factor = 1.0;

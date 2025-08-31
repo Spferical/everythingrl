@@ -33,7 +33,7 @@ impl Menu {
     }
 
     pub fn show_load_menu(&mut self, ui: &mut egui::Ui) -> Option<Defs> {
-        let width = screen_width() * miniquad::window::dpi_scale() / 2.0;
+        let width = ui.available_width() / 2.0;
         let mut ret = None;
 
         ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -75,7 +75,7 @@ impl Menu {
                         .column(egui_extras::Column::initial(width))
                         .column(egui_extras::Column::auto())
                         .resizable(true)
-                        .auto_shrink([false, true])
+                        .auto_shrink([true, true])
                         .header(20.0, |mut header| {
                             header.col(|_ui| {});
                             header.col(|_ui| {});

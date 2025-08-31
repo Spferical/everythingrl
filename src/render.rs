@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use ::rand::rngs::StdRng;
 use ::rand::SeedableRng;
-use egui::{Color32, FontId, RichText};
+use egui::{Color32, RichText};
 use macroquad::prelude::*;
 use macroquad::text::Font;
 use noise::{NoiseFn, Perlin};
@@ -15,6 +15,8 @@ use crate::INVENTORY_KEYS;
 
 pub const FOV_BG: macroquad::color::Color = DARKGRAY;
 pub const OOS_BG: macroquad::color::Color = BLACK;
+
+const SIDEBAR_FRACTION: f32 = 0.33;
 
 #[derive(Clone, Debug)]
 pub struct ShotAnimation {
@@ -158,9 +160,6 @@ impl Ui {
             .resizable(false)
             .collapsible(false)
             .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::new(0.0, 0.0))
-            .fixed_size(
-                egui::Vec2::new((screen_width() / 2.) * miniquad::window::dpi_scale(),
-                                (screen_height() / 2.) * miniquad::window::dpi_scale()))
             .show(egui_ctx, |ui| {
                 ui.style_mut().override_text_style = Some(egui::TextStyle::Body);
                     ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -170,7 +169,6 @@ impl Ui {
                                 start_text,
                                 0.0,
                                 egui::TextFormat {
-                                    font_id: self.get_base_font(),
                                     color: Color::Gold.into(),
                                     italics: true,
                                     ..Default::default()
@@ -181,12 +179,11 @@ impl Ui {
                                     .to_owned(),
                                 0.0,
                                 egui::TextFormat {
-                                    font_id: self.get_base_font(),
                                     color: Color::White.into(),
                                     ..Default::default()
                                 },
                             );
-                            ui.label(job);
+                            ui.add(egui::Label::new(job).wrap_mode(egui::TextWrapMode::Extend));
                         };
                         basic_label("hjkl or arrows", "Movement");
                         basic_label("SHIFT + move", "Fire weapon");
@@ -381,7 +378,7 @@ impl Ui {
             let player_pos = sim.get_player_pos();
             let grid_rect =
                 Rect::new_centered(player_pos, self.grid_size as i32, self.grid_size as i32);
-            let upper_left = grid_rect.bottomleft(); // world coords are flipped.
+            let world_offset = grid_rect.bottomleft();
 
             // Handle smooth camera movement.
             self.camera_delta = Some(match self.camera_delta {
@@ -390,8 +387,8 @@ impl Ui {
                     let added_delta = match self.last_upper_left {
                         None => (0., 0.),
                         Some(old_upper_left) => (
-                            (upper_left.x - old_upper_left.x) as f32,
-                            (upper_left.y - old_upper_left.y) as f32,
+                            (world_offset.x - old_upper_left.x) as f32,
+                            (world_offset.y - old_upper_left.y) as f32,
                         ),
                     };
                     (
@@ -400,7 +397,7 @@ impl Ui {
                     )
                 }
             });
-            self.last_upper_left = Some(upper_left);
+            self.last_upper_left = Some(world_offset);
 
             // Render mobs.
             let mut glyphs = vec![Glyph {
@@ -452,15 +449,18 @@ impl Ui {
                     });
                 }
             }
-            self.render_glyphs(
-                &glyphs,
-                screen_width() * (1. / 4.),
-                bottom_bar_height,
-                upper_left,
-            );
+            let bottom_bar_height_mq =
+                bottom_bar_height * (screen_height() / egui_ctx.screen_rect().height());
+            let glyph_rect = macroquad::math::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: screen_width() * (1.0 - SIDEBAR_FRACTION),
+                h: screen_height() - bottom_bar_height_mq,
+            };
+            self.render_glyphs(&glyphs, glyph_rect, world_offset);
 
             // Draw side panel UI.
-            self.render_side_ui(egui_ctx, sim, screen_width() * (1. / 4.));
+            self.render_side_ui(egui_ctx, sim);
             self.render_bottom_bar(egui_ctx, sim, bottom_bar_height);
         });
 
@@ -487,22 +487,15 @@ impl Ui {
                                 .with_cross_align(egui::Align::Center),
                             |ui| {
                                 let white = &Color::White;
-                                let font = self.get_base_font();
-                                ui.label(RichText::new("HEALTH:").color(white).font(font.clone()));
+                                ui.label(RichText::new("HEALTH:").color(white));
                                 let player_hp = usize::saturating_sub(
                                     crate::world::PLAYER_MAX_HEALTH,
                                     sim.player_damage,
                                 );
                                 let red = &Color::Red;
-                                ui.label(
-                                    RichText::new(format!("{player_hp}"))
-                                        .color(red)
-                                        .font(font.clone()),
-                                );
+                                ui.label(RichText::new(format!("{player_hp}")).color(red));
                                 ui.separator();
-                                ui.label(
-                                    RichText::new("FONT SCALE:").color(white).font(font.clone()),
-                                );
+                                ui.label(RichText::new("FONT SCALE:").color(white));
                                 let response = ui.add(
                                     egui::Slider::new(&mut self.tmp_scale_factor, 0.5..=3.0)
                                         .logarithmic(true),
@@ -519,52 +512,39 @@ impl Ui {
             });
     }
 
-    fn scale_factor(&self) -> f32 {
-        let game_scale = screen_width().min(screen_height());
-        miniquad::window::dpi_scale() * game_scale / 1200.0 * self.user_scale_factor
-    }
+    fn render_side_ui(&self, egui_ctx: &egui::Context, sim: &crate::world::World) {
+        let egui_width = egui_ctx.available_rect().width();
+        let egui_height = egui_ctx.available_rect().height();
+        let offset_x = egui_width * (1.0 - SIDEBAR_FRACTION);
+        let offset_y = 10.;
 
-    fn get_base_font(&self) -> FontId {
-        egui::FontId::new(22.0 * self.scale_factor(), egui::FontFamily::Proportional)
-    }
-    fn get_details_font(&self) -> FontId {
-        egui::FontId::new(18.0 * self.scale_factor(), egui::FontFamily::Proportional)
-    }
-
-    fn render_side_ui(
-        &self,
-        egui_ctx: &egui::Context,
-        sim: &crate::world::World,
-        right_offset: f32,
-    ) {
-        let game_width = screen_width() - right_offset;
-        let game_size = game_width.min(screen_height());
-
-        let offset_x = (screen_width() + game_size - right_offset) / 2. + 5.;
-        let offset_y = (screen_height() - game_size) / 2. + 10.;
-
-        let panel_height = game_size - 20.;
-        let panel_width = screen_width() - offset_x - 10.0;
+        let panel_height = egui_height - 20.;
+        let panel_width = egui_width - offset_x - 10.0;
 
         let mobs_lower_bound = offset_y + panel_height * 0.3;
 
-        let pokedex_width = panel_width * miniquad::window::dpi_scale();
-        let pokedex_height = (mobs_lower_bound - offset_y) * miniquad::window::dpi_scale();
+        let pokedex_width = panel_width;
+        let pokedex_height = mobs_lower_bound - offset_y;
+
+        let log_upper_bound = offset_y + panel_height * 0.35;
+        let log_lower_bound = offset_y + panel_height * 0.9;
+        let log_height = log_lower_bound - log_upper_bound;
+        let log_width = panel_width;
+
+        miniquad::info!("{}", format_args!(
+            "EGUI dims: total {egui_width} {egui_height} offset {offset_x} {offset_y} pokedex {pokedex_width} {pokedex_height}, log {log_width} {log_height}"
+        ));
 
         egui::Window::new("Pokédex")
             .resizable(false)
             .collapsible(false)
             .fixed_size(egui::Vec2::new(pokedex_width, pokedex_height))
-            .max_size(egui::Vec2::new(pokedex_width, pokedex_height))
-            .fixed_pos(egui::Pos2::new(
-                offset_x * miniquad::window::dpi_scale(),
-                offset_y * miniquad::window::dpi_scale(),
-            ))
+            .fixed_pos(egui::Pos2::new(offset_x, offset_y))
             .show(egui_ctx, |ui| {
                 egui::Frame::NONE
                     .inner_margin(egui::Margin::symmetric(
                         (pokedex_width * 0.02) as i8,
-                        (pokedex_height * miniquad::window::dpi_scale() * 0.02) as i8,
+                        (pokedex_height * 0.02) as i8,
                     ))
                     .show(ui, |ui| {
                         ui.set_height(ui.available_height());
@@ -590,7 +570,6 @@ impl Ui {
 
                                     let mut job = egui::text::LayoutJob::default();
                                     let base_format = egui::TextFormat {
-                                        font_id: self.get_base_font(),
                                         color: color.into(),
                                         ..Default::default()
                                     };
@@ -600,7 +579,6 @@ impl Ui {
                                             ..format.clone()
                                         };
                                     let details_format = egui::TextFormat {
-                                        font_id: self.get_details_font(),
                                         color: Color32::WHITE,
                                         ..Default::default()
                                     };
@@ -698,21 +676,11 @@ impl Ui {
                     });
             });
 
-        let log_upper_bound = offset_y + panel_height * 0.35;
-        let log_lower_bound = offset_y + panel_height * 0.9;
-        let log_height = log_lower_bound - log_upper_bound;
-
-        let log_width = panel_width * miniquad::window::dpi_scale();
-        let log_height = log_height * miniquad::window::dpi_scale();
-
         egui::Window::new("Logs")
             .resizable(false)
             .collapsible(false)
             .fixed_size(egui::Vec2::new(log_width, log_height))
-            .fixed_pos(egui::Pos2::new(
-                offset_x * miniquad::window::dpi_scale(),
-                log_upper_bound * miniquad::window::dpi_scale(),
-            ))
+            .fixed_pos(egui::Pos2::new(offset_x, log_upper_bound))
             .show(egui_ctx, |ui| {
                 ui.set_height(ui.available_height());
                 ui.set_width(ui.available_width());
@@ -744,7 +712,6 @@ impl Ui {
                                             log_entry_str,
                                             0.0,
                                             egui::TextFormat {
-                                                font_id: self.get_base_font(),
                                                 color,
                                                 ..Default::default()
                                             },
@@ -760,17 +727,16 @@ impl Ui {
     fn render_glyphs(
         &mut self,
         glyphs: &[Glyph],
-        right_offset: f32,
-        bottom_offset: f32,
-        upper_left: Pos,
+        mut mq_rect: macroquad::math::Rect,
+        world_offset: Pos,
     ) {
         let glyphs = glyphs
             .iter()
             .map(|&glyph| {
                 (
                     (
-                        glyph.location.0 as i32 - upper_left.x,
-                        glyph.location.1 as i32 - upper_left.y,
+                        glyph.location.0 as i32 - world_offset.x,
+                        glyph.location.1 as i32 - world_offset.y,
                     ),
                     glyph,
                 )
@@ -790,12 +756,18 @@ impl Ui {
             })
             .collect::<Vec<_>>();
 
-        let width = screen_width() - right_offset;
-        let height = screen_height() - bottom_offset;
-        let game_size = width.min(height);
-        let offset_x = (screen_width() - game_size - right_offset) / 2. + 10.;
-        let offset_y = (screen_height() - game_size) / 2. + 10.;
-        let sq_size = (screen_height() - offset_y * 2.) / self.grid_size as f32;
+        // fit a square into the available screen rect
+        if mq_rect.w > mq_rect.h {
+            let diff = mq_rect.w - mq_rect.h;
+            mq_rect.x += diff / 2.;
+            mq_rect.w -= diff;
+        } else {
+            let diff = mq_rect.h - mq_rect.w;
+            mq_rect.y += diff / 2.;
+            mq_rect.h -= diff;
+        }
+        let game_size = mq_rect.w.min(mq_rect.h);
+        let sq_size = mq_rect.w / self.grid_size as f32;
 
         let delta = self.camera_delta.unwrap_or((0.0, 0.0));
         let delta = (delta.0 * sq_size, delta.1 * sq_size);
@@ -807,13 +779,13 @@ impl Ui {
                 (0.5, 0.6)
             };
             (
-                delta.0 + offset_x + sq_size * (x as f32 + off.0),
-                delta.1 + offset_y + sq_size * (y as f32 + off.1),
+                delta.0 + mq_rect.x + sq_size * (x as f32 + off.0),
+                delta.1 + mq_rect.y + sq_size * (y as f32 + off.1),
             )
         };
 
         // First, set the actual background of the grid to black
-        draw_rectangle(offset_x, offset_y, game_size - 20., game_size - 20., BLACK);
+        draw_rectangle(mq_rect.x, mq_rect.y, mq_rect.w, mq_rect.h, BLACK);
 
         // Quick check to ensure that the foreground replaces the background.
         let mut z_buffer = vec![vec![0; self.grid_size]; self.grid_size];
@@ -828,10 +800,10 @@ impl Ui {
             if glyph.layer >= z_buffer[glyph.location.0][glyph.location.1] {
                 let (x, y) =
                     translate_coords(glyph.location.0 as i32, glyph.location.1 as i32, true);
-                if x >= offset_x
-                    && x < game_size + offset_x - 20.0
-                    && y >= offset_y
-                    && y < game_size + offset_y - 20.0
+                if x >= mq_rect.x
+                    && x < game_size + mq_rect.x - 20.0
+                    && y >= mq_rect.y
+                    && y < game_size + mq_rect.y - 20.0
                 {
                     let off_from_center = (
                         glyph.location.0 as i32 - (self.grid_size as i32 / 2),
@@ -883,7 +855,7 @@ impl Ui {
                         let progress = (i as f32 + 0.5) / shot_animation.cells.len() as f32;
                         let intensity = normpdf(interp, progress, 0.05) * 0.1;
                         let intensity = f32::clamp(intensity, 0., 1.);
-                        let cell = *cell - upper_left;
+                        let cell = *cell - world_offset;
 
                         // Don't render animations out of bounds!
                         if cell.x < 0
