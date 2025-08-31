@@ -82,8 +82,12 @@ pub fn random() -> u64 {
     ::rand::random()
 }
 
+fn is_shift_down() -> bool {
+    is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift)
+}
+
 impl PlayState {
-    pub fn new(font: Font, ig: &mut IdeaGuy, ch: net::Character) -> Self {
+    pub fn new(font: Font, ig: &mut IdeaGuy, ch: &net::Character) -> Self {
         let mut sim = world::World::new();
         sim.update_defs(ig);
         map_gen::generate_world(&mut sim, random());
@@ -148,6 +152,15 @@ impl PlayState {
         }
     }
 
+    fn handle_move_or_fire(&mut self, direction: rogue_algebra::Offset) -> bool {
+        let action = if is_shift_down() {
+            PlayerAction::Fire(direction)
+        } else {
+            PlayerAction::Move(direction)
+        };
+        self.sim.do_player_action(action)
+    }
+
     pub fn handle_buttons(&mut self) {
         // Handle in-game UI button presses.
         let tick = if let Some(ui_button) = self.ui.ui_button {
@@ -183,32 +196,16 @@ impl PlayState {
         let mut tick = false;
         match key {
             KeyCode::L | KeyCode::Right => {
-                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                    tick |= self.sim.do_player_action(PlayerAction::Fire(EAST));
-                } else {
-                    tick |= self.sim.do_player_action(PlayerAction::Move(EAST));
-                }
+                tick |= self.handle_move_or_fire(EAST);
             }
             KeyCode::H | KeyCode::Left => {
-                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                    tick |= self.sim.do_player_action(PlayerAction::Fire(WEST));
-                } else {
-                    tick |= self.sim.do_player_action(PlayerAction::Move(WEST));
-                }
+                tick |= self.handle_move_or_fire(WEST);
             }
             KeyCode::J | KeyCode::Down => {
-                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                    tick |= self.sim.do_player_action(PlayerAction::Fire(NORTH));
-                } else {
-                    tick |= self.sim.do_player_action(PlayerAction::Move(NORTH));
-                }
+                tick |= self.handle_move_or_fire(NORTH);
             }
             KeyCode::K | KeyCode::Up => {
-                if is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift) {
-                    tick |= self.sim.do_player_action(PlayerAction::Fire(SOUTH));
-                } else {
-                    tick |= self.sim.do_player_action(PlayerAction::Move(SOUTH));
-                }
+                tick |= self.handle_move_or_fire(SOUTH);
             }
             KeyCode::I => {
                 self.ui.toggle_ui();
@@ -230,9 +227,7 @@ impl PlayState {
                 }
             }
             KeyCode::Slash | KeyCode::Semicolon => {
-                if matches!(key, KeyCode::Slash)
-                    && (is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift))
-                {
+                if matches!(key, KeyCode::Slash) && is_shift_down() {
                     // If they're actually pressing ?
                     self.ui.toggle_help();
                 } else {
@@ -322,7 +317,7 @@ fn tick_gamestate(
     std::ops::ControlFlow::Continue(match gs {
         GameState::Chargen(ref mut chargen) => chargen
             .tick(egui_ctx)
-            .map(|c| GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap(), c))),
+            .map(|c| GameState::Play(PlayState::new(font.clone(), ig.as_mut().unwrap(), &c))),
         GameState::Menu(ref mut menu) => match menu.tick(egui_ctx) {
             None => None,
             Some(main_menu::Choice::Play) => Some(GameState::Intro(intro::IntroState::new())),

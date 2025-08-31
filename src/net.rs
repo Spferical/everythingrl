@@ -790,19 +790,18 @@ async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
                     reason: GenerationAbortReason::ServerError,
                 };
                 return;
+            }
+            if error_count == 0 && state.game_defs == start_defs {
+                num_noop_generations += 1;
             } else {
-                if error_count == 0 && state.game_defs == start_defs {
-                    num_noop_generations += 1;
-                } else {
-                    num_noop_generations = 0;
-                }
-                if num_noop_generations >= 2 || initial_loop_idx >= 10 {
-                    state.init_gen_status = InitialGenerationStatus::ErroredOut {
-                        msg: "Detected that the AI got in a loop".into(),
-                        reason: GenerationAbortReason::Loop,
-                    };
-                    return;
-                }
+                num_noop_generations = 0;
+            }
+            if num_noop_generations >= 2 || initial_loop_idx >= 10 {
+                state.init_gen_status = InitialGenerationStatus::ErroredOut {
+                    msg: "Detected that the AI got in a loop".into(),
+                    reason: GenerationAbortReason::Loop,
+                };
+                return;
             }
         }
     }

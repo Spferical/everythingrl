@@ -566,10 +566,7 @@ fn sprinkle_items(
     rng: &mut impl Rng,
 ) -> usize {
     for i in 0..num {
-        let pos = match poses.pop() {
-            Some(pos) => pos,
-            None => return i,
-        };
+        let Some(pos) = poses.pop() else { return i };
         if let Some(ii) = items.choose(rng).cloned() {
             world[pos].item = Some(Item::Instance(ItemInstance::new(ii)));
         } else {

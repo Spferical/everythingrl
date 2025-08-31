@@ -666,7 +666,7 @@ impl Inventory {
 
     fn damage_armor(&mut self) -> Vec<Rc<ItemInfo>> {
         let mut deleted = vec![];
-        for player_armor in self.get_equipped_armor().into_iter() {
+        for player_armor in self.get_equipped_armor() {
             player_armor.item_durability -= 1;
             if player_armor.item_durability == 0 {
                 deleted.push(player_armor.info.clone());
@@ -699,37 +699,33 @@ impl Inventory {
     }
 
     fn get_equipped_weapon_info(&self, melee: bool) -> Option<Rc<ItemInfo>> {
-        self.items
-            .iter()
-            .filter(|x| x.equipped)
-            .filter_map(|x| match x.item {
-                Item::Instance(ref ek) => Some(ek),
-                _ => None,
-            })
-            .map(|x| &x.info)
-            .find(|info| match info.kind {
-                ItemKind::MeleeWeapon => melee,
-                ItemKind::RangedWeapon => !melee,
-                _ => false,
-            })
-            .cloned()
+        self.items.iter().find_map(|item| {
+            if !item.equipped {
+                return None;
+            }
+            if let Item::Instance(instance) = &item.item {
+                if (instance.info.kind == ItemKind::MeleeWeapon && melee)
+                    || (instance.info.kind == ItemKind::RangedWeapon && !melee)
+                {
+                    return Some(instance.info.clone());
+                }
+            }
+            None
+        })
     }
 
     fn get_equipped_weapon_slot(&self, melee: bool) -> Option<usize> {
-        self.items
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| x.equipped)
-            .filter_map(|(i, x)| match x.item {
-                Item::PendingCraft(_, _) => None,
-                Item::Instance(ref ek) => Some((i, ek)),
-            })
-            .find(|(_, eki)| match eki.info.kind {
-                ItemKind::MeleeWeapon => melee,
-                ItemKind::RangedWeapon => !melee,
-                _ => false,
-            })
-            .map(|(i, _)| i)
+        self.items.iter().position(|item| {
+            if !item.equipped {
+                return false;
+            }
+            if let Item::Instance(instance) = &item.item {
+                (instance.info.kind == ItemKind::MeleeWeapon && melee)
+                    || (instance.info.kind == ItemKind::RangedWeapon && !melee)
+            } else {
+                false
+            }
+        })
     }
 
     fn get_equipped_armor(&mut self) -> Vec<&mut ItemInstance> {
@@ -794,7 +790,7 @@ impl Inventory {
     }
 
     fn remove_all(&mut self, mut indices: Vec<usize>) {
-        indices.sort();
+        indices.sort_unstable();
         indices.dedup();
         for i in indices.iter().rev() {
             self.remove(*i);
@@ -817,8 +813,7 @@ impl Inventory {
         } else if let Item::Instance(ref ii) = self.items[i].item {
             // Unequip another item if that slot is full.
             let max_per_slot = |slot: ItemKind| match slot {
-                ItemKind::MeleeWeapon => 1,
-                ItemKind::RangedWeapon => 1,
+                ItemKind::MeleeWeapon | ItemKind::RangedWeapon => 1,
                 ItemKind::Armor => 2,
                 ItemKind::Food => 0,
             };
@@ -918,7 +913,7 @@ impl World {
         self[pos].item = None;
     }
 
-    fn get_craft_msg(a: Rc<ItemInfo>, b: Rc<ItemInfo>, c: Rc<ItemInfo>) -> Vec<(String, Color)> {
+    fn get_craft_msg(a: &Rc<ItemInfo>, b: &Rc<ItemInfo>, c: &Rc<ItemInfo>) -> Vec<(String, Color)> {
         vec![
             ("You crafted a ".into(), Color::White),
             (c.name.clone(), c.ty.get_color()),
@@ -929,8 +924,8 @@ impl World {
         ]
     }
 
-    pub fn apply_character(&mut self, character: crate::net::Character) {
-        for item_name in character.starting_items.iter() {
+    pub fn apply_character(&mut self, character: &crate::net::Character) {
+        for item_name in &character.starting_items {
             if let Some(item_info) = self
                 .world_info
                 .item_kinds
@@ -957,7 +952,7 @@ impl World {
             if let Item::PendingCraft(a, b) = item.item.clone() {
                 if let Some(c) = self.world_info.recipes.get(&(a.clone(), b.clone())) {
                     item.item = Item::Instance(ItemInstance::new(c.clone()));
-                    msgs.push(Self::get_craft_msg(a.clone(), b.clone(), c.clone()));
+                    msgs.push(Self::get_craft_msg(&a, &b, c));
                 }
             }
         }
@@ -969,15 +964,12 @@ impl World {
     pub fn log_message(&mut self, text: Vec<(String, Color)>) {
         println!(
             "{}",
-            text.iter()
-                .map(|(s, _)| s.to_owned())
-                .collect::<Vec::<String>>()
-                .join("")
+            text.iter().map(|(s, _)| s.to_owned()).collect::<String>()
         );
         self.log.push_back((text, self.step));
     }
 
-    pub fn get_item_log_message(&self, item: &Item) -> (String, Color) {
+    pub fn get_item_log_message(item: &Item) -> (String, Color) {
         match item {
             Item::Instance(item) => (item.info.name.clone(), item.info.ty.get_color()),
             Item::PendingCraft(..) => ("???".to_string(), Color::Pink),
@@ -1074,8 +1066,7 @@ impl World {
 
                     let (att_type, att_level) = player_weapon_info
                         .as_ref()
-                        .map(|w| (w.ty, w.level))
-                        .unwrap_or((PokemonType::Normal, 0));
+                        .map_or((PokemonType::Normal, 0), |w| (w.ty, w.level));
                     let effectiveness = att_type.get_effectiveness2(mki.type1, mki.type2);
                     let damage = calc_damage(
                         &mut self.rng,
@@ -1087,8 +1078,7 @@ impl World {
                     );
                     let modifiers = player_weapon_info
                         .as_ref()
-                        .map(|pwi| pwi.modifiers.as_slice())
-                        .unwrap_or(&[]);
+                        .map_or(&[] as &[_], |pwi| pwi.modifiers.as_slice());
                     self.attack_mob(mob, new_pos, damage, effectiveness, modifiers);
 
                     if let Some(destroyed_weapon) = self.inventory.damage_weapon(true) {
@@ -1108,14 +1098,10 @@ impl World {
                     if let Some(ref item) = self.tile_map[new_pos].item {
                         let msg = vec![
                             (
-                                PICK_UP_MESSAGES
-                                    .choose(&mut self.rng)
-                                    .unwrap()
-                                    .to_owned()
-                                    .to_owned(),
+                                String::from(*PICK_UP_MESSAGES.choose(&mut self.rng).unwrap()),
                                 Color::White,
                             ),
-                            self.get_item_log_message(item),
+                            Self::get_item_log_message(item),
                         ];
                         self.log_message(msg);
                     }
@@ -1204,15 +1190,15 @@ impl World {
                     if let Some(popped) = self.inventory.add(item.clone()) {
                         self.log_message(vec![
                             ("Inventory full, so swapped out ".to_owned(), Color::White),
-                            self.get_item_log_message(&popped),
+                            Self::get_item_log_message(&popped),
                             (" for ".to_owned(), Color::White),
-                            self.get_item_log_message(&item),
+                            Self::get_item_log_message(&item),
                         ]);
                         self.tile_map[self.player_pos].item = Some(popped);
                     } else {
                         self.log_message(vec![
                             ("Picked up ".to_owned(), Color::White),
-                            self.get_item_log_message(&item),
+                            Self::get_item_log_message(&item),
                         ]);
                     }
                     true
@@ -1263,15 +1249,15 @@ impl World {
                     if let Some(item_on_ground) = self.tile_map[self.player_pos].item.clone() {
                         self.log_message(vec![
                             ("Swapped out ".to_owned(), Color::White),
-                            self.get_item_log_message(&item),
+                            Self::get_item_log_message(&item),
                             (" for ".to_owned(), Color::White),
-                            self.get_item_log_message(&item_on_ground),
+                            Self::get_item_log_message(&item_on_ground),
                         ]);
                         self.inventory.add(item_on_ground);
                     } else {
                         self.log_message(vec![
                             ("Dropped ".to_owned(), Color::White),
-                            self.get_item_log_message(&item),
+                            Self::get_item_log_message(&item),
                         ]);
                     }
                     self.tile_map[self.player_pos].item = Some(item);
@@ -1297,9 +1283,7 @@ impl World {
                                 ) = (item1, item2, new_item.clone())
                                 {
                                     self.log_message(Self::get_craft_msg(
-                                        a.info.clone(),
-                                        b.info.clone(),
-                                        c.info.clone(),
+                                        &a.info, &b.info, &c.info,
                                     ));
                                 }
 
@@ -1413,10 +1397,10 @@ impl World {
         let off = self.path(pos, target, range, through_walls, around_mobs);
         if let Some(off) = off {
             let new_pos = pos + off;
-            if !self.mobs.contains_key(&new_pos) {
-                new_pos
-            } else {
+            if self.mobs.contains_key(&new_pos) {
                 pos
+            } else {
+                new_pos
             }
         } else {
             pos
@@ -1480,9 +1464,8 @@ impl World {
     }
 
     fn act_mob(&mut self, boss_kind: MobKind, fov: &HashSet<Pos>, pos: Pos) {
-        let mut mob = match self.mobs.remove(&pos) {
-            Some(mob) => mob,
-            None => return,
+        let Some(mut mob) = self.mobs.remove(&pos) else {
+            return;
         };
         let mki = self.get_mobkind_info(mob.kind).clone();
 
@@ -1674,10 +1657,7 @@ impl World {
         ranged_fire_line: Option<Vec<Pos>>,
     ) {
         let armor = self.inventory.get_equipped_armor_info();
-        let defense1 = armor
-            .first()
-            .map(|eki| eki.ty)
-            .unwrap_or(PokemonType::Normal);
+        let defense1 = armor.first().map_or(PokemonType::Normal, |eki| eki.ty);
         let defense2 = armor.get(1).map(|eki| eki.ty);
         let eff = mki.attack_type.get_effectiveness2(defense1, defense2);
         let def_level = armor.iter().map(|a| a.level).sum();
