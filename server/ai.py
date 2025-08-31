@@ -17,13 +17,6 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 LOG = structlog.stdlib.get_logger()
 
 
-credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
-CLIENT = genai.Client(
-    vertexai=True,
-    project=os.getenv("GCLOUD_PROJECT"),
-    location="us-central1",
-    credentials=credentials,
-)
 SAFETY_SETTINGS = [
     genai_types.SafetySetting(
         category=genai_types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
@@ -42,6 +35,17 @@ SAFETY_SETTINGS = [
         threshold=genai_types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
     ),
 ]
+
+
+@cache
+def get_client() -> genai.Client:
+    credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    return genai.Client(
+        vertexai=True,
+        project=os.getenv("GCLOUD_PROJECT"),
+        location="us-central1",
+        credentials=credentials,
+    )
 
 
 @cache
@@ -119,7 +123,7 @@ def ask_google_streaming(
 ) -> Iterator[str]:
     total_response_length = 0
     try:
-        response_iter = CLIENT.models.generate_content_stream(
+        response_iter = get_client().models.generate_content_stream(
             model=model,
             contents=prompt,
             config=genai_types.GenerateContentConfig(

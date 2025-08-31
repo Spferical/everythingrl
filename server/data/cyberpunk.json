@@ -1,0 +1,740 @@
+{
+  "theme": "Cyberpunk",
+  "setting_desc": "Neo-Tokyo, 2077. Chrome glints under neon skies, and the air crackles with static. Megacorporations rule with iron fists, and the streets are a concrete jungle filled with augmented thugs and rogue AI. Dive into the digital underbelly, jack into the matrix, and carve your legend in the neon-drenched ruins.",
+  "areas": [
+    {
+      "name": "The Undercity Sewers",
+      "blurb": "A labyrinth of rusted pipes and toxic sludge, home to mutated vermin and desperate outcasts.",
+      "mapgen": "caves",
+      "enemies": [
+        "Mutant Rat",
+        "Scrap Golem",
+        "Sludge Monster",
+        "Cyber-Scorpion",
+        "Reaper Drone"
+      ],
+      "equipment": [
+        "Reinforced Trousers",
+        "Makeshift Helmet",
+        "Graffiti Jacket",
+        "Utility Vest",
+        "Gloves of Dexterity"
+      ],
+      "melee_weapons": [
+        "Pipe Wrench",
+        "Combat Knife",
+        "Vibro-Blade"
+      ],
+      "ranged_weapons": [
+        "Shiv Launcher",
+        "Makeshift SMG"
+      ],
+      "food": [
+        "Nutri-Paste",
+        "Synth-Ration",
+        "Fermented Sludge"
+      ]
+    },
+    {
+      "name": "Neo-Kyoto Markets",
+      "blurb": "A chaotic sprawl of crowded stalls and flickering holo-ads, where anything can be bought or sold.",
+      "mapgen": "dense_rooms",
+      "enemies": [
+        "Street Samurai",
+        "Hacker",
+        "Yakuza Enforcer",
+        "Synth-Hound",
+        "Geisha Assassin"
+      ],
+      "equipment": [
+        "Chameleon Cloak",
+        "Armored Kimono",
+        "Tactical Visor",
+        "Power Gauntlets",
+        "Datajack Boots"
+      ],
+      "melee_weapons": [
+        "Katana",
+        "Extendable Baton",
+        "Shock Stick"
+      ],
+      "ranged_weapons": [
+        "Laser Pistol",
+        "Cyber-Revolver"
+      ],
+      "food": [
+        "Synth-Sushi",
+        "Ramen Pack",
+        "Energy Drink"
+      ]
+    },
+    {
+      "name": "The Corporate Spire",
+      "blurb": "The gleaming pinnacle of corporate power, guarded by elite security forces and advanced automated defenses.",
+      "mapgen": "simple_rooms_and_corridors",
+      "enemies": [
+        "Security Droid",
+        "Corporate Mercenary",
+        "Tech-Priest",
+        "Cyber-Ninja",
+        "Security Chief"
+      ],
+      "equipment": [
+        "Ballistic Vest",
+        "Power Armor Helm",
+        "Reinforced Plating",
+        "Cybernetic Arm",
+        "Stealth Suit"
+      ],
+      "melee_weapons": [
+        "Energy Sword",
+        "Stun Baton",
+        "Chainsaw Sword"
+      ],
+      "ranged_weapons": [
+        "Plasma Rifle",
+        "Railgun"
+      ],
+      "food": [
+        "Nutri-Bar",
+        "Stim-Pack",
+        "Synth-Steak"
+      ]
+    }
+  ],
+  "monsters": [
+    {
+      "name": "Mutant Rat",
+      "char": "r",
+      "level": 1,
+      "color": "green",
+      "type1": "poison",
+      "type2": null,
+      "attack_type": "poison",
+      "description": "A large, diseased rat with glowing green eyes.",
+      "seen": "A hulking rat with mange scurries into view.",
+      "attack": "The mutant rat bites, leaving a burning sensation!",
+      "death": "The mutant rat convulses and dies.",
+      "ranged": false,
+      "speed": 2,
+      "modifiers": []
+    },
+    {
+      "name": "Scrap Golem",
+      "char": "G",
+      "level": 2,
+      "color": "grey",
+      "type1": "steel",
+      "type2": null,
+      "attack_type": "normal",
+      "description": "A lumbering automaton pieced together from scrap metal.",
+      "seen": "A hulking figure made of discarded metal shambles towards you.",
+      "attack": "The scrap golem smashes you with a metal fist!",
+      "death": "The scrap golem clatters to the ground, pieces scattering.",
+      "ranged": false,
+      "speed": 1,
+      "modifiers": []
+    },
+    {
+      "name": "Sludge Monster",
+      "char": "S",
+      "level": 3,
+      "color": "brown",
+      "type1": "water",
+      "type2": null,
+      "attack_type": "poison",
+      "description": "A sentient mass of toxic waste, capable of corrosive attacks.",
+      "seen": "A bubbling pile of viscous goo oozes from a drain.",
+      "attack": "The sludge monster engulfs you in corrosive slime!",
+      "death": "The sludge monster dissolves into a putrid puddle.",
+      "ranged": false,
+      "speed": 1,
+      "modifiers": []
+    },
+    {
+      "name": "Cyber-Scorpion",
+      "char": "C",
+      "level": 2,
+      "color": "red",
+      "type1": "bug",
+      "type2": "steel",
+      "attack_type": "poison",
+      "description": "A mechanical scorpion with a venomous stinger.",
+      "seen": "A metallic scorpion with glowing red optics advances.",
+      "attack": "The cyber-scorpion injects you with a potent neurotoxin!",
+      "death": "The cyber-scorpion's mechanical limbs seize up.",
+      "ranged": false,
+      "speed": 3,
+      "modifiers": []
+    },
+    {
+      "name": "Reaper Drone",
+      "char": "D",
+      "level": 3,
+      "color": "silver",
+      "type1": "flying",
+      "type2": null,
+      "attack_type": "electric",
+      "description": "A hovering military drone armed with an energy weapon.",
+      "seen": "A sleek drone buzzes ominously overhead.",
+      "attack": "The reaper drone fires a searing energy bolt!",
+      "death": "The drone crashes to the ground in a shower of sparks.",
+      "ranged": true,
+      "speed": 4,
+      "modifiers": []
+    },
+    {
+      "name": "Street Samurai",
+      "char": "s",
+      "level": 1,
+      "color": "blue",
+      "type1": "fighting",
+      "type2": null,
+      "attack_type": "fighting",
+      "description": "A street-level combatant with augmented reflexes and a blade.",
+      "seen": "A tough-looking individual with chrome arms approaches.",
+      "attack": "The street samurai slices at you with a gleaming blade!",
+      "death": "The street samurai stumbles back and collapses.",
+      "ranged": false,
+      "speed": 2,
+      "modifiers": []
+    },
+    {
+      "name": "Hacker",
+      "char": "h",
+      "level": 2,
+      "color": "purple",
+      "type1": "psychic",
+      "type2": null,
+      "attack_type": "psychic",
+      "description": "A netrunner who can disrupt your systems with mental commands.",
+      "seen": "A person with glowing ocular implants stares intently at you.",
+      "attack": "The hacker assaults your mind with digital static!",
+      "death": "The hacker clutches their head and falls silent.",
+      "ranged": true,
+      "speed": 1,
+      "modifiers": []
+    },
+    {
+      "name": "Yakuza Enforcer",
+      "char": "Y",
+      "level": 3,
+      "color": "black",
+      "type1": "dark",
+      "type2": null,
+      "attack_type": "fighting",
+      "description": "A heavily augmented enforcer for the criminal underworld.",
+      "seen": "A hulking figure with a cybernetic arm and tattoos glares at you.",
+      "attack": "The yakuza enforcer lands a brutal punch!",
+      "death": "The enforcer slumps to the ground, defeated.",
+      "ranged": false,
+      "speed": 2,
+      "modifiers": []
+    },
+    {
+      "name": "Synth-Hound",
+      "char": "H",
+      "level": 2,
+      "color": "green",
+      "type1": "steel",
+      "type2": null,
+      "attack_type": "normal",
+      "description": "A cybernetically enhanced dog trained for combat and tracking.",
+      "seen": "A mechanical canine with glowing green eyes snarls.",
+      "attack": "The synth-hound lunges and bites with metallic jaws!",
+      "death": "The synth-hound's systems overload and fail.",
+      "ranged": false,
+      "speed": 3,
+      "modifiers": []
+    },
+    {
+      "name": "Geisha Assassin",
+      "char": "A",
+      "level": 3,
+      "color": "pink",
+      "type1": "fairy",
+      "type2": null,
+      "attack_type": "poison",
+      "description": "A deadly operative disguised as a traditional entertainer.",
+      "seen": "A graceful figure in a kimono turns, a hidden blade glinting.",
+      "attack": "The geisha assassin strikes with a poisoned dart!",
+      "death": "The geisha assassin falls, her disguise shattered.",
+      "ranged": true,
+      "speed": 2,
+      "modifiers": []
+    },
+    {
+      "name": "Security Droid",
+      "char": "d",
+      "level": 1,
+      "color": "silver",
+      "type1": "steel",
+      "type2": null,
+      "attack_type": "electric",
+      "description": "A standard security unit designed to patrol corporate zones.",
+      "seen": "A patrol droid with a police light approaches.",
+      "attack": "The security droid fires a stun blast!",
+      "death": "The droid sparks and powers down.",
+      "ranged": true,
+      "speed": 2,
+      "modifiers": []
+    },
+    {
+      "name": "Corporate Mercenary",
+      "char": "M",
+      "level": 2,
+      "color": "grey",
+      "type1": "normal",
+      "type2": null,
+      "attack_type": "fighting",
+      "description": "A well-equipped soldier employed by the megacorps.",
+      "seen": "A heavily armed mercenary blocks your path.",
+      "attack": "The mercenary opens fire with their assault rifle!",
+      "death": "The mercenary falls, their armor riddled with holes.",
+      "ranged": true,
+      "speed": 2,
+      "modifiers": []
+    },
+    {
+      "name": "Tech-Priest",
+      "char": "T",
+      "level": 3,
+      "color": "maroon",
+      "type1": "steel",
+      "type2": null,
+      "attack_type": "fire",
+      "description": "A cybernetically enhanced priest who worships technology.",
+      "seen": "A robed figure with mechanical implants chanting arcane words.",
+      "attack": "The tech-priest hurls a bolt of holy fire!",
+      "death": "The tech-priest's implants short-circuit.",
+      "ranged": true,
+      "speed": 1,
+      "modifiers": []
+    },
+    {
+      "name": "Cyber-Ninja",
+      "char": "N",
+      "level": 3,
+      "color": "black",
+      "type1": "dark",
+      "type2": "steel",
+      "attack_type": "fighting",
+      "description": "A stealthy assassin enhanced with cybernetic augmentations.",
+      "seen": "A shadow detaches itself from the wall, blade in hand.",
+      "attack": "The cyber-ninja strikes with lightning speed!",
+      "death": "The ninja collapses, their cybernetics failing.",
+      "ranged": false,
+      "speed": 3,
+      "modifiers": []
+    },
+    {
+      "name": "Security Chief",
+      "char": "C",
+      "level": 4,
+      "color": "gold",
+      "type1": "steel",
+      "type2": null,
+      "attack_type": "fire",
+      "description": "The hardened commander of a corporate security force.",
+      "seen": "A stern-faced individual in advanced armor directs their troops.",
+      "attack": "The chief fires a powerful energy weapon!",
+      "death": "The chief's command is silenced.",
+      "ranged": true,
+      "speed": 2,
+      "modifiers": []
+    }
+  ],
+  "items": [
+    {
+      "name": "Reinforced Trousers",
+      "level": 1,
+      "type": "steel",
+      "description": "Durable pants with plating for extra protection.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Makeshift Helmet",
+      "level": 1,
+      "type": "steel",
+      "description": "A crude helmet fashioned from scrap metal.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Graffiti Jacket",
+      "level": 2,
+      "type": "normal",
+      "description": "A stylish jacket adorned with vibrant street art.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Utility Vest",
+      "level": 2,
+      "type": "normal",
+      "description": "A vest with many pockets for carrying essential gear.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Gloves of Dexterity",
+      "level": 3,
+      "type": "fairy",
+      "description": "These gloves enhance your manual dexterity and grip.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Chameleon Cloak",
+      "level": 1,
+      "type": "dark",
+      "description": "A cloak that can partially blend with its surroundings.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Armored Kimono",
+      "level": 2,
+      "type": "steel",
+      "description": "A traditional kimono reinforced with light plating.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Tactical Visor",
+      "level": 2,
+      "type": "psychic",
+      "description": "A visor that enhances your perception and targeting.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Power Gauntlets",
+      "level": 3,
+      "type": "steel",
+      "description": "Augmented gauntlets that increase striking power.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Datajack Boots",
+      "level": 3,
+      "type": "electric",
+      "description": "Boots with integrated data ports for quick access.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Ballistic Vest",
+      "level": 1,
+      "type": "steel",
+      "description": "A standard-issue vest offering protection against bullets.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Power Armor Helm",
+      "level": 2,
+      "type": "steel",
+      "description": "A heavy helmet providing significant head protection.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Reinforced Plating",
+      "level": 2,
+      "type": "steel",
+      "description": "Heavy plating that can be attached to existing armor.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Cybernetic Arm",
+      "level": 3,
+      "type": "steel",
+      "description": "A powerful robotic arm replacement.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Stealth Suit",
+      "level": 3,
+      "type": "dark",
+      "description": "A suit designed to minimize visibility and sound.",
+      "kind": "armor",
+      "modifiers": []
+    },
+    {
+      "name": "Pipe Wrench",
+      "level": 1,
+      "type": "steel",
+      "description": "A heavy wrench, useful for both repairs and blunt force.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Combat Knife",
+      "level": 2,
+      "type": "normal",
+      "description": "A sturdy knife designed for close-quarters combat.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Vibro-Blade",
+      "level": 3,
+      "type": "steel",
+      "description": "A blade that vibrates at high frequencies for enhanced cutting.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Shiv Launcher",
+      "level": 2,
+      "type": "normal",
+      "description": "A discreet device that fires sharp projectiles.",
+      "kind": "ranged_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Makeshift SMG",
+      "level": 3,
+      "type": "fire",
+      "description": "A crude but effective automatic weapon.",
+      "kind": "ranged_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Katana",
+      "level": 1,
+      "type": "steel",
+      "description": "A traditional Japanese sword, sharp and precise.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Extendable Baton",
+      "level": 2,
+      "type": "normal",
+      "description": "A collapsible baton used by law enforcement and security.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Shock Stick",
+      "level": 3,
+      "type": "electric",
+      "description": "A stick that delivers a painful electrical jolt.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Laser Pistol",
+      "level": 2,
+      "type": "fire",
+      "description": "A sidearm that fires concentrated beams of light.",
+      "kind": "ranged_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Cyber-Revolver",
+      "level": 3,
+      "type": "fire",
+      "description": "A powerful handgun with enhanced cybernetic components.",
+      "kind": "ranged_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Energy Sword",
+      "level": 1,
+      "type": "fire",
+      "description": "A blade charged with energy, capable of cutting through most materials.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Stun Baton",
+      "level": 2,
+      "type": "electric",
+      "description": "A baton designed to incapacitate targets with electric shocks.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Chainsaw Sword",
+      "level": 3,
+      "type": "fire",
+      "description": "A sword with a buzzing chainsaw blade.",
+      "kind": "melee_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Plasma Rifle",
+      "level": 2,
+      "type": "fire",
+      "description": "A high-tech rifle firing bolts of superheated plasma.",
+      "kind": "ranged_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Railgun",
+      "level": 3,
+      "type": "steel",
+      "description": "A weapon that uses electromagnetic force to launch projectiles at extreme velocity.",
+      "kind": "ranged_weapon",
+      "modifiers": []
+    },
+    {
+      "name": "Nutri-Paste",
+      "level": 1,
+      "type": "normal",
+      "description": "A bland but filling nutrient supplement.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Synth-Ration",
+      "level": 1,
+      "type": "normal",
+      "description": "A compact, highly processed meal replacement.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Fermented Sludge",
+      "level": 2,
+      "type": "poison",
+      "description": "A potent, foul-tasting drink derived from processed waste.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Synth-Sushi",
+      "level": 1,
+      "type": "water",
+      "description": "Artificially created sushi, surprisingly tasty.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Ramen Pack",
+      "level": 2,
+      "type": "normal",
+      "description": "A quick-cooking noodle dish.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Energy Drink",
+      "level": 1,
+      "type": "electric",
+      "description": "A fizzy drink that temporarily boosts stamina.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Nutri-Bar",
+      "level": 1,
+      "type": "normal",
+      "description": "A dense bar packed with essential nutrients.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Stim-Pack",
+      "level": 2,
+      "type": "fire",
+      "description": "A powerful injection that temporarily enhances combat ability.",
+      "kind": "food",
+      "modifiers": []
+    },
+    {
+      "name": "Synth-Steak",
+      "level": 3,
+      "type": "normal",
+      "description": "A laboratory-grown meat product, indistinguishable from the real thing.",
+      "kind": "food",
+      "modifiers": []
+    }
+  ],
+  "boss": {
+    "name": "Cyber-Shogun",
+    "char": "S",
+    "color": "gold",
+    "type1": "steel",
+    "type2": "electric",
+    "attack_type": "electric",
+    "description": "The ruthless ruler of Neo-Kyoto, augmented with devastating cybernetics and a mastery of ancient combat techniques.",
+    "intro_message": "A chilling voice echoes, 'Intruder detected. Prepare for termination.'",
+    "attack_messages": [
+      "The Cyber-Shogun's energy katana flashes!",
+      "A surge of electricity courses through you!",
+      "The Shogun's augmented limbs strike with blinding speed!"
+    ],
+    "periodic_messages": [
+      "The Cyber-Shogun's optical sensors glow menacingly.",
+      "'Your existence is a glitch,' the Shogun states emotionlessly.",
+      "The Shogun performs a swift, deadly kata."
+    ],
+    "game_victory_paragraph": "With the Cyber-Shogun defeated, the corporate grip on Neo-Kyoto begins to loosen. The future is uncertain, but a new dawn of freedom may be breaking."
+  },
+  "characters": [
+    {
+      "name": "Jax",
+      "backstory": "A street-hardened cyber-runner, Jax grew up in the Undercity. Betrayed by his crew during a high-stakes data heist, he now seeks to reclaim his stolen cybernetics and exact revenge on the corporation that runs the Spire.",
+      "starting_items": [
+        "Reinforced Trousers",
+        "Combat Knife",
+        "Shiv Launcher",
+        "Nutri-Paste",
+        "Synth-Ration"
+      ]
+    },
+    {
+      "name": "Kaito",
+      "backstory": "A former corporate enforcer who witnessed too much corruption, Kaito abandoned his post. He now seeks to dismantle the megacorporations from the inside, using his intimate knowledge of their security systems.",
+      "starting_items": [
+        "Armored Kimono",
+        "Katana",
+        "Laser Pistol",
+        "Synth-Sushi",
+        "Ramen Pack"
+      ]
+    },
+    {
+      "name": "Anya",
+      "backstory": "A brilliant hacker with a mysterious past, Anya is searching for a legendary piece of lost technology hidden within the Corporate Spire. She believes it holds the key to unlocking true digital freedom.",
+      "starting_items": [
+        "Chameleon Cloak",
+        "Extendable Baton",
+        "Makeshift SMG",
+        "Energy Drink",
+        "Nutri-Bar"
+      ]
+    },
+    {
+      "name": "Ryu",
+      "backstory": "A ronin with a cybernetic arm and a burning desire for honor, Ryu was exiled from his dojo for using forbidden augmentation techniques. He wanders the neon streets, seeking worthy opponents and a chance to restore his name.",
+      "starting_items": [
+        "Graffiti Jacket",
+        "Vibro-Blade",
+        "Cyber-Revolver",
+        "Synth-Ration",
+        "Stim-Pack"
+      ]
+    },
+    {
+      "name": "Silas",
+      "backstory": "Once a respected member of a clandestine organization, Silas was framed for treason and forced into hiding. He now operates in the shadows, using his advanced cybernetics and stealth skills to uncover the conspiracy against him.",
+      "starting_items": [
+        "Utility Vest",
+        "Gloves of Dexterity",
+        "Plasma Rifle",
+        "Stim-Pack",
+        "Synth-Steak"
+      ]
+    }
+  ],
+  "recipes": []
+}
