@@ -302,7 +302,7 @@ impl Ui {
                                         display_slot = match item.info.kind {
                                             ItemKind::MeleeWeapon => "Melee",
                                             ItemKind::RangedWeapon => "Ranged",
-                                            ItemKind::Armor => "Equipment",
+                                            ItemKind::Armor => "Armor",
                                             ItemKind::Food => "Food",
                                         };
                                         if slot.equipped {
