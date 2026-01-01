@@ -185,6 +185,9 @@
                 gamescope
                 rust-analyzer
             ];
+            shellHook = ''
+              exec zsh
+            '';
           };
       });
 }
