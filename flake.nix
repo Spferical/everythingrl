@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/release-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/release-25.11";
 
     crane = {
       url = "github:ipetkov/crane";
@@ -63,6 +63,7 @@
             fontconfig
             pkg-config
             stdenv.cc.cc
+            zlib
           ] ++ lib.optionals pkgs.stdenv.isLinux [
             wayland
             libxkbcommon
