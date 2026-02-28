@@ -186,7 +186,9 @@
                 rust-analyzer
             ];
             shellHook = ''
-              exec zsh
+              if [[ $- == *i* ]]; then
+                exec zsh
+              fi
             '';
           };
       });
