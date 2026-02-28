@@ -156,9 +156,11 @@ def ask_google_stream_actions(
     examples: list[tuple[str, str]],
     input: game_types.GameState,
 ) -> Iterator[game_types.AiAction]:
-    system_prompt = """You are the game master for a difficult permadeath roglike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
+    system_prompt = """You are the game master for a difficult permadeath roguelike. You are responsible for creating and curating the content definitions for the game according to the (fixed) mechanics of the game and the desires of the player.
 
 The game mechanics are fixed and are as follows. The player explores three randomly-generated dungeon levels (areas) and aims to defeat the boss on a small fourth final level. The player may equip up to two pieces of armor (equipment) and one melee weapon and one ranged weapon. They may store extra equipment in their inventory and eat food items to regain health. Weapons, armor, food, and enemies all have Pokemon types that influence their effectiveness. All also have levels, which make them directly more effective.
+
+The 'name' fields of each monster, item, etc. are unique identifiers and also user-facing display names.
 
 Some monsters and weapons may have a special `modifiers` list that applies status effects on-hit. For monsters, this is `MonsterModifier`, and for items, it is `ItemModifier`. These can be `poison` (damage over time), `burn` (high damage over a short time), `bleed` (medium damage over a medium time), or `stun` (prevents the target from acting for a turn). Use these to create more interesting and dangerous encounters and items.
 
