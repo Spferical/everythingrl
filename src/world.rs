@@ -288,12 +288,13 @@ impl ItemInfo {
         desc.push((". ".into(), Color::White));
 
         let (num_att_dice, att_dice_sides) = attack_dice(self.level);
-        let (num_def_dice, def_dice_sides) = def_dice(self.level);
         let heal_amt = self.get_base_heal_amt();
         let base_desc = match self.kind {
             ItemKind::MeleeWeapon => format!("Deals {num_att_dice}d{att_dice_sides} damage."),
             ItemKind::RangedWeapon => format!("Deals {num_att_dice}d{att_dice_sides} / 2 damage."),
-            ItemKind::Armor => format!("Prevents {num_def_dice}d{def_dice_sides} damage."),
+            ItemKind::Armor => {
+                "Reduces damage by a fraction based on total defense level.".to_string()
+            }
             ItemKind::Food => format!("Heals for {heal_amt} hp."),
         };
         desc.push((base_desc, Color::White));
@@ -375,10 +376,6 @@ fn attack_dice(att_level: usize) -> (usize, usize) {
     (att_level + 1, 6)
 }
 
-fn def_dice(def_level: usize) -> (usize, usize) {
-    (def_level, 6)
-}
-
 fn calc_damage(
     rng: &mut rand::rngs::SmallRng,
     att_level: usize,
@@ -387,19 +384,15 @@ fn calc_damage(
     _attacker_is_player: bool,
     is_ranged: bool,
 ) -> usize {
-    // Base 4 mult.
-    let mult = eff.get_scale();
+    // Base 4 type mult.
+    let type_mult = eff.get_scale() as f32 / 4.0;
     let (num_att_dice, att_dice_sides) = attack_dice(att_level);
-    let mut damage = (1..=num_att_dice)
+    let def_mult = att_level as f32 / def_level as f32;
+    let mut damage = (((1..=num_att_dice)
         .map(|_| rng.gen_range(1..=att_dice_sides))
-        .sum::<usize>()
-        * mult
-        / 4;
-    let (num_def_dice, def_dice_sides) = def_dice(def_level);
-    let defense = (1..=num_def_dice)
-        .map(|_| rng.gen_range(1..=def_dice_sides))
-        .sum::<usize>();
-    damage = damage.saturating_sub(defense);
+        .sum::<usize>() as f32)
+        * type_mult
+        * def_mult) as usize;
     damage = damage.max(1);
     if is_ranged {
         damage /= 2;
