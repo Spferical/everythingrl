@@ -1,7 +1,7 @@
 [project]
 name = "everythingrl-server"
 version = "0.1.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
     "flask-sqlalchemy>=3.1.1",
