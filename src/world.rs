@@ -68,7 +68,7 @@ impl StatusEffect {
     pub fn duration(&self) -> usize {
         match self {
             Self::Poison => 10,
-            Self::Burn => 5,
+            Self::Burn => 3,
             Self::Bleed => 2,
             Self::Stun => 1,
         }
@@ -76,8 +76,8 @@ impl StatusEffect {
     pub fn dot(&self) -> Option<usize> {
         match self {
             Self::Poison => Some(1),
-            Self::Burn => Some(5),
-            Self::Bleed => Some(10),
+            Self::Burn => Some(3),
+            Self::Bleed => Some(4),
             Self::Stun => None,
         }
     }
