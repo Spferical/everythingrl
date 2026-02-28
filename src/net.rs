@@ -825,11 +825,37 @@ async fn generate_work(state: Arc<Mutex<IdeaGuyState>>) {
                     {
                         gen_and_apply_actions(
                             state.clone(),
-                            format!("Create a recipe for combining \"{}\" and \"{}\" and any item definition for the output, if required.",
+                            format!("Create a recipe for combining \"{}\" and \"{}\" and any item definition for the output, if it does not already exist. Ensure the item 'name' field exactly matches the 'output' field.",
                             item1_name,
                             item2_name)
                         )
                         .await;
+                    }
+                    loop {
+                        let missing_items = {
+                            let state = state.lock().unwrap();
+                            state
+                                .game_defs
+                                .recipes
+                                .iter()
+                                .map(|r| &r.output)
+                                .filter(|output| {
+                                    !state.game_defs.items.iter().any(|i| &i.name == *output)
+                                })
+                                .cloned()
+                                .collect::<HashSet<String>>()
+                        };
+                        if missing_items.is_empty() {
+                            break;
+                        } else {
+                            let mut reqs = String::from("Create the missing item definitions: \n");
+                            for name in missing_items {
+                                reqs.push_str(&format!(
+                                    "- an item definition with name \"{name}\".\n"
+                                ));
+                            }
+                            gen_and_apply_actions(state.clone(), reqs).await;
+                        }
                     }
                 }
             }
