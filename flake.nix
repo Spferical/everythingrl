@@ -111,8 +111,9 @@
 
         my-crate = craneLib.buildPackage (linuxArgs // {
           inherit cargoArtifacts;
+          nativeBuildInputs = linuxArgs.nativeBuildInputs ++ [ pkgs.patchelf ];
           postInstall = ''
-            wrapProgram "$out/bin/everythingrl" --set LD_LIBRARY_PATH "${lib.makeLibraryPath linuxArgs.buildInputs}";
+            patchelf --set-rpath "${lib.makeLibraryPath linuxArgs.buildInputs}" $out/bin/everythingrl
           '';
         });
 
