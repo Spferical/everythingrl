@@ -405,7 +405,7 @@ async fn main() {
     let mut egui_startup_done: bool = false;
     macroquad::miniquad::info!("MINIQUAD SCALE: {}", miniquad::window::dpi_scale());
 
-    let mut scale_factor = 2.0;
+    let mut scale_factor = 1.0;
     let mut gs = GameState::Menu(main_menu::Menu::new());
     let mut ig: Option<IdeaGuy> = None;
 
