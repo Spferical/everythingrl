@@ -1,3 +1,16 @@
+# 006
+
+- Expanded inventory limit to 24 slots.
+- Added combat randomness and new status effects (burn, poison, bleed, stun, knockback).
+- Status effects and damage-over-time (DOT) are based on type effectiveness.
+- Upgraded the AI model in use.
+- Added UI indicators for player status effects and mob types (fast, slow, ranged).
+- Ranged enemies now only attack in cardinal directions.
+- Made the inventory window movable and added more detailed item descriptions.
+- Replaced the character generation layout with radio buttons.
+- Moved "Load game from file" to the top of the main menu.
+- Added a font scale button to all game modes.
+
 # 005
 
 - Errors from the AI are handled better.
