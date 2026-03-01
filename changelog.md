@@ -1,3 +1,9 @@
+# 005
+
+- Errors from the AI are handled better.
+- Made the web build smaller and maybe faster.
+- Added the version number to the main menu.
+
 # 004
 
 - Added save/load for worlds.
