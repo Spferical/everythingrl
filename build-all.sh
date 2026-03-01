@@ -18,10 +18,12 @@ nix build .#windows
 rm -rf dist_windows
 mkdir -p dist_windows
 cp result/bin/everythingrl.exe dist_windows/
+touch dist_windows/*
 
 # Build WASM
 nix build .#wasm
 rsync -a result/dist/ dist/
+touch dist/*
 
 # Clean up symlink
 rm result
