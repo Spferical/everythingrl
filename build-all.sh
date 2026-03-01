@@ -21,7 +21,7 @@ cp result/bin/everythingrl.exe dist_windows/
 
 # Build WASM
 nix build .#wasm
-cp -r result/dist/* dist/
+rsync -a result/dist/ dist/
 
 # Clean up symlink
 rm result
