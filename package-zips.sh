@@ -10,5 +10,5 @@ version=$1
 rm -f ./everythingrl-*-"${version}".zip
 (cd dist_windows && zip -r "../everythingrl-windows-${version}.zip" *)
 (cd dist_linux && zip -r "../everythingrl-linux-${version}.zip" *)
-(cd dist && zip -r "../everythingrl-web.zip" *)
+(cd dist_wasm && zip -r "../everythingrl-web.zip" *)
 (cd dist_windows && zip -r "../everythingrl-windows-${version}.zip" *)
